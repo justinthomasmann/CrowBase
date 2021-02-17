@@ -1,0 +1,20 @@
+---
+title: "CrowBase-SumStats"
+author: "Justin Mann"
+date: "2/17/2021"
+output: html_document
+---
+
+```{r include=FALSE}
+library(tidyverse) 
+library(usethis) #git integration
+library(here)
+```
+
+```{r}
+here()
+```
+
+#can't push this to github?
+
+
