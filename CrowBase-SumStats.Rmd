@@ -15,8 +15,5 @@ library(here)
 here()
 ```
 
-#can't push this to github?
-
-#try again
 
 
