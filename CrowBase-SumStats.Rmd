@@ -10,6 +10,7 @@ library(tidyverse)
 library(usethis) #git integration
 library(here) #directory checks
 library(tibble)
+library(ggpubr) #ggarrange() figure wraps
 theme_set(theme_classic())
 ```
 
@@ -20,11 +21,50 @@ here()
 ```{r}
 adults <- read.csv("AdultData_OffBase.csv", h=TRUE)
 as_tibble(adults)
+colnames(adults)
 ```
 
 ```{r}
-adults %>%
+sppWeight <- adults %>%
   ggplot(aes(x=species, y=weight))+
   geom_boxplot()+
   geom_jitter(shape=1)
+
+sppTEC <- adults %>%
+  ggplot(aes(x=species, y=tec))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+sppWing <- adults %>%
+  ggplot(aes(x=species, y=wingChord))+
+  geom_boxplot()+
+  geom_jitter(shape=1) 
+
+sppTail <- adults %>%
+  ggplot(aes(x=species, y=tailLength))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+sppBillNT <- adults %>%
+  ggplot(aes(x=species, y=billNT))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+sppBillW <- adults %>%
+  ggplot(aes(x=species, y=billWidth))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+sppBillD <- adults %>%
+  ggplot(aes(x=species, y=billDepth))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+sppHead <- adults %>%
+  ggplot(aes(x=species, y=head))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+ggarrange(sppWeight,sppTEC,sppWing,sppTail,sppBillNT,sppBillW,sppBillW,sppHead)
+
 ```
