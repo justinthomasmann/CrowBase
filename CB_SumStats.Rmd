@@ -77,6 +77,6 @@ sppHead <- adults %>%
   geom_boxplot()+
   geom_jitter(shape=1)
 
-ggarrange(sppWeight,sppTEC,sppWing,sppTail,sppBillNT,sppBillW,sppBillW,sppHead)
+suppressWarnings(ggarrange(sppWeight,sppTEC,sppWing,sppTail,sppBillNT,sppBillW,sppBillW,sppHead))
 
 ```
