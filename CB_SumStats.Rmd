@@ -1,0 +1,82 @@
+---
+title: "CrowBase-SumStats"
+author: "Justin Mann"
+date: "2/17/2021"
+output: html_document
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+
+
+```{r include=FALSE}
+library(tidyverse) 
+library(usethis) #git integration
+library(here) #directory checks
+library(tibble)
+library(ggpubr) #ggarrange() figure wraps
+theme_set(theme_classic())
+```
+
+```{r}
+here()
+```
+
+```{r}
+adults <- read.csv("AdultData_OffBase.csv", h=TRUE)
+as_tibble(adults)
+colnames(adults)
+```
+
+```{r}
+sppWeight <- adults %>%
+  ggplot(aes(x=species, y=weight))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+sppTEC <- adults %>%
+  ggplot(aes(x=species, y=tec))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+sppWing <- adults %>%
+  ggplot(aes(x=species, y=wingChord))+
+  geom_boxplot()+
+  geom_jitter(shape=1) 
+
+sppTail <- adults %>%
+  ggplot(aes(x=species, y=tailLength))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+sppBillNT <- adults %>%
+  ggplot(aes(x=species, y=billNT))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+sppBillW <- adults %>%
+  ggplot(aes(x=species, y=billWidth))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+sppBillD <- adults %>%
+  ggplot(aes(x=species, y=billDepth))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+sppHead <- adults %>%
+  ggplot(aes(x=species, y=head))+
+  geom_boxplot()+
+  geom_jitter(shape=1)
+
+ggarrange(sppWeight,sppTEC,sppWing,sppTail,sppBillNT,sppBillW,sppBillW,sppHead)
+
+```
