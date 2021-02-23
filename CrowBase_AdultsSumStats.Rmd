@@ -21,8 +21,11 @@ theme_set(theme_classic())
 
 ```{r}
 adults <- read.csv("AdultData_OffBase.csv", h=TRUE)
+```
+```{r}
 as_tibble(adults)
 ```
+
 
 
 ```{r}
