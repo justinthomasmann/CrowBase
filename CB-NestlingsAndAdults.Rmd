@@ -1,13 +1,15 @@
 ---
-title: "CrowBase: exploring nestling morphometrics"
+title: 'CrowBase: exploring nestling morphometrics'
 author: "Justin Mann"
 date: "3/4/2021"
-output: html_document
+output:html_document: default
 ---
+
 
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse) #ggplot2, dplyr, tibble, etc.
 library(knitr)
+library(ggfortify)
 library(Rtsne)
 library(usethis) #git integration
 library(glmmTMB)
@@ -27,6 +29,7 @@ theme_set(theme_classic())
 ### Create full dataframe (df). 
 ```{r}
 df <- tibble(read.csv("Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.csv", h=T))
+summary(df[,c(2:23)])
 ```
 
 Add a new column with the number of occurrences of each individual in the dataset.
@@ -39,6 +42,12 @@ df$lifeStage <- as.factor(df$lifeStage)
 #check n for both life stages
 length(df$lifeStage[df$lifeStage == "nestling"]) #4086 nestlings
 length(df$lifeStage[df$lifeStage == "adult"]) #286 adults
+#create column with numbered observations for reference
+df$obs <- seq(1,length(df$nestlingMeasurementID))
+#make sex a factor
+df$sexSummary <- as.factor(df$sexSummary)
+levels(df$sexSummary)
+
 ```
 
 
@@ -54,24 +63,127 @@ ad <- subset(df, df$lifeStage == "adult")
 
 
 
-
-
-
-# tSNE plots for morphometrics
 ```{r}
 #subset morphometric data from .ne
 nestlMorph.ne <- ne[,c(1:23)] #n=4086
 #drop NAs
 nestlMorph.ne <- drop_na(nestlMorph.ne)#n=1413
-#filter ages
-nestlMorph.ne <- nestlMorph.ne %>% filter(between(age, 20, 30))#n=1237
+nestlMorph.ne$sexSummary <- as.factor(nestlMorph.ne$sexSummary)
+class(nestlMorph.ne$sexSummary)
+levels(nestlMorph.ne$sexSummary)
+
+
+#filter ages (also reduced by NA removal for unknown sexes)
+nestlMorph.ne <- nestlMorph.ne %>% filter(between(age, 20, 30))#n=538
+#create nestling bill morphometric dataframe
+nestlBills.ne <- nestlMorph.ne[,c(15:18)]
+```
+
+```{r}
+billPCA <- prcomp(nestlBills.ne)
+summary(billPCA)
+billPCA
+
+billPCA.plot <- tibble(PC1=billPCA$x[,1],
+                       PC2=billPCA$x[,2],
+                       sex=nestlMorph.ne$sexSummary)
+levels(billPCA.plot$sex)
+
+
+billPCA.plot %>%
+  ggplot(aes(x=PC1,y=PC2,color=sex))+
+  geom_point()
+```
+
+
+# Comparisons of bill measurements by sex
+## Including nestlings 20-30 days in age as per calcAge (n=538)
+### BillNT
+```{r}
+nestlMorph.ne %>% 
+  ggplot(aes(x=sexSummary,y=billNT))+
+  geom_boxplot()
+```
+
+```{r}
+t.test(nestlMorph.ne$billNT[nestlMorph.ne$sexSummary=="M"], nestlMorph.ne$billNT[nestlMorph.ne$sexSummary=="F"])
+```
+
+### BillW
+
+```{r}
+nestlMorph.ne %>% 
+  ggplot(aes(x=sexSummary,y=billW))+
+  geom_boxplot()
+```
+
+```{r}
+t.test(nestlMorph.ne$billW[nestlMorph.ne$sexSummary=="M"], nestlMorph.ne$billW[nestlMorph.ne$sexSummary=="F"])
+```
+
+### BillD
+
+```{r}
+nestlMorph.ne %>% 
+  ggplot(aes(x=sexSummary,y=billD))+
+  geom_boxplot()
+```
+
+```{r}
+t.test(nestlMorph.ne$billD[nestlMorph.ne$sexSummary=="M"], nestlMorph.ne$billD[nestlMorph.ne$sexSummary=="F"])
+```
+
+
+### TEC
+
+```{r}
+nestlMorph.ne %>% 
+  ggplot(aes(x=sexSummary,y=TEC))+
+  geom_boxplot()
+```
+
+```{r}
+t.test(nestlMorph.ne$TEC[nestlMorph.ne$sexSummary=="M"], nestlMorph.ne$TEC[nestlMorph.ne$sexSummary=="F"])
+```
+
+### BillW
+
+```{r}
+df %>% 
+  ggplot(aes(x=lifeStage,y=tarsus,color=sexSummary))+
+  geom_boxplot()
+```
+
+
+
+
+```{r}
+df %>% 
+  ggplot(aes(x=lifeStage,y=billW,color=sexSummary))+
+  geom_boxplot()
+```
+
+```{r}
+df %>% 
+  ggplot(aes(x=lifeStage,y=billD,color=sexSummary))+
+  geom_boxplot()
+```
+
+```{r}
+df %>% 
+  ggplot(aes(x=lifeStage,y=billNT,color=sexSummary))+
+  geom_boxplot()
+```
+
+
+
+
+```{r}
 #create morphometric matrix
 nestlMorph.mat <- as.matrix(nestlMorph.ne[,-c(1:10,22)])
 #run tSNE
 nestlMorph.tsne <- Rtsne(nestlMorph.mat)
-```
 
-```{r}
 nestlMorphTsne.plot <- data.frame(x=nestlMorph.tsne$Y[,1],
                                  y=nestlMorph.tsne$Y[,2],
                                  nest=nestlMorph.ne$nest,
@@ -100,21 +212,6 @@ ggplot(nestlMorphTsne.plot, aes(x=x,y=y,color=as.factor(year)))+
 ### Clustering by sex
 ```{r, echo=FALSE}
 ggplot(nestlMorphTsne.plot, aes(x=x,y=y,color=sex))+
-  geom_point(size = 2)+
-  xlab("Dimension 1")+
-  ylab("Dimension 2")+
-  theme(#legend.position="",
-        legend.title = element_text(size = 18, face = "bold"),
-        axis.title.x = element_text(size = 18, face = "bold"),
-        axis.text = element_text(size = 16),
-        axis.title.y = element_text(size = 18, face = "bold"))
-```
-
-
-
-### Clustering by population
-```{r, echo=FALSE}
-ggplot(nestlMorphTsne.plot, aes(x=x,y=y,color=population))+
   geom_point(size = 2)+
   xlab("Dimension 1")+
   ylab("Dimension 2")+
