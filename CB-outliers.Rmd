@@ -4,12 +4,16 @@ author: "Justin Mann"
 date: "3/11/2021"
 output: html_document
 ---
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(anomalize)
+library(RColorBrewer) 
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-#libraries
-library(tidyverse)
-library(anomalize)
+brewer.pal(n=8, name = "Dark2"); #display.brewer.pal(n = 8, name = "Dark2")
+theme_set(theme_classic())
 ```
 
 ## full dataset (df)
