@@ -5,9 +5,9 @@ date: "3/4/2021"
 output:html_document: default
 ---
 
-
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse) #ggplot2, dplyr, tibble, etc.
+library(plotly) #use ggplotly(*plotName*) for interactive plots with scoll-over IDs
 library(knitr)
 library(ggfortify)
 library(Rtsne)
@@ -28,7 +28,7 @@ theme_set(theme_classic())
 
 ### Create full dataframe (df). 
 ```{r}
-df <- tibble(read.csv("Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.csv", h=T))
+df <- data.frame(read.csv("Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.csv", h=T))
 summary(df[,c(2:23)])
 ```
 
@@ -74,25 +74,59 @@ levels(nestlMorph.ne$sexSummary)
 
 
 #filter ages (also reduced by NA removal for unknown sexes)
-nestlMorph.ne <- nestlMorph.ne %>% filter(between(age, 20, 30))#n=538
+nestlMorph.ne <- nestlMorph.ne %>% filter(between(age, 23, 27))
 #create nestling bill morphometric dataframe
 nestlBills.ne <- nestlMorph.ne[,c(15:18)]
 ```
+
+```{r tarsusByWeight}
+tarsusByWeight <- nestlMorph.ne %>%  
+  ggplot(aes(x=weight,y=tarsus,color=sexSummary,label=id))+
+  geom_point()
+ggplotly(tarsusByWeight)
+```
+
+```{r skullByWeight}
+skullByWeight <- nestlMorph.ne %>%  
+  ggplot(aes(x=weight, y=skull, color = sexSummary, label = id))+
+  geom_point()
+ggplotly(skullByWeight)
+```
+
 
 ```{r}
 billPCA <- prcomp(nestlBills.ne)
 summary(billPCA)
 billPCA
 
-billPCA.plot <- tibble(PC1=billPCA$x[,1],
-                       PC2=billPCA$x[,2],
-                       sex=nestlMorph.ne$sexSummary)
-levels(billPCA.plot$sex)
+billPCA.ne <- tibble(PC1=billPCA$x[,1],
+                     PC2=billPCA$x[,2],
+                     sex=nestlMorph.ne$sexSummary,
+                     id=nestlMorph.ne$id)
 
-
-billPCA.plot %>%
-  ggplot(aes(x=PC1,y=PC2,color=sex))+
+billPCA_plot <- billPCA.ne %>%
+  ggplot(aes(x=PC1,y=PC2,color=sex,label=id))+
   geom_point()
+ggplotly(billPCA_plot)
+```
+
+```{r}
+morphPCA <- prcomp(nestlMorph.ne[,11:23])
+
+morphPCA.plot <- tibble(PC1=morphPCA$x[,1],
+                        PC2=morphPCA$x[,2],
+                        sex=nestlMorph.ne$sexSummary,
+                        id=nestlMorph.ne$id)
+summary(morphPCA)
+morphPCA
+
+indMorphPCA <- cbind(morphPCA$x[,1], nestlMorph.ne$id)
+
+morphPCA <- morphPCA.plot %>%
+  ggplot(aes(x=PC1,y=PC2,color=sex,label=id))+
+  geom_point()
+ggplotly(morphPCA)
+
 ```
 
 

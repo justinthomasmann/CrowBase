@@ -1,0 +1,37 @@
+---
+title: "CB-mouthColor"
+author: "Justin Mann"
+date: "3/19/2021"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(RColorBrewer) 
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+brewer.pal(n=8, name = "Dark2"); #display.brewer.pal(n = 8, name = "Dark2")
+theme_set(theme_classic())
+```
+
+## full dataset (df)
+
+```{r df}
+df=tibble(read.csv("CB-mouthColor.csv", h=T))
+
+colorTemp.df = df %>% 
+  select(date, nestlingDataID, nestlingDataSexSum, nestlingDataAge, nestlingDataWeight, 
+                            tongueY1, tongueY2, tongueM1, tongueM2, tongueSat1, tongueSat2,
+                            ambTemp1, ambTemp2, bodyTemp1, bodyTemp2)
+```
+
+
+```{r}
+colorTemp.df %>% 
+  ggplot(aes(x=tongueY1, y=bodyTemp1))+
+  geom_point()+
+  geom_smooth(method = "lm")
+```
+
