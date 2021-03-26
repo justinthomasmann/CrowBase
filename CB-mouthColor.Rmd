@@ -5,9 +5,23 @@ date: "3/19/2021"
 output: html_document
 ---
 
-```{r libraries, include=FALSE}
-library(tidyverse)
-library(RColorBrewer) 
+```{r libraries, message=FALSE, warning=FALSE}
+library(tidyverse) #ggplot2, dplyr, tibble, etc.
+library(plotly) #use ggplotly() for interactive plots with scoll-over IDs
+library(knitr) #use kable() to make formatted tables
+library(Rtsne)
+library(glmmTMB)
+library(lme4)
+library(sjPlot)
+library(ggpubr) #ggarrange() figure wraps
+library(plyr)
+library(ggeffects) #ggpredict
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation >launch_shinystan_demo()
+library(loo) #loo() to compare fits between bayesian models
+library(MuMIn) #dredge, model averaging
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(RColorBrewer)
 ```
 
 ```{r setup, include=FALSE}
@@ -18,20 +32,60 @@ theme_set(theme_classic())
 
 ## full dataset (df)
 
-```{r df}
+```{r dataframe}
 df=tibble(read.csv("CB-mouthColor.csv", h=T))
+```
+<br>
 
-colorTemp.df = df %>% 
-  select(date, nestlingDataID, nestlingDataSexSum, nestlingDataAge, nestlingDataWeight, 
-                            tongueY1, tongueY2, tongueM1, tongueM2, tongueSat1, tongueSat2,
-                            ambTemp1, ambTemp2, bodyTemp1, bodyTemp2)
+Full model for Saturation 1
+```{r full saturation 1 model}
+#checked age * tarsus interaction...not significant
+sat1_full.mdl <- lmer(sat1 ~ weight + age + tarsus + sex + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                 data = df, REML = FALSE)
+
+summary(sat1_full.mdl)
+```
+
+Confidence intervals for Full Saturation 1 model
+```{r}
+confint(sat1_full.mdl)
 ```
 
 
 ```{r}
-colorTemp.df %>% 
-  ggplot(aes(x=tongueY1, y=bodyTemp1))+
-  geom_point()+
-  geom_smooth(method = "lm")
+#plot model with sex
+plot_model(sat1_full.mdl,
+           title = "Saturation 1")
 ```
+<br>
 
+```{r}
+#plot model without sex to view the smaller confidence intervals 
+plot_model(sat1_full.mdl, 
+           title = "Saturation 1",
+           rm.terms = c("sex [F]","sex [M]"))
+```
+<br>
+
+Reduced models: fixed effects removed based on confidence intervals from the full model
+```{r reduced models}
+#sex random effect 
+sat1_rsex.mdl <- lmer(sat1 ~ weight + age + tarsus + bodTemp1 + ambTemp1 + (1|sex), 
+                 data = df, REML = FALSE)
+#remove timeOut
+sat1_r1.mdl <- lmer(sat1 ~ weight + age + tarsus + sex + bodTemp1 + ambTemp1 + (1|family), 
+                 data = df, REML = FALSE)
+#remove ambTemp
+sat1_r2.mdl <- lmer(sat1 ~ weight + age + tarsus + sex + bodTemp1 + (1|family), 
+                 data = df, REML = FALSE)
+#remove bodTemp
+sat1_r3.mdl <- lmer(sat1 ~ weight + age + tarsus + sex + (1|family), 
+                 data = df, REML = FALSE)
+sat1_candset <- c(sat1_full.mdl,sat1_rsex.mdl,sat1_r1.mdl,sat1_r2.mdl,sat1_r3.mdl)
+mdls <- c("full", "randSex", "r1", "r2", "r3")
+aictab(sat1_candset, modnames = mdls, sort = TRUE)
+```
+AICc model selection shows that the full model is better fit than any of the reduced models. 
+<br> 
+
+In summary, weight is positively associated with saturation 1. Age and tarsus are both negatively associated with saturation 1. Sex, ambient temp, and body temp are not significantly associated with saturation 1.
