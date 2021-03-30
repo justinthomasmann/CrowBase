@@ -30,18 +30,81 @@ brewer.pal(n=8, name = "Dark2"); #display.brewer.pal(n = 8, name = "Dark2")
 theme_set(theme_classic())
 ```
 
-## full dataset (df)
+## full mouth color dataset (mc)
 
-```{r dataframe}
-df=tibble(read.csv("CB-mouthColor.csv", h=T))
+```{r mouth color dataframe}
+mc=tibble(read.csv("CB-mouthColor.csv", h=T))
 ```
 <br>
+
+## full nestling morphometrics dataset (nm)
+
+```{r nestling morphometrics dataframe}
+nm=tibble(read.csv("nestlingMorph.csv", h=T))
+nm[nm==0] <- NA
+```
+<br> 
+
+Morphometrics dataframe simplified for PCA
+```{r bill morphometrics}
+#subset id, billD, billW, TEC, skull, tarsus, and age
+morphSimple.nm <- nm[,c(6,7,11,16:18,20,23)]
+morphSimple.nm <- morphSimple.nm %>% 
+  filter(between(age, 23, 27))
+morphSimple.nm <- drop_na(morphSimple.nm)
+#morphSimple.nm <- morphSimple.nm[-c(640,840,1186,1922,2196),]
+morphForPCA <- as.matrix(morphSimple.nm[,c(3:7)])
+```
+<br>
+
+Size PCA (same metrics as Townsend et al. 2010)
+```{r}
+sizePCA <- prcomp(morphForPCA)
+
+sizePCA.plot <- tibble(PC1=sizePCA$x[,1],
+                        PC2=sizePCA$x[,2],
+                        id=morphSimple.nm$id)
+summary(sizePCA)
+sizePCA
+```
+
+```{r}
+weightByTarsusPlot <-morphSimple.nm %>% 
+  ggplot(aes(x=tarsus, y=weight, label=id))+
+  geom_point(shape=1)+
+  geom_smooth()
+ggplotly(weightByTarsusPlot)
+```
+
+
+```{r}
+massTarsus.mdl <- lm(weight~tarsus, data = morphSimple.nm)
+plot(massTarsus.mdl)
+```
+
+```{r}
+morphSimple.nm$massTarsusResiduals <- residuals(massTarsus.mdl)
+joinResiduals.df <- data.frame(id = morphSimple.nm$id, 
+                               residualsMassTarsus = morphSimple.nm$massTarsusResiduals)
+new.mc <- left_join(mc, joinResiduals.df, by = "id")
+mc$residualsMassTarsus
+```
+
+Residuals (mass by tarsus) model for Saturation 1
+```{r full residual saturation 1 model}
+#checked age * tarsus interaction...not significant
+# sat1_resid.mdl <- lmer(sat1 ~ age + residualsMassTarus.x + sex + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+#                  data = new.mc, REML = FALSE)
+# 
+# summary(sat1_full.mdl)
+```
+
 
 Full model for Saturation 1
 ```{r full saturation 1 model}
 #checked age * tarsus interaction...not significant
 sat1_full.mdl <- lmer(sat1 ~ weight + age + tarsus + sex + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
-                 data = df, REML = FALSE)
+                 data = mc, REML = FALSE)
 
 summary(sat1_full.mdl)
 ```
@@ -71,16 +134,16 @@ Reduced models: fixed effects removed based on confidence intervals from the ful
 ```{r reduced models}
 #sex random effect 
 sat1_rsex.mdl <- lmer(sat1 ~ weight + age + tarsus + bodTemp1 + ambTemp1 + (1|sex), 
-                 data = df, REML = FALSE)
+                 data = mc, REML = FALSE)
 #remove timeOut
 sat1_r1.mdl <- lmer(sat1 ~ weight + age + tarsus + sex + bodTemp1 + ambTemp1 + (1|family), 
-                 data = df, REML = FALSE)
+                 data = mc, REML = FALSE)
 #remove ambTemp
 sat1_r2.mdl <- lmer(sat1 ~ weight + age + tarsus + sex + bodTemp1 + (1|family), 
-                 data = df, REML = FALSE)
+                 data = mc, REML = FALSE)
 #remove bodTemp
 sat1_r3.mdl <- lmer(sat1 ~ weight + age + tarsus + sex + (1|family), 
-                 data = df, REML = FALSE)
+                 data = mc, REML = FALSE)
 sat1_candset <- c(sat1_full.mdl,sat1_rsex.mdl,sat1_r1.mdl,sat1_r2.mdl,sat1_r3.mdl)
 mdls <- c("full", "randSex", "r1", "r2", "r3")
 aictab(sat1_candset, modnames = mdls, sort = TRUE)
@@ -89,3 +152,4 @@ AICc model selection shows that the full model is better fit than any of the red
 <br> 
 
 In summary, weight is positively associated with saturation 1. Age and tarsus are both negatively associated with saturation 1. Sex, ambient temp, and body temp are not significantly associated with saturation 1.
+
