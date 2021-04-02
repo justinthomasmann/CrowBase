@@ -1,15 +1,16 @@
 ---
 title: "CB-mouthColor"
 author: "Justin Mann"
-date: "3/19/2021"
+date: "4/1/2021"
 output: html_document
 ---
 
 ```{r libraries, message=FALSE, warning=FALSE}
-library(RColorBrewer) ;brewer.pal(n=8, name = "Dark2") #;display.brewer.pal(n = 8, name = "Dark2")
-library(tidyverse) #ggplot2, dplyr, tibble, etc.
+library(RColorBrewer); #brewer.pal(n=8, name = "Dark2") #;display.brewer.pal(n = 8, name = "Dark2")
+library(tidyverse); theme_set(theme_classic()) #ggplot2, dplyr, tibble, etc.
 library(plotly) #use ggplotly() for interactive plots with scoll-over IDs
 library(knitr) #use kable() to make formatted tables
+library(kableExtra)
 library(Rtsne)
 library(glmmTMB)
 library(lme4)
@@ -22,41 +23,57 @@ library(shinystan) #stan model evaluation >launch_shinystan_demo()
 library(loo) #loo() to compare fits between bayesian models
 library(MuMIn) #dredge, model averaging
 library(AICcmodavg) #aictab() for AICc model comparisons
+library(coin) #permutation test for ratios with independence_test()
+library(janitor) #get_dupes() finds and prints duplicates
 ```
-<br>
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-theme_set(theme_classic())
 ```
-
-## Read in mouth color data (mc)
 <br>
 
+### <b>Read in mouth color data (mc)</b>
+<br>
+<b>Replace zeros with NAs, sort and filter by age (23-27)</b>
 ```{r mouth color dataframe}
-mc=tibble(read.csv("CB-mouthColor.csv", h=T))
+mc=tibble(read.csv("CB-mouthColor.csv", h=T)) #N=225
 #replace zeros with NAs in morphometrics 
 mc[mc==0] <- NA
 #sort by year > family > id
 mc <- mc %>% arrange(year, family, id) #N=225
 #filter to include only ages 23-27
 mc <- mc %>% filter(between(age,23,27)) #N=141
+mc <- mc %>% drop_na(sex) #N=138
 ```
 <br>
 
+<b>Identify duplicate records in mc</b>
+```{r find and remove duplicate records in mc}
+mc %>% get_dupes(id)
+```
+For these duplicate records, one record for each individual is missing time 2 measurements. Therefore, I am keeping
+only the complete record for each individual.
+Removed = 42 ROWA04 (row 137), 53 ROWA04 (row 138), 64 ROWA04 (row 139), 75 ROWA04 (row 140)
+```{r}
+mc <- mc[-c(62,67,72,78),]#N=134
+#mc %>% get_dupes() #double check...yep, no duplicates
+```
+
+<b>Create subsets of mc for females (N=82) and males (N=56) only</b>
 ```{r subset mc by sex}
 #females only
 female.mc <- mc %>% 
-  filter(sex == "F") #N=82
+  filter(sex == "F") #N=79
 #males only
 male.mc <- mc %>% 
-  filter(sex == "M") #N=56
+  filter(sex == "M") #N=55
 ```
-
-
-## Read in nestling morphometrics data (nm)
 <br>
 
+### <b>Read in nestling morphometrics data (nm)</b>
+<br>
+<b>Nestling morphometrics are being used here to boost sample size for calculating mass/tarsus residuals</b>
+<br>
+<b>Replace zeros with NAs, sort and filter by age (23-27)</b> 
 ```{r nestling morphometrics dataframe}
 nm=tibble(read.csv("nestlingMorph.csv", h=T))
 #replace zeros with NAs in morphometrics 
@@ -66,10 +83,11 @@ nm <- nm[,-1]
 #sort by year > nestName > id
 nm <- nm %>% arrange(year, nestName ,id)
 #filter to include only ages 23-27
-nm <- nm %>% filter(between(age, 23, 27))
+nm <- nm %>% filter(between(age, 23, 27)) 
 ```
 <br>
 
+<b>Create subset of nm including only sexed birds (N=503; females=268; males=235)</b>
 ```{r subset nm for sexed birds}
 #subset nm to include only sexed birds and remove NAs from mass & tarsus
 sexed.nm <- nm %>% drop_na(sex, tarsus, mass) #N=503
@@ -82,46 +100,88 @@ female.nm <- sexed.nm %>%
 male.nm <- sexed.nm %>% 
   filter(sex == "M") #N=235
 ```
+<br>
 
+### <b>Do we need to control for repeated measurements of birds in mass~tarsus.mdl?</b>
+<br>
+The code below compares a linear model (lm) and a linear mixed effects model (lmer), which controls for repeated
+measurements of the same birds during multiple climbs.  
+<br>
 
-## Do we need to control for repeated measurements of birds in mass~tarsus.mdl
+### 1. Use lm() to run linear model with no random effects
+<br>
+
+<b>Run lm() and plot residuals</b>
 ```{r do we control repeated id}
 noRandId.mdl_outliers <- lm(mass~tarsus, data = nm)
 plot(noRandId.mdl_outliers)
 ```
-```{r}
-nm[c(437,743,1012,1038,1514),c(5,10,22)]
-```
+<br>
 
-## Remove outliers as identified by residual distribution plots
-```{r do we control repeated id (remove outliers)}
-noRandId.mdl1 <- lm(mass~tarsus, data = nm[-c(437,743,1012,1038,1514),])
-plot(noRandId.mdl1)
+Residual plots identify the following individuals as outliers.
+```{r}
+nm[c(437,743,1012,1038,1514),c(5,10,22)] %>% 
+  kbl() %>% 
+  kable_paper("hover", full_width = F, position = "left")
 ```
 <br>
-## Remove outliers for calculation of nm mass~tarsus residuals
-```{r remove outliers from mass~tarus.mdls}
+
+<b>Remove the identified outliers, rerun lm() and plot residuals again</b>
+```{r do we control repeated id (remove outliers)}
 tarsusMass.nm <- nm[-c(437,743,1012,1038,1514),] #n=1531 (five birds removed confirmed)
-#remove NAs from tarsus & mass
-tarsusMass.nm <- drop_na(tarsusMass.nm, tarsus, mass)
-#rerun mass~tarsus.mdl
+#drop NAs from tarsus and mass
+tarsusMass.nm <- drop_na(tarsusMass.nm, tarsus, mass) #N=1513
 noRandId.mdl2 <- lm(mass~tarsus, data = tarsusMass.nm)
 plot(noRandId.mdl2)
 ```
+<br>
+Residual distributions improved
+
+<br>
+<b>Model summary</b>
 ```{r}
 summary(noRandId.mdl2)
-```
-
-```{r}
-randId.mdl <- lmer(mass~tarsus + (1|id), data = tarsusMass.nm, REML = FALSE)
-summary(randId.mdl)
-AIC(noRandId.mdl2,randId.mdl)
-```
-```{r}
-plot(randId.mdl, col="black")
+#   kbl(caption = "Linear Model: mass tarsus index") %>% 
+#   kable_classic(full_width = F, position = "left", html_font = "Cambria")
 ```
 <br>
-## Plot--weight by tarsus: no sex filter (N=1513)
+
+### 2. Use lmer() to run a mixed effects model that controls for birds with repeated measurements
+<br>
+We can only directly compare results from a linear model and a linear mixed effects model by using regular Maximum Likelihood (ML). However, the default likelihood estimation for lmer() models Random Effects Maximum Likelihood (REML). 
+<br>
+https://stackoverflow.com/questions/24019807/how-to-compare-a-model-with-no-random-effects-to-a-model-with-a-random-effect-us 
+
+<br>
+The lmer() argument 'REML=FALSE' implements ML estimation instead. 
+
+<b>We use the same dataframe as above, age filtered, no NAs and outliers already removed</b>
+```{r}
+randId.mdl <- lmer(mass~tarsus + (1|id), data = tarsusMass.nm, REML = FALSE)
+plot(randId.mdl, col="black")
+```
+
+Residual distribution looks good.
+
+
+<br>
+<b>Summary of mixed effect model</b>
+```{r}
+summary(randId.mdl)
+```
+<br>
+
+<b>Now, directly compare the lm() and lmer() models</b>
+```{r}
+AIC(noRandId.mdl2,randId.mdl) %>% 
+  kbl(caption = "lm() vs. lmer(): mass~tarsus") %>% 
+  kable_classic(full_width = F, position = "left", html_font = "Cambria")
+```
+<br>
+lmer() model does a better job at explaining variance with the inclusion of a random effect 
+
+<br>
+### Plot--weight by tarsus: no sex filter (N=1513)
 ```{r Plot--weight~tarsus}
 tarsusMass.nm %>% 
   ggplot(aes(x=tarsus,y=mass,color=as.factor(age)))+
@@ -129,6 +189,11 @@ tarsusMass.nm %>%
   scale_color_brewer(palette = "Set1")
 ```
 <br>
+
+### Plot--mass distribution by sex
+<br>
+
+<b>Only includes sexed individuals (N=503)</b>
 ```{r mass distribution by sex}
 sexed.nm %>% 
   ggplot(aes(mass, fill=sex))+
@@ -139,9 +204,12 @@ sexed.nm %>%
   annotate(geom = "text", x=375, y=29, label="N=268")+
   annotate(geom = "text", x=390, y=5, label="N=235")
 ```
-
-
 <br>
+
+### Plot--tarsus distribution by sex
+<br>
+
+<b>Only includes sexed individuals (N=503)</b>
 ```{r tarsus distribution by sex}
 sexed.nm %>% 
   ggplot(aes(tarsus, fill=sex))+
@@ -152,24 +220,65 @@ sexed.nm %>%
   annotate(geom = "text", x=59, y=28, label="N=268")+
   annotate(geom = "text", x=60, y=5, label="N=235")
 ```
-
 <br>
+
+### Plot--mass by tarsus with sex filter (N=503)
 ```{r Plot--weight ~ tarsus with sex filter}
 sexed.nm %>% 
   ggplot(aes(x=tarsus,y=mass,color=sex))+
   geom_point(alpha=0.5)+
   geom_smooth()+
   scale_color_manual(values = c("#1B9E77", "#D73027"),
-                    name = "Sex",
+                    name = "",
                     labels = c("Female","Male"))
 ```
+<br>
+
+### Calculate mass/tarsus ratio and append a ratio column to sexed.nm
+```{r calculate mass/tarsus ratio}
+sexed.nm$ratio <- sexed.nm$mass/sexed.nm$tarsus
+```
+<br> 
+
+### Permutation test to assess independence of male and female ratios
+reference: https://stats.stackexchange.com/questions/23152/test-for-significant-difference-in-ratios-of-normally-distributed-random-variabl 
+```{r mass/tarsus ratio t test}
+independence_test(ratio~sex, data = sexed.nm)
+```
+<br>
+This result doesn't indicate the direction of the relationship, but simply indicates
+that the female ratio is statistically different than the male ratio. This suggests that
+modeling male and female mouth color separately is likely best. 
+
+<br>
+```{r}
+sexed.nm %>% 
+  ggplot(aes(x=sex, y=ratio, color=sex))+
+  geom_boxplot()+
+  ylab("Mass/tarsus ratio")+
+  scale_color_manual(values = c("#1B9E77", "#D73027"),
+                    name = "",
+                    labels = c("Female","Male"))+
+  geom_jitter(alpha=0.2)
+```
+
+### Create the female mass~tarsus residual index
 ```{r}
 femaleIndex.lm <- lm(mass~tarsus, female.nm)
 summary(femaleIndex.lm)
 ```
+<br>
+
+<b>Check residual distributions</b>
+<br>
+
+*Q-Q plot looks a little non-normal, probably seeing the effects of reduced sample size by separating sexes.
 ```{r}
 plot(femaleIndex.lm)
 ```
+<br>
+
+### Plot--female mass~tarsus
 ```{r Plot--female mass~tarsus}
 female.nm %>% 
   ggplot(aes(x=tarsus, y=mass, color=as.factor(age)))+
@@ -178,17 +287,22 @@ female.nm %>%
   scale_color_brewer(palette = "Set1")
 ```
 <br>
+
+### Create male mass~tarsus residual index
+<br> 
 ```{r}
 maleIndex.lm <- lm(mass~tarsus, male.nm)
 summary(maleIndex.lm)
 ```
 <br>
 
+<b>Plot residuals</b>
 ```{r}
 plot(maleIndex.lm)
 ```
+<br>
 
-
+### Plot--male tarsus~mass
 ```{r Plot--male mass~tarsus}
 male.nm %>% 
   ggplot(aes(x=tarsus, y=mass, color=as.factor(age)))+
@@ -198,6 +312,7 @@ male.nm %>%
 ```
 <br>
 
+<b>Create dataframes containing id and residuals</b>
 ```{r residual dataframes}
 male.nm$residuals <- maleIndex.lm$residuals
 female.nm$residuals <- femaleIndex.lm$residuals
@@ -206,54 +321,127 @@ joinMaleResidual <- data.frame(id = male.nm$id,
 joinFemaleResidual <- data.frame(id = female.nm$id,
                                  residuals = female.nm$residuals)
 ```
+<br>
 
+<b>Join residuals with male and female mouth color data by common id</b>
 ```{r}
-left_join(female.mc,joinFemaleResidual, by="id")
 newFemale.mc <- left_join(female.mc,joinFemaleResidual, by="id")
 female.mc$residuals <- newFemale.mc$residuals
 
 newMale.mc <- left_join(male.mc,joinMaleResidual, by="id")
 male.mc$residuals <- newMale.mc$residuals
-```
+bothSexResid <- data.frame(rbind(joinMaleResidual,joinFemaleResidual))
 
+new.mc <- left_join(mc,bothSexResid, by="id")
+new.mc$residuals
+mc$residuals <- new.mc$residuals
+```
+<br>
+
+### Female only saturation 1 model
 ```{r}
 femaleSat1.mdl <- lmer(sat1~age + residuals + bodTemp1 + ambTemp1 + timeOut1 + (1|family), data = female.mc)
 summary(femaleSat1.mdl)
-plot_model(femaleSat1.mdl)
+```
+<br>
+```{r}
+plot_model(femaleSat1.mdl,
+           title = "Female saturation 1 model")
+```
+```{r female sat1 model confint}
+confint(femaleSat1.mdl)
+```
+<br>
+
+### Bayesian female sat1 model
+```{r}
+stan_femaleSat1.mdl <- stan_glmer(sat1~age + residuals + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+           data = female.mc, algorithm = "sampling",iter = 5000,
+           prior = normal(), prior_intercept = normal(),chains = 10,seed = 12345)
+summary(stan_femaleSat1.mdl)
+```
+
+```{r}
+plot_model(stan_femaleSat1.mdl,
+           title = "Bayesian female sat1 model",
+           bpe = "median",
+           vline.color = "black",
+           prob.inner = .50,
+           prob.outer = .80,
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1)
 ```
 
 
-```{r}
+### Male only saturation 1 model
+```{r male sat1 model}
 maleSat1.mdl <- lmer(sat1~age + residuals + bodTemp1 + ambTemp1 + timeOut1 + (1|family), data = male.mc)
 summary(maleSat1.mdl)
-plot_model(maleSat1.mdl)
 ```
+<br>
 
+```{r male saturation 1 plot_model}
+plot_model(maleSat1.mdl,
+           title = "Male saturation 1 model")
+```
+<br>
+```{r male sat1 model confint}
+confint(maleSat1.mdl)
+```
+<br>
+
+### Bayesian male saturation 1 model
+```{r sat 1 model both sexes}
+stan_maleSat1.mdl <- stan_glmer(sat1~age + residuals + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+           data = male.mc, algorithm = "sampling", iter = 5000,
+           prior = normal(), prior_intercept = normal(),chains = 10,seed = 12345)
+summary(stan_maleSat1.mdl)
+```
 
 ```{r}
-# sat2_candset <- c(sat1_full.mdl,sat1_resid.mdl)
-# mdls2 <- c("full", "residual")
-# aictab(sat2_candset, modnames = mdls2, sort = TRUE)
+plot_model(stan_maleSat1.mdl,
+           title = "Bayesian male sat1 model",
+           bpe = "median",
+           vline.color = "black",
+           prob.inner = .50,
+           prob.outer = .80,
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1)
+```
+<br>
+
+### Sat 1 model with sexes combined
+
+```{r}
+sat1.mdl <- lmer(sat1~age + residuals + sex + bodTemp1 + ambTemp1 + timeOut1 + (1|family), data = mc)
+summary(sat1.mdl)
+```
+
+```{r}
+plot_model(sat1.mdl)
 ```
 
 
-Reduced models: fixed effects removed based on confidence intervals from the full model
-```{r reduced models}
-#sex random effect 
-# sat1_rsex.mdl <- lmer(sat1 ~ weight + age + tarsus + bodTemp1 + ambTemp1 + (1|sex), 
-#                  data = mc, REML = FALSE)
-# #remove timeOut
-# sat1_r1.mdl <- lmer(sat1 ~ weight + age + tarsus + sex + bodTemp1 + ambTemp1 + (1|family), 
-#                  data = mc, REML = FALSE)
-# #remove ambTemp
-# sat1_r2.mdl <- lmer(sat1 ~ weight + age + tarsus + sex + bodTemp1 + (1|family), 
-#                  data = mc, REML = FALSE)
-# #remove bodTemp
-# sat1_r3.mdl <- lmer(sat1 ~ weight + age + tarsus + sex + (1|family), 
-#                  data = mc, REML = FALSE)
-# sat1_candset <- c(sat1_full.mdl,sat1_rsex.mdl,sat1_r1.mdl,sat1_r2.mdl,sat1_r3.mdl)
-# mdls <- c("full", "randSex", "r1", "r2", "r3")
-# aictab(sat1_candset, modnames = mdls, sort = TRUE)
+### Bayesian sat 1 model with sexes combined (sex included as a random effect)
+
+```{r}
+stan_Sat1.mdl <- stan_glmer(sat1~age + residuals + bodTemp1 + ambTemp1 + timeOut1 + (1|family) + (1|sex), 
+           data = mc, algorithm = "sampling",iter = 5000,
+           prior = normal(), prior_intercept = normal(),chains = 10,seed = 12345)
+summary(stan_Sat1.mdl)
 ```
 
+```{r}
+plot_model(stan_Sat1.mdl,
+           title = "Bayesian sat1 model",
+           bpe = "median",
+           vline.color = "black",
+           prob.inner = .50,
+           prob.outer = .80,
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1)
+```
 
