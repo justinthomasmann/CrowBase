@@ -1,7 +1,7 @@
 ---
 title: "CB-mouthColor"
 author: "Justin Mann"
-date: "4/1/2021"
+date: "4/9/2021"
 output: html_document
 ---
 
@@ -60,8 +60,6 @@ mc <- mc[-c(62,67,72,78),]#N=134
 
 <b>Create subsets of mc for females (N=80) and males (N=54) only</b>
 ```{r subset mc by sex}
-mc$tempDiff <- mc$bodTemp1-41
-
 #females only
 female.mc <- mc %>% 
   filter(sex == "F") #N=80
@@ -101,94 +99,6 @@ female.nm <- sexed.nm %>%
 #males only
 male.nm <- sexed.nm %>% 
   filter(sex == "M") #N=235
-```
-<br>
-
-### <b>Do we need to control for repeated measurements of birds in mass~tarsus.mdl?</b>
-<br>
-The code below compares a linear model (lm) and a linear mixed effects model (lmer), which controls for repeated
-measurements of the same birds during multiple climbs.  
-<br>
-
-### 1. Use lm() to run linear model with no random effects
-<br>
-
-<b>Run lm() and plot residuals</b>
-```{r do we control repeated id}
-noRandId.mdl_outliers <- lm(mass~tarsus, data = nm)
-plot(noRandId.mdl_outliers)
-```
-<br>
-
-Residual plots identify the following individuals as outliers.
-```{r}
-nm[c(437,743,1012,1038,1514),c(5,10,22)] %>% 
-  kbl() %>% 
-  kable_paper("hover", full_width = F, position = "left")
-```
-<br>
-
-<b>Remove the identified outliers, rerun lm() and plot residuals again</b>
-```{r do we control repeated id (remove outliers)}
-tarsusMass.nm <- nm[-c(437,743,1012,1038,1514),] #n=1531 (five birds removed confirmed)
-#drop NAs from tarsus and mass
-tarsusMass.nm <- drop_na(tarsusMass.nm, tarsus, mass) #N=1513
-noRandId.mdl2 <- lm(mass~tarsus, data = tarsusMass.nm)
-plot(noRandId.mdl2)
-```
-<br>
-Residual distributions improved
-
-<br>
-<b>Model summary</b>
-```{r}
-summary(noRandId.mdl2)
-#   kbl(caption = "Linear Model: mass tarsus index") %>% 
-#   kable_classic(full_width = F, position = "left", html_font = "Cambria")
-```
-<br>
-
-### 2. Use lmer() to run a mixed effects model that controls for birds with repeated measurements
-<br>
-We can only directly compare results from a linear model and a linear mixed effects model by using regular Maximum Likelihood (ML). However, the default likelihood estimation for lmer() models Random Effects Maximum Likelihood (REML). 
-<br>
-https://stackoverflow.com/questions/24019807/how-to-compare-a-model-with-no-random-effects-to-a-model-with-a-random-effect-us 
-
-<br>
-The lmer() argument 'REML=FALSE' implements ML estimation instead. 
-
-<b>We use the same dataframe as above, age filtered, no NAs and outliers already removed</b>
-```{r}
-randId.mdl <- lmer(mass~tarsus + (1|id), data = tarsusMass.nm, REML = FALSE)
-plot(randId.mdl, col="black")
-```
-
-Residual distribution looks good.
-
-
-<br>
-<b>Summary of mixed effect model</b>
-```{r}
-summary(randId.mdl)
-```
-<br>
-
-<b>Now, directly compare the lm() and lmer() models</b>
-```{r}
-AIC(noRandId.mdl2,randId.mdl) %>% 
-  kbl(caption = "lm() vs. lmer(): mass~tarsus") %>% 
-  kable_classic(full_width = F, position = "left", html_font = "Cambria")
-```
-<br>
-lmer() model does a better job at explaining variance with the inclusion of a random effect 
-
-<br>
-### Plot--weight by tarsus: no sex filter (N=1513)
-```{r Plot--weight~tarsus}
-tarsusMass.nm %>% 
-  ggplot(aes(x=tarsus,y=mass,color=as.factor(age)))+
-  geom_point(alpha=0.5)+
-  scale_color_brewer(palette = "Set1")
 ```
 <br>
 
@@ -236,33 +146,6 @@ sexed.nm %>%
 ```
 <br>
 
-### Calculate mass/tarsus ratio and append a ratio column to sexed.nm
-```{r calculate mass/tarsus ratio}
-sexed.nm$ratio <- sexed.nm$mass/sexed.nm$tarsus
-```
-<br> 
-
-### Permutation test to assess independence of male and female ratios
-reference: https://stats.stackexchange.com/questions/23152/test-for-significant-difference-in-ratios-of-normally-distributed-random-variabl 
-```{r mass/tarsus ratio t test}
-independence_test(ratio~sex, data = sexed.nm)
-```
-<br>
-This result doesn't indicate the direction of the relationship, but simply indicates
-that the female ratio is statistically different than the male ratio. This suggests that
-modeling male and female mouth color separately is likely best. 
-
-<br>
-```{r}
-sexed.nm %>% 
-  ggplot(aes(x=sex, y=ratio, color=sex))+
-  geom_boxplot()+
-  ylab("Mass/tarsus ratio")+
-  scale_color_manual(values = c("#1B9E77", "#D73027"),
-                    name = "",
-                    labels = c("Female","Male"))+
-  geom_jitter(alpha=0.2)
-```
 
 ### Create the female mass~tarsus residual index
 ```{r}
@@ -316,85 +199,160 @@ male.nm %>%
 
 <b>Create dataframes containing id and residuals</b>
 ```{r residual dataframes}
-male.nm$residuals <- maleIndex.lm$residuals
-female.nm$residuals <- femaleIndex.lm$residuals
+#male residuals pulled from lm() output
+male.nm$resids <- maleIndex.lm$residuals
+#female residuals pulled from lm() output
+female.nm$resids <- femaleIndex.lm$residuals
+
+#dataframes containing male and female ids and residuals for the join with mc
 joinMaleResidual <- data.frame(id = male.nm$id,
-                               residuals = male.nm$residuals)
+                               resids = male.nm$resids)
 joinFemaleResidual <- data.frame(id = female.nm$id,
-                                 residuals = female.nm$residuals)
+                                 resids = female.nm$resids)
 ```
 <br>
 
 <b>Join residuals with male and female mouth color data by common id</b>
 ```{r}
+#left join with female mc
 newFemale.mc <- left_join(female.mc,joinFemaleResidual, by="id")
-female.mc$residuals <- newFemale.mc$residuals
+female.mc$resids <- newFemale.mc$resids
 
+#left join with male mc
 newMale.mc <- left_join(male.mc,joinMaleResidual, by="id")
-male.mc$residuals <- newMale.mc$residuals
+male.mc$resids <- newMale.mc$resids
+
+#left join with both sexes (full mc) 
 bothSexResid <- data.frame(rbind(joinMaleResidual,joinFemaleResidual))
-
 new.mc <- left_join(mc,bothSexResid, by="id")
-new.mc$residuals
-mc$residuals <- new.mc$residuals
-hist(mc$residuals)
+mc$resids <- new.mc$resids
 ```
 <br>
 
-### Female only saturation 1 model
-```{r}
-femaleSat1.mdl <- lmer(sat1~age + residuals + bodTemp1 + ambTemp1 + timeOut1 + (1|family), data = female.mc)
-summary(femaleSat1.mdl)
+<b>Distribution of residuals for both sexes combined</b>
+```{r histogram of male and female residuals combined}
+mc %>%
+  ggplot(aes(x=resids, fill=sex))+
+  geom_histogram(binwidth = 10)+
+  scale_fill_manual(values = c("#1B9E77", "#D73027"),
+                    name = "",
+                    labels = c("Female","Male"))
 ```
 <br>
+
+### Calculate mass/tarsus ratio and append a ratio column to sexed.nm
+```{r calculate mass/tarsus ratio}
+sexed.nm$ratio <- sexed.nm$mass/sexed.nm$tarsus
+```
+<br> 
+
+### Permutation test to assess independence of male and female ratios
+reference: https://stats.stackexchange.com/questions/23152/test-for-significant-difference-in-ratios-of-normally-distributed-random-variabl 
+```{r mass/tarsus ratio t test}
+independence_test(ratio~sex, data = sexed.nm)
+```
+<br>
+
+This result doesn't indicate the direction of the relationship, but simply indicates
+that the female ratio is statistically different than the male ratio. This suggests that
+modeling male and female mouth color separately is likely best. 
+<br>
+
+Plotting mass/tarsus ratio by sex
 ```{r}
-plot_model(femaleSat1.mdl,
-           title = "Female saturation 1 model",
+sexed.nm %>% 
+  ggplot(aes(x=sex, y=ratio, color=sex))+
+  geom_boxplot()+
+  ylab("Mass/tarsus ratio")+
+  scale_color_manual(values = c("#1B9E77", "#D73027"),
+                    name = "",
+                    labels = c("Female","Male"))+
+  geom_jitter(alpha=0.2)
+```
+<br>
+
+<b>Examine whether brood size affects body temp</b>
+<br>
+
+Plotting body temp by brood size
+```{r}
+bodyTempByBroodSize.plot <- mc %>% 
+  ggplot(aes(x=broodSize,y=bodTemp1, 
+             group=as.factor(broodSize), color=as.factor(broodSize),
+             label=id))+
+  geom_boxplot()+
+  geom_jitter()+
+  scale_color_brewer(palette = "Dark2")
+ggplotly(bodyTempByBroodSize.plot)
+```
+<br>
+
+Contrary to our expectation, it looks like the largest broods (6 nestlings) is significantly lower in body temp on average, but it's the smallest sample. Probably shouldn't try to infer much, but at least we aren't seeing big differences across brood sizes on the whole. 
+<br>
+
+<br>
+```{r}
+summary(lm(bodTemp1~as.factor(broodSize), data = mc))
+```
+<br>
+
+### Create mass/tarsus ratio column in mc for use in models
+```{r}
+mc$ratio <- mc$mass/mc$tarsus
+```
+<br>
+
+<b>Distribution of mass/tarsus ratio for both sexes combined</b>
+```{r histogram of male and female ratios combined}
+mc %>%
+  ggplot(aes(x=ratio, fill=sex))+
+  geom_histogram(binwidth = 0.4)+
+  scale_fill_manual(values = c("#1B9E77", "#D73027"),
+                    name = "",
+                    labels = c("Female","Male"))
+#hist(mc$ratio)
+```
+<br>
+
+## SATURATION MODELS
+<br>
+
+### Sat 1 models with sexes combined
+<br>
+
+### <b>Sat1 ~ mass/tarsus ratio model</b>
+```{r}
+sat1Ratio.mdl <- lmer(sat1 ~ age + ratio + sex + 
+                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                    data = mc, REML = FALSE)
+summary(sat1Ratio.mdl)
+```
+
+Plot ratio model
+```{r}
+plot_model(sat1Ratio.mdl,
+           title = "Mass/tarsus ratio model for saturation 1",
            bpe = "median",
            vline.color = "black",
            show.values = TRUE, 
            value.offset = .3,
            line.size = 1.2)
 ```
-```{r female sat1 model confint}
-confint(femaleSat1.mdl)
+<br>
+
+### <b>Sat1 ~ mass/tarsus residual model</b>
+```{r}
+sat1Residual.mdl <- lmer(sat1 ~ age + resids + sex + 
+                           bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                    data = mc, REML = FALSE)
+summary(sat1Residual.mdl)
 ```
 <br>
 
-### Bayesian female sat1 model
-```{r female sat 1 stan_glmer}
-stan_femaleSat1.mdl <- stan_glmer(sat1~age + residuals + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
-           data = female.mc, algorithm = "sampling",iter = 6000,
-           prior = normal(), prior_intercept = normal(),chains = 10,seed = 12345)
-```
-
+Plot residual model
 ```{r}
-summary(stan_femaleSat1.mdl)
-```
-
-```{r}
-plot_model(stan_femaleSat1.mdl,
-           title = "Bayesian female sat1 model",
-           bpe = "median",
-           vline.color = "black",
-           prob.inner = .50,
-           prob.outer = .80,
-           show.values = TRUE, 
-           value.offset = .3,
-           line.size = 1)
-```
-
-
-### Male only saturation 1 model
-```{r male sat1 model}
-maleSat1.mdl <- lmer(sat1~age + residuals + bodTemp1 + ambTemp1 + timeOut1 + (1|family), data = male.mc)
-summary(maleSat1.mdl)
-```
-<br>
-
-```{r male saturation 1 plot_model}
-plot_model(maleSat1.mdl,
-           title = "Male saturation 1 model",
+plot_model(sat1Residual.mdl,
+           title = "Mass/tarsus residual model for saturation 1",
            bpe = "median",
            vline.color = "black",
            show.values = TRUE, 
@@ -402,52 +360,43 @@ plot_model(maleSat1.mdl,
            line.size = 1.2)
 ```
 <br>
-```{r male sat1 model confint}
-confint(maleSat1.mdl)
+<b>Now let's compare the fit of ratio and residual models</b>
+```{r}
+ratioOrResid.mdls <- c(sat1Ratio.mdl, sat1Residual.mdl)
+ratioOrResid.modnames <- c("Ratio", "Residual")
+confset(ratioOrResid.mdls, modnames = ratioOrResid.modnames, method = "ordinal")
 ```
 <br>
 
-### Bayesian male saturation 1 model
-```{r sat 1 model both sexes}
-stan_maleSat1.mdl <- stan_glmer(sat1~age + residuals + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
-           data = male.mc, algorithm = "sampling", iter = 5000,
-           prior = normal(), prior_intercept = normal(),chains = 10,seed = 12345)
-summary(stan_maleSat1.mdl)
+Using AICc Weight (AICcWt), the confset() function calculates the probability of each model (i.e. each hypothesis) given the data and the other candidate models. So in this case, we have more confidence in the ratio models ability to explain the variation in the data, even though their AICc values are only slightly different.
+
+<br>
+```{r}
+sat1NoSex.mdl <- lmer(sat1 ~ age + resids + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                    data = mc, REML = FALSE)
 ```
 
+
 ```{r}
-plot_model(stan_maleSat1.mdl,
-           title = "Bayesian male sat1 model",
-           bpe = "median",
-           vline.color = "black",
-           prob.inner = .50,
-           prob.outer = .80,
-           show.values = TRUE, 
-           value.offset = .3,
-           line.size = 1)
+sat1NoSex.mdl2 <- lmer(sat1 ~ age + resids + bodTemp1 * ambTemp1 + (1|family), 
+                    data = mc, REML = FALSE)
+```
+
+
+```{r}
+sat1NoSex.mdl3 <- lmer(sat1 ~ age + resids + bodTemp1 + (1|family), 
+                    data = mc, REML = FALSE)
 ```
 <br>
 
-### Sat 1 model with sexes combined
+In the following model, we're using the difference between body temp and 41 degrees, which is the mean body temp for birds > 28 days old. We chose this age range since these mature nestlings should have had an easier time maintaining an 'ideal' body temp. 
+<br>
 
 ```{r}
-sat1.mdl <- lmer(sat1~age + residuals + sex + bodTemp1 + ambTemp1 + timeOut1 + (1|family), data = mc)
-summary(sat1.mdl)
-```
-
-```{r}
-plot_model(sat1.mdl,
-           title = "Both sexes saturation 1",
-           bpe = "median",
-           vline.color = "black",
-           show.values = TRUE, 
-           value.offset = .3,
-           line.size = 1.2)
-```
-
-<b>In this model, we're using the difference between body temp and 41 degrees, which is the mean body temp for birds > 28 days old. 
-```{r}
-diffTemp.mdl <- lmer(sat1~age + residuals + tempDiff + (1|family), data = mc)
+#calculate the difference between each birds body temp and 41 degrees (mean of birds >28 days of age)
+mc$tempDiff <- mc$bodTemp1-41
+#model including tempDiff
+diffTemp.mdl <- lmer(sat1 ~ age + resids + tempDiff + (1|family), data = mc, REML = FALSE)
 summary(diffTemp.mdl)
 ```
 ```{r}
@@ -459,33 +408,29 @@ plot_model(diffTemp.mdl,
            value.offset = .3,
            line.size = 1.2)
 ```
-
-
-
-### Bayesian sat 1 model with sexes combined (sex included as a random effect)
+<br>
 
 ```{r}
-stan_Sat1.mdl <- stan_glmer(sat1~age + residuals + bodTemp1 + ambTemp1 + timeOut1 + (1|family) + (1|sex), 
-           data = mc, algorithm = "sampling",iter = 6000,
-           prior = normal(), prior_intercept = normal(),chains = 10,seed = 12345)
+# AIC(sat1Sex.mdl, sat1NoSex.mdl)
+# sexOrNo <- c(sat1Sex.mdl, sat1NoSex.mdl, ratioSex.mdl, sat1NoSex.mdl2, sat1NoSex.mdl3)
+# modname <- c("sex", "no", "ratio", "noTimeOut", "noAmbTemp")
+# confset(sexOrNo, modnames = modname, method = "ordinal")
 ```
+<br>
 
+## HUE MODELS
 ```{r}
-summary(stan_Sat1.mdl)
+hue1.mdl <- lmer(hue1*100 ~ age + ratio + sex + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                    data = mc, REML = FALSE)
 ```
+<br>
 
 ```{r}
-plot_model(stan_Sat1.mdl,
-           title = "Bayesian sat1 model",
+plot_model(hue1.mdl,
+           title = "Ratio hue 1",
            bpe = "median",
            vline.color = "black",
-           prob.inner = .50,
-           prob.outer = .80,
            show.values = TRUE, 
            value.offset = .3,
-           line.size = 1)
+           line.size = 1.2)
 ```
-```{r}
-mc$tempDiff <- mc$bodTemp1 - 41
-```
-
