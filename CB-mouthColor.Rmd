@@ -26,6 +26,7 @@ library(AICcmodavg) #aictab() for AICc model comparisons
 library(coin) #permutation test for ratios with independence_test()
 library(janitor) #get_dupes() finds and prints duplicates
 ```
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
@@ -43,6 +44,8 @@ mc <- mc %>% arrange(year, family, id) #N=225
 #filter to include only ages 23-27
 mc <- mc %>% filter(between(age,23,27)) #N=141
 mc <- mc %>% drop_na(sex) #N=138
+#remove SWB-W BURP03 runt
+mc <- mc[-c(10),]
 ```
 <br>
 
@@ -55,7 +58,7 @@ only the complete record for each individual.
 Removed = 42 ROWA04 (row 137), 53 ROWA04 (row 138), 64 ROWA04 (row 139), 75 ROWA04 (row 140)
 ```{r}
 mc <- mc[-c(62,67,72,78),]#N=134
-#mc %>% get_dupes() #double check...yep, no duplicates
+mc %>% get_dupes() #double check...yep, no duplicates
 ```
 
 <b>Create subsets of mc for females (N=80) and males (N=54) only</b>
@@ -314,6 +317,23 @@ mc %>%
 ```
 <br>
 
+```{r histogram of male and female ratios combined}
+mc %>%
+  ggplot(aes(x=mass, fill=sex))+
+  geom_histogram(binwidth = 20)+
+  scale_fill_manual(values = c("#1B9E77", "#D73027"),
+                    name = "",
+                    labels = c("Female","Male"))
+```
+
+```{r histogram of male and female ratios combined}
+mc %>%
+  ggplot(aes(x=cubeMass, fill=sex))+
+  geom_histogram(binwidth = 0.2)+
+  scale_fill_manual(values = c("#1B9E77", "#D73027"),
+                    name = "",
+                    labels = c("Female","Male"))
+```
 ## SATURATION MODELS
 <br>
 
@@ -330,15 +350,109 @@ summary(sat1Ratio.mdl)
 
 Plot ratio model
 ```{r}
-plot_model(sat1Ratio.mdl,
-           title = "Mass/tarsus ratio model for saturation 1",
+sat1RatioMdl.plot <- plot_model(sat1Ratio.mdl,
+           title = "Ratio model for saturation 1",
            bpe = "median",
            vline.color = "black",
            show.values = TRUE, 
            value.offset = .3,
            line.size = 1.2)
+sat1RatioMdl.plot
 ```
 <br>
+
+```{r}
+sat1CubeMassMdl.plot <- plot_model(sat1CubeMass.mdl,
+           title = "Ratio model for saturation 1",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+sat1CubeMassMdl.plot
+```
+
+```{r}
+sat1RatioMdl.plot <- plot_model(sat1Ratio.mdl,
+           title = "Ratio model for saturation 1",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+sat1RatioMdl.plot
+```
+
+```{r}
+mc$cubeMass <- mc$mass^(1/3)
+mc$cubeRatio <- (mc$mass^(1/3)/mc$tarsus)*100
+
+sat1Mass.mdl <- lmer(sat1 ~ age + mass + sex + 
+                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                    data = mc, REML = FALSE)
+summary(sat1Mass.mdl)
+```
+
+
+Plot ratio model
+```{r}
+sat1MassMdl.plot <- plot_model(sat1Mass.mdl,
+           title = "Mass model for saturation 1",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+sat1MassMdl.plot
+```
+```{r}
+mc %>% 
+  ggplot(aes(x=sat1,y=age)) +
+  geom_point()
+```
+```{r}
+mass.plot <- mc %>% 
+  ggplot(aes(x=sat1,y=mass, label = id)) +
+  geom_point()+
+  geom_smooth()
+ggplotly(mass.plot) 
+```
+
+```{r}
+mass.plot <- mc %>% 
+  ggplot(aes(x=age, y=mass, label = id)) +
+  geom_point()+
+  geom_smooth()+
+  geom_boxplot()
+ggplotly(mass.plot) 
+```
+
+
+```{r mouth color dataframe}
+old.df=tibble(read.csv("CB-mouthColor.csv", h=T)) #N=225
+#replace zeros with NAs in morphometrics 
+old.df[old.df==0] <- NA
+#sort by year > family > id
+old.df <- old.df %>% arrange(year, family, id) #N=225
+#filter to include only ages 23-27
+old.df <- old.df %>% filter(between(age,23,33)) #N=141
+old.df <- old.df %>% drop_na(sex) #N=138
+old.df <- old.df[-c(14),]
+```
+<br>
+
+```{r}
+mass.plot <- old.df %>% 
+  ggplot(aes(x=age, y=mass, label = id)) +
+  geom_jitter()+
+  geom_smooth()+
+  geom_boxplot()
+ggplotly(mass.plot) 
+```
+<b>Identify duplicate records in mc</b>
+```{r find and remove duplicate records in mc}
+old.df %>% get_dupes(id)
+```
 
 ### <b>Sat1 ~ mass/tarsus residual model</b>
 ```{r}
@@ -370,53 +484,42 @@ confset(ratioOrResid.mdls, modnames = ratioOrResid.modnames, method = "ordinal")
 
 Using AICc Weight (AICcWt), the confset() function calculates the probability of each model (i.e. each hypothesis) given the data and the other candidate models. So in this case, we have more confidence in the ratio models ability to explain the variation in the data, even though their AICc values are only slightly different.
 
-<br>
+
 ```{r}
-sat1NoSex.mdl <- lmer(sat1 ~ age + resids + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+sat1CubeMass.mdl <- lmer(sat1 ~ age + cubeMass + sex + 
+                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
                     data = mc, REML = FALSE)
 ```
 
-
 ```{r}
-sat1NoSex.mdl2 <- lmer(sat1 ~ age + resids + bodTemp1 * ambTemp1 + (1|family), 
+sat1CubeRatio.mdl <- lmer(sat1 ~ age + cubeRatio + sex + 
+                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
                     data = mc, REML = FALSE)
 ```
 
-
 ```{r}
-sat1NoSex.mdl3 <- lmer(sat1 ~ age + resids + bodTemp1 + (1|family), 
+sat1MassInter.mdl <- lmer(sat1 ~ age * (mass*0.1) + sex + 
+                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
                     data = mc, REML = FALSE)
 ```
-<br>
-
-In the following model, we're using the difference between body temp and 41 degrees, which is the mean body temp for birds > 28 days old. We chose this age range since these mature nestlings should have had an easier time maintaining an 'ideal' body temp. 
-<br>
 
 ```{r}
-#calculate the difference between each birds body temp and 41 degrees (mean of birds >28 days of age)
-mc$tempDiff <- mc$bodTemp1-41
-#model including tempDiff
-diffTemp.mdl <- lmer(sat1 ~ age + resids + tempDiff + (1|family), data = mc, REML = FALSE)
-summary(diffTemp.mdl)
+ratioOrMass.mdls <- c(sat1Ratio.mdl, sat1Mass.mdl, sat1CubeMass.mdl, sat1CubeRatio.mdl)
+ratioOrMass.modnames <- c("Ratio", "Mass", "Cubed Mass", "Cubed Ratio")
+confset(ratioOrMass.mdls, modnames = ratioOrMass.modnames, method = "ordinal")
 ```
+
+
 ```{r}
-plot_model(diffTemp.mdl,
-           title = "Both sexes saturation 1",
-           bpe = "median",
-           vline.color = "black",
-           show.values = TRUE, 
-           value.offset = .3,
-           line.size = 1.2)
+mc %>% 
+  ggplot(aes(x=wingChord,y=mass, color=sex))+
+  geom_point()+
+  geom_smooth()
 ```
 <br>
 
-```{r}
-# AIC(sat1Sex.mdl, sat1NoSex.mdl)
-# sexOrNo <- c(sat1Sex.mdl, sat1NoSex.mdl, ratioSex.mdl, sat1NoSex.mdl2, sat1NoSex.mdl3)
-# modname <- c("sex", "no", "ratio", "noTimeOut", "noAmbTemp")
-# confset(sexOrNo, modnames = modname, method = "ordinal")
-```
-<br>
+
+
 
 ## HUE MODELS
 ```{r}
@@ -426,11 +529,91 @@ hue1.mdl <- lmer(hue1*100 ~ age + ratio + sex + bodTemp1 + ambTemp1 + timeOut1 +
 <br>
 
 ```{r}
-plot_model(hue1.mdl,
-           title = "Ratio hue 1",
+hue1Mdl.plot <- plot_model(hue1.mdl,
+           title = "Ratio model for hue 1",
            bpe = "median",
            vline.color = "black",
            show.values = TRUE, 
            value.offset = .3,
            line.size = 1.2)
+hue1Mdl.plot
 ```
+
+## TIME 2 MODELS
+<br>
+
+```{r}
+#create a time 2 data frame 
+time2.df <- mc %>% select(row:sex, ends_with("2"), ambFinal, broodSize, date:skull, resids, ratio)
+
+#I'm dropping ambTemp2 from data frame before dropping NAs. 
+#ambTemp2 has many more NAs. We can use ambFinal instead.
+#This boosts sample size from 32 to 99 obs. 
+time2.df <- time2.df %>% select(!ambTemp2) 
+
+#Now drop NAs after removing ambTemp2
+time2.df <- drop_na(time2.df)
+```
+
+
+### Saturation 2 models
+<br>
+
+```{r}
+sat2.mdl <- lmer(sat2 ~ age + ratio + sex + bodTemp2 + ambFinal + timeOut2 + (1|family), 
+                    data = time2.df, REML = FALSE)
+summary(sat2.mdl)
+```
+
+
+```{r}
+sat2Mdl.plot <- plot_model(sat2.mdl,
+           title = "Ratio model for saturation 2",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+sat2Mdl.plot
+```
+<br>
+
+### Hue 2 models
+<br>
+
+```{r}
+hue2.mdl <- lmer(hue2*100 ~ age + ratio + sex + bodTemp2 + ambFinal + timeOut2 + (1|family), 
+                    data = time2.df, REML = FALSE)
+summary(hue2.mdl)
+```
+<br>
+
+```{r}
+hue2Mdl.plot <- plot_model(hue2.mdl,
+           title = "Ratio model for hue 2",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+hue2Mdl.plot
+```
+<br>
+
+```{r model plots, out.width='100%'}
+ggarrange(sat1RatioMdl.plot, hue1Mdl.plot, sat2Mdl.plot, hue2Mdl.plot)
+```
+
+```{r}
+length(time2.df$sex[time2.df$sex=="M"]) #37 males
+```
+```{r}
+length(time2.df$sex[time2.df$sex=="F"]) #62 females
+```
+
+At time 1, we have 80 females and 54 males.
+At time 2, we have 62 females and 37 males. 
+
+
+
+
