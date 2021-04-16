@@ -1,7 +1,7 @@
 ---
 title: "CB-mouthColor"
 author: "Justin Mann"
-date: "4/9/2021"
+date: "4/16/2021"
 output: html_document
 ---
 
@@ -34,41 +34,23 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### <b>Read in mouth color data (mc)</b>
 <br>
-<b>Replace zeros with NAs, sort and filter by age (23-27)</b>
 ```{r mouth color dataframe}
-mc=tibble(read.csv("CB-mouthColor.csv", h=T)) #N=225
-#replace zeros with NAs in morphometrics 
-mc[mc==0] <- NA
-#sort by year > family > id
-mc <- mc %>% arrange(year, family, id) #N=225
-#filter to include only ages 23-27
-mc <- mc %>% filter(between(age,23,27)) #N=141
-mc <- mc %>% drop_na(sex) #N=138
-#remove SWB-W BURP03 runt
-mc <- mc[-c(10),]
+allAges.mc=tibble(read.csv("CB-mouthColor.csv", h=T)) #N=215
+
+#subset with ages 23-27
+mc <- allAges.mc %>% filter(between(age,23,27)) #N=133
 ```
 <br>
 
-<b>Identify duplicate records in mc</b>
-```{r find and remove duplicate records in mc}
-mc %>% get_dupes(id)
-```
-For these duplicate records, one record for each individual is missing time 2 measurements. Therefore, I am keeping
-only the complete record for each individual.
-Removed = 42 ROWA04 (row 137), 53 ROWA04 (row 138), 64 ROWA04 (row 139), 75 ROWA04 (row 140)
-```{r}
-mc <- mc[-c(62,67,72,78),]#N=134
-mc %>% get_dupes() #double check...yep, no duplicates
-```
 
-<b>Create subsets of mc for females (N=80) and males (N=54) only</b>
+<b>Create subsets of mc for females (N=78) and males (N=55) only</b>
 ```{r subset mc by sex}
 #females only
 female.mc <- mc %>% 
-  filter(sex == "F") #N=80
+  filter(sex == "F") #N=78
 #males only
 male.mc <- mc %>% 
-  filter(sex == "M") #N=54
+  filter(sex == "M") #N=55
 ```
 <br>
 
@@ -96,12 +78,6 @@ nm <- nm %>% filter(between(age, 23, 27))
 sexed.nm <- nm %>% drop_na(sex, tarsus, mass) #N=503
 #make sex a factor rather than character
 sexed.nm$sex <- as.factor(sexed.nm$sex)
-#females only 
-female.nm <- sexed.nm %>% 
-  filter(sex == "F") #N=268
-#males only
-male.nm <- sexed.nm %>% 
-  filter(sex == "M") #N=235
 ```
 <br>
 
@@ -138,20 +114,48 @@ sexed.nm %>%
 <br>
 
 ### Plot--mass by tarsus with sex filter (N=503)
-```{r Plot--weight ~ tarsus with sex filter}
-sexed.nm %>% 
-  ggplot(aes(x=tarsus,y=mass,color=sex))+
+```{r Plot--mass ~ tarsus with sex filter}
+massTarsus.plot <- sexed.nm %>% 
+  ggplot(aes(x=tarsus,y=mass,color=sex,label=id))+
   geom_point(alpha=0.5)+
   geom_smooth()+
   scale_color_manual(values = c("#1B9E77", "#D73027"),
                     name = "",
                     labels = c("Female","Male"))
+ggplotly(massTarsus.plot)
 ```
 <br>
 
+Remove outliers (SWB-W BURP03, EN WKAY05, GL JSUP05, YASB WCEM01), now N=499
+```{r remove mass/tarsus outliers from sexed.nm}
+sexed.nm <- sexed.nm[-c(211, 141, 332, 353),] #N=499
+```
+<br>
+
+```{r Plot--mass ~ tarsus with sex filter outliers removed}
+massTarsus.plot <- sexed.nm %>% 
+  ggplot(aes(x=tarsus,y=mass,color=sex,label=id))+
+  geom_point(alpha=0.5)+
+  geom_smooth()+
+  scale_color_manual(values = c("#1B9E77", "#D73027"),
+                    name = "",
+                    labels = c("Female","Male"))
+ggplotly(massTarsus.plot)
+```
+<br>
+
+```{r nm-sexes separate}
+#females only 
+female.nm <- sexed.nm %>% 
+  filter(sex == "F") #N=265
+#males only
+male.nm <- sexed.nm %>% 
+  filter(sex == "M") #N=234
+```
+<br>
 
 ### Create the female mass~tarsus residual index
-```{r}
+```{r female mass~tarsus}
 femaleIndex.lm <- lm(mass~tarsus, female.nm)
 summary(femaleIndex.lm)
 ```
@@ -161,45 +165,27 @@ summary(femaleIndex.lm)
 <br>
 
 *Q-Q plot looks a little non-normal, probably seeing the effects of reduced sample size by separating sexes.
-```{r}
+```{r plot female model residuals}
 plot(femaleIndex.lm)
 ```
 <br>
 
-### Plot--female mass~tarsus
-```{r Plot--female mass~tarsus}
-female.nm %>% 
-  ggplot(aes(x=tarsus, y=mass, color=as.factor(age)))+
-  geom_point(alpha = 0.5)+
-  geom_smooth(aes(group=1))+
-  scale_color_brewer(palette = "Set1")
-```
 <br>
-
 ### Create male mass~tarsus residual index
-<br> 
-```{r}
+```{r male mass~tarsus}
 maleIndex.lm <- lm(mass~tarsus, male.nm)
 summary(maleIndex.lm)
 ```
 <br>
 
 <b>Plot residuals</b>
-```{r}
+```{r plot male model residuals}
 plot(maleIndex.lm)
 ```
 <br>
 
-### Plot--male tarsus~mass
-```{r Plot--male mass~tarsus}
-male.nm %>% 
-  ggplot(aes(x=tarsus, y=mass, color=as.factor(age)))+
-  geom_point(alpha = 0.5)+
-  geom_smooth(aes(group=1))+
-  scale_color_brewer(palette = "Set1")
-```
-<br>
 
+<br>
 <b>Create dataframes containing id and residuals</b>
 ```{r residual dataframes}
 #male residuals pulled from lm() output
@@ -216,19 +202,16 @@ joinFemaleResidual <- data.frame(id = female.nm$id,
 <br>
 
 <b>Join residuals with male and female mouth color data by common id</b>
-```{r}
+```{r join residuals from sex-specific models}
 #left join with female mc
-newFemale.mc <- left_join(female.mc,joinFemaleResidual, by="id")
-female.mc$resids <- newFemale.mc$resids
+female.mc <- left_join(female.mc,joinFemaleResidual, by="id")
 
 #left join with male mc
-newMale.mc <- left_join(male.mc,joinMaleResidual, by="id")
-male.mc$resids <- newMale.mc$resids
+male.mc <- left_join(male.mc,joinMaleResidual, by="id")
 
 #left join with both sexes (full mc) 
 bothSexResid <- data.frame(rbind(joinMaleResidual,joinFemaleResidual))
-new.mc <- left_join(mc,bothSexResid, by="id")
-mc$resids <- new.mc$resids
+mc <- left_join(mc,bothSexResid, by="id")
 ```
 <br>
 
@@ -243,67 +226,20 @@ mc %>%
 ```
 <br>
 
-### Calculate mass/tarsus ratio and append a ratio column to sexed.nm
-```{r calculate mass/tarsus ratio}
-sexed.nm$ratio <- sexed.nm$mass/sexed.nm$tarsus
+## Mass and mass/tarsus indices for modeling
+```{r mass and mass/tarsus ratios}
+mc$ratio <- mc$mass/mc$tarsus
+mc$cubeMass <- mc$mass^(1/3)
+mc$cubeRatio <- ((mc$mass^(1/3))/mc$tarsus)*100
 ```
-<br> 
+<br>
 
 ### Permutation test to assess independence of male and female ratios
 reference: https://stats.stackexchange.com/questions/23152/test-for-significant-difference-in-ratios-of-normally-distributed-random-variabl 
-```{r mass/tarsus ratio t test}
-independence_test(ratio~sex, data = sexed.nm)
+```{r mass/tarsus ratio permutation test}
+independence_test(ratio~as.factor(sex), data = mc)
 ```
-<br>
 
-This result doesn't indicate the direction of the relationship, but simply indicates
-that the female ratio is statistically different than the male ratio. This suggests that
-modeling male and female mouth color separately is likely best. 
-<br>
-
-Plotting mass/tarsus ratio by sex
-```{r}
-sexed.nm %>% 
-  ggplot(aes(x=sex, y=ratio, color=sex))+
-  geom_boxplot()+
-  ylab("Mass/tarsus ratio")+
-  scale_color_manual(values = c("#1B9E77", "#D73027"),
-                    name = "",
-                    labels = c("Female","Male"))+
-  geom_jitter(alpha=0.2)
-```
-<br>
-
-<b>Examine whether brood size affects body temp</b>
-<br>
-
-Plotting body temp by brood size
-```{r}
-bodyTempByBroodSize.plot <- mc %>% 
-  ggplot(aes(x=broodSize,y=bodTemp1, 
-             group=as.factor(broodSize), color=as.factor(broodSize),
-             label=id))+
-  geom_boxplot()+
-  geom_jitter()+
-  scale_color_brewer(palette = "Dark2")
-ggplotly(bodyTempByBroodSize.plot)
-```
-<br>
-
-Contrary to our expectation, it looks like the largest broods (6 nestlings) is significantly lower in body temp on average, but it's the smallest sample. Probably shouldn't try to infer much, but at least we aren't seeing big differences across brood sizes on the whole. 
-<br>
-
-<br>
-```{r}
-summary(lm(bodTemp1~as.factor(broodSize), data = mc))
-```
-<br>
-
-### Create mass/tarsus ratio column in mc for use in models
-```{r}
-mc$ratio <- mc$mass/mc$tarsus
-```
-<br>
 
 <b>Distribution of mass/tarsus ratio for both sexes combined</b>
 ```{r histogram of male and female ratios combined}
@@ -313,11 +249,10 @@ mc %>%
   scale_fill_manual(values = c("#1B9E77", "#D73027"),
                     name = "",
                     labels = c("Female","Male"))
-#hist(mc$ratio)
 ```
 <br>
 
-```{r histogram of male and female ratios combined}
+```{r histogram of mass}
 mc %>%
   ggplot(aes(x=mass, fill=sex))+
   geom_histogram(binwidth = 20)+
@@ -326,136 +261,60 @@ mc %>%
                     labels = c("Female","Male"))
 ```
 
-```{r histogram of male and female ratios combined}
+```{r histogram of cubeMass}
 mc %>%
   ggplot(aes(x=cubeMass, fill=sex))+
-  geom_histogram(binwidth = 0.2)+
+  geom_histogram(binwidth = 0.1)+
   scale_fill_manual(values = c("#1B9E77", "#D73027"),
                     name = "",
                     labels = c("Female","Male"))
 ```
-## SATURATION MODELS
+<br> 
+
+```{r histogram of cubeMassRatio}
+mc %>%
+  ggplot(aes(x=cubeRatio, fill=sex))+
+  geom_histogram(binwidth = 0.3)+
+  scale_fill_manual(values = c("#1B9E77", "#D73027"),
+                    name = "",
+                    labels = c("Female","Male"))
+```
+
+## SATURATION 1 MODELS
 <br>
 
-### Sat 1 models with sexes combined
-<br>
-
-### <b>Sat1 ~ mass/tarsus ratio model</b>
-```{r}
-sat1Ratio.mdl <- lmer(sat1 ~ age + ratio + sex + 
-                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
-                    data = mc, REML = FALSE)
-summary(sat1Ratio.mdl)
-```
-
-Plot ratio model
-```{r}
-sat1RatioMdl.plot <- plot_model(sat1Ratio.mdl,
-           title = "Ratio model for saturation 1",
-           bpe = "median",
-           vline.color = "black",
-           show.values = TRUE, 
-           value.offset = .3,
-           line.size = 1.2)
-sat1RatioMdl.plot
-```
-<br>
-
-```{r}
-sat1CubeMassMdl.plot <- plot_model(sat1CubeMass.mdl,
-           title = "Ratio model for saturation 1",
-           bpe = "median",
-           vline.color = "black",
-           show.values = TRUE, 
-           value.offset = .3,
-           line.size = 1.2)
-sat1CubeMassMdl.plot
-```
-
-```{r}
-sat1RatioMdl.plot <- plot_model(sat1Ratio.mdl,
-           title = "Ratio model for saturation 1",
-           bpe = "median",
-           vline.color = "black",
-           show.values = TRUE, 
-           value.offset = .3,
-           line.size = 1.2)
-sat1RatioMdl.plot
-```
-
-```{r}
-mc$cubeMass <- mc$mass^(1/3)
-mc$cubeRatio <- (mc$mass^(1/3)/mc$tarsus)*100
-
-sat1Mass.mdl <- lmer(sat1 ~ age + mass + sex + 
-                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
-                    data = mc, REML = FALSE)
-summary(sat1Mass.mdl)
-```
-
-
-Plot ratio model
-```{r}
-sat1MassMdl.plot <- plot_model(sat1Mass.mdl,
-           title = "Mass model for saturation 1",
-           bpe = "median",
-           vline.color = "black",
-           show.values = TRUE, 
-           value.offset = .3,
-           line.size = 1.2)
-sat1MassMdl.plot
-```
-```{r}
+Plot saturation by age
+```{r sat1~age plot}
 mc %>% 
   ggplot(aes(x=sat1,y=age)) +
-  geom_point()
+  geom_point()+
+  geom_smooth()
 ```
-```{r}
-mass.plot <- mc %>% 
+<br>
+
+Plot saturation by mass
+```{r sat1~mass plot}
+satMass.plot <- mc %>% 
   ggplot(aes(x=sat1,y=mass, label = id)) +
   geom_point()+
   geom_smooth()
-ggplotly(mass.plot) 
+ggplotly(satMass.plot) 
 ```
+<br>
 
-```{r}
-mass.plot <- mc %>% 
+Plot age by mass
+```{r age~mass plot}
+ageMass.plot <- mc %>% 
   ggplot(aes(x=age, y=mass, label = id)) +
   geom_point()+
   geom_smooth()+
   geom_boxplot()
-ggplotly(mass.plot) 
-```
-
-
-```{r mouth color dataframe}
-old.df=tibble(read.csv("CB-mouthColor.csv", h=T)) #N=225
-#replace zeros with NAs in morphometrics 
-old.df[old.df==0] <- NA
-#sort by year > family > id
-old.df <- old.df %>% arrange(year, family, id) #N=225
-#filter to include only ages 23-27
-old.df <- old.df %>% filter(between(age,23,33)) #N=141
-old.df <- old.df %>% drop_na(sex) #N=138
-old.df <- old.df[-c(14),]
+ggplotly(ageMass.plot) 
 ```
 <br>
 
-```{r}
-mass.plot <- old.df %>% 
-  ggplot(aes(x=age, y=mass, label = id)) +
-  geom_jitter()+
-  geom_smooth()+
-  geom_boxplot()
-ggplotly(mass.plot) 
-```
-<b>Identify duplicate records in mc</b>
-```{r find and remove duplicate records in mc}
-old.df %>% get_dupes(id)
-```
-
 ### <b>Sat1 ~ mass/tarsus residual model</b>
-```{r}
+```{r sat1 residual model}
 sat1Residual.mdl <- lmer(sat1 ~ age + resids + sex + 
                            bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
                     data = mc, REML = FALSE)
@@ -464,9 +323,9 @@ summary(sat1Residual.mdl)
 <br>
 
 Plot residual model
-```{r}
+```{r plot sat1 residual model}
 plot_model(sat1Residual.mdl,
-           title = "Mass/tarsus residual model for saturation 1",
+           title = "Saturation 1 residual model",
            bpe = "median",
            vline.color = "black",
            show.values = TRUE, 
@@ -474,63 +333,117 @@ plot_model(sat1Residual.mdl,
            line.size = 1.2)
 ```
 <br>
-<b>Now let's compare the fit of ratio and residual models</b>
-```{r}
-ratioOrResid.mdls <- c(sat1Ratio.mdl, sat1Residual.mdl)
-ratioOrResid.modnames <- c("Ratio", "Residual")
-confset(ratioOrResid.mdls, modnames = ratioOrResid.modnames, method = "ordinal")
+
+### <b>Sat1 ~ mass/tarsus ratio model</b>
+```{r sat1 ratio model}
+sat1Ratio.mdl <- lmer(sat1 ~ age + ratio + sex + 
+                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                    data = mc, REML = FALSE)
+summary(sat1Ratio.mdl)
+```
+
+Plot ratio model
+```{r plot sat1 ratio model}
+sat1RatioMdl.plot <- plot_model(sat1Ratio.mdl,
+           title = "Saturation 1 ratio model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+sat1RatioMdl.plot
 ```
 <br>
 
-Using AICc Weight (AICcWt), the confset() function calculates the probability of each model (i.e. each hypothesis) given the data and the other candidate models. So in this case, we have more confidence in the ratio models ability to explain the variation in the data, even though their AICc values are only slightly different.
+### <b>Sat1 ~ mass model</b>
+```{r sat1 mass model}
+sat1Mass.mdl <- lmer(sat1 ~ age + mass + sex + 
+                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                    data = mc, REML = FALSE)
+summary(sat1Mass.mdl)
+```
 
+Plot mass model
+```{r plot sat1 mass model}
+sat1MassMdl.plot <- plot_model(sat1Mass.mdl,
+           title = "Saturation 1 mass model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+sat1MassMdl.plot
+```
+<br>
 
-```{r}
+### <b>Sat1 ~ cube mass model</b>
+```{r sat 1 cube mass model}
 sat1CubeMass.mdl <- lmer(sat1 ~ age + cubeMass + sex + 
                         bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
                     data = mc, REML = FALSE)
+summary(sat1CubeMass.mdl)
 ```
 
-```{r}
+Plot cube mass model
+```{r plot sat 1 cube mass model}
+sat1CubeMassMdl.plot <- plot_model(sat1CubeMass.mdl,
+           title = "Saturation 1 cube mass model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+sat1CubeMassMdl.plot
+```
+<br>
+
+### <b>Sat1 ~ cube ratio model</b>
+```{r sat1 cube ratio model}
 sat1CubeRatio.mdl <- lmer(sat1 ~ age + cubeRatio + sex + 
                         bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
                     data = mc, REML = FALSE)
+summary(sat1CubeRatio.mdl)
 ```
 
-```{r}
-sat1MassInter.mdl <- lmer(sat1 ~ age * (mass*0.1) + sex + 
-                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
-                    data = mc, REML = FALSE)
-```
-
-```{r}
-ratioOrMass.mdls <- c(sat1Ratio.mdl, sat1Mass.mdl, sat1CubeMass.mdl, sat1CubeRatio.mdl)
-ratioOrMass.modnames <- c("Ratio", "Mass", "Cubed Mass", "Cubed Ratio")
-confset(ratioOrMass.mdls, modnames = ratioOrMass.modnames, method = "ordinal")
-```
-
-
-```{r}
-mc %>% 
-  ggplot(aes(x=wingChord,y=mass, color=sex))+
-  geom_point()+
-  geom_smooth()
+Plot cube mass model
+```{r plot sat1 cube ratio model}
+sat1CubeRatioMdl.plot <- plot_model(sat1CubeRatio.mdl,
+           title = "Saturation 1 cube ratio model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+sat1CubeRatioMdl.plot
 ```
 <br>
 
 
+<br>
+### Now let's compare the fit of models with different condition indices
+```{r indices model comparison}
+indices.mdls <- c(sat1Residual.mdl, sat1Ratio.mdl, sat1Mass.mdl, sat1CubeMass.mdl, sat1CubeRatio.mdl)
+indices.modnames <- c("Residual", "Ratio", "Mass", "Cube Mass", "Cube Ratio")
+confset(indices.mdls, modnames = indices.modnames, method = "ordinal")
+```
+<br>
+
+Using AICc Weight (AICcWt), the confset() function calculates the probability of each model given the data and the other candidate models. So in this case, we have more confidence in the ratio model's ability to explain the variation in the data, even though AICc values are only slightly different.
+<br>
 
 
-## HUE MODELS
-```{r}
-hue1.mdl <- lmer(hue1*100 ~ age + ratio + sex + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+## HUE 1 MODELS
+<br>
+
+```{r hue1 ratio model}
+hue1.mdl <- lmer(hue1*100 ~ age + ratio + sex + bodTemp1 + ambTemp1 + (1|family), 
                     data = mc, REML = FALSE)
 ```
 <br>
 
-```{r}
+```{r plot hue1 ratio model}
 hue1Mdl.plot <- plot_model(hue1.mdl,
-           title = "Ratio model for hue 1",
+           title = "hue 1 model",
            bpe = "median",
            vline.color = "black",
            show.values = TRUE, 
@@ -538,37 +451,44 @@ hue1Mdl.plot <- plot_model(hue1.mdl,
            line.size = 1.2)
 hue1Mdl.plot
 ```
-
-## TIME 2 MODELS
 <br>
 
-```{r}
-#create a time 2 data frame 
-time2.df <- mc %>% select(row:sex, ends_with("2"), ambFinal, broodSize, date:skull, resids, ratio)
+
+## TIME 2 DATA FRAME
+<br>
+
+```{r time2 data frame}
+#create a time 2 data frame (N=103)
+time2.mc <- mc %>% select(row:sex, ends_with("2"), ambFinal, broodSize, date:skull, resids, ratio)
 
 #I'm dropping ambTemp2 from data frame before dropping NAs. 
 #ambTemp2 has many more NAs. We can use ambFinal instead.
 #This boosts sample size from 32 to 99 obs. 
-time2.df <- time2.df %>% select(!ambTemp2) 
+time2.mc <- time2.mc %>% select(!ambTemp2) 
 
 #Now drop NAs after removing ambTemp2
-time2.df <- drop_na(time2.df)
+time2.mc <- drop_na(time2.mc)
 ```
-
-
-### Saturation 2 models
 <br>
 
-```{r}
+At time 1, we have 78 females and 55 males.
+At time 2, we have 64 females and 39 males. 
+
+<br>
+
+### SATURATION 2 MODELS
+<br>
+
+```{r sat2 ratio model}
 sat2.mdl <- lmer(sat2 ~ age + ratio + sex + bodTemp2 + ambFinal + timeOut2 + (1|family), 
-                    data = time2.df, REML = FALSE)
+                    data = time2.mc, REML = FALSE)
 summary(sat2.mdl)
 ```
 
-
-```{r}
+Plot sat2 model
+```{r plot sat2 ratio model}
 sat2Mdl.plot <- plot_model(sat2.mdl,
-           title = "Ratio model for saturation 2",
+           title = "Saturation 2 ratio model",
            bpe = "median",
            vline.color = "black",
            show.values = TRUE, 
@@ -578,19 +498,20 @@ sat2Mdl.plot
 ```
 <br>
 
-### Hue 2 models
+### HUE 2 MODELS
 <br>
 
-```{r}
+```{r hue2 ratio model}
 hue2.mdl <- lmer(hue2*100 ~ age + ratio + sex + bodTemp2 + ambFinal + timeOut2 + (1|family), 
-                    data = time2.df, REML = FALSE)
+                    data = time2.mc, REML = FALSE)
 summary(hue2.mdl)
 ```
 <br>
 
-```{r}
+Plot hue 2 model
+```{r plot hue2 ratio model}
 hue2Mdl.plot <- plot_model(hue2.mdl,
-           title = "Ratio model for hue 2",
+           title = "hue 2 model",
            bpe = "median",
            vline.color = "black",
            show.values = TRUE, 
@@ -600,19 +521,300 @@ hue2Mdl.plot
 ```
 <br>
 
-```{r model plots, out.width='100%'}
-ggarrange(sat1RatioMdl.plot, hue1Mdl.plot, sat2Mdl.plot, hue2Mdl.plot)
+Wrap sat and hue model plots
+```{r wrap model plots, out.width='100%'}
+ratioMdlWrap <- ggarrange(sat1RatioMdl.plot, hue1Mdl.plot, sat2Mdl.plot, hue2Mdl.plot)
+ratioMdlWrap
+#ggsave("ratioMdlWrap.png", plot = ratioMdlWrap, device = "png", dpi = 300, width = 10, height = 8)
+```
+<br>
+
+### Birds with both time1 and time2 data ONLY
+<br>
+
+The semi_join() function returns all rows from mc where there are matching IDs in time2.mc, keeping just columns from mc. 
+```{r both times (BT) data frame}
+bothTimes.mc <- semi_join(mc,time2.mc, by="id") #N=103
+```
+<br>
+
+### BOTH TIMES SAT1 RATIO MODEL
+<br>
+
+```{r BT sat1 model}
+sat1.BT.mdl <- lmer(sat1 ~ age + ratio + sex + 
+                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                    data = bothTimes.mc, REML = FALSE)
+summary(sat1.BT.mdl)
 ```
 
-```{r}
-length(time2.df$sex[time2.df$sex=="M"]) #37 males
-```
-```{r}
-length(time2.df$sex[time2.df$sex=="F"]) #62 females
+Plot both times sat1 model
+```{r plot BT sat1 ratio model}
+sat1.BT.mdl.plot <- plot_model(sat1.BT.mdl,
+           title = "Both times sat1 model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+sat1.BT.mdl.plot
 ```
 
-At time 1, we have 80 females and 54 males.
-At time 2, we have 62 females and 37 males. 
+<br>
+
+### Both times hue1 ratio model
+<br>
+
+```{r BT hue1 ratio model}
+hue1.BT.mdl <- lmer(hue1*100 ~ age + ratio + sex + bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                    data = bothTimes.mc, REML = FALSE)
+```
+<br>
+
+Plot both times hue1 model
+```{r plot BT hue1 ratio model}
+hue1.BT.mdl.plot <- plot_model(hue1.BT.mdl,
+           title = "Both times hue1 model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+hue1.BT.mdl.plot
+```
+<br>
+
+Wrap both times model plots
+
+```{r wrap both time model plots, out.width='100%'}
+bothTimes.mdlWrap <- ggarrange(sat1.BT.mdl.plot, hue1.BT.mdl.plot, sat2Mdl.plot, hue2Mdl.plot)
+bothTimes.mdlWrap
+#ggsave("bothTimesMdlWrap.png", plot = bothTimes.mdlWrap, device = "png", dpi = 300, width = 10, height = 8)
+```
+<br>
+
+## WHAT RESPONSE VARIABLES TO USE?
+<br>
+
+Plot saturation by hue
+```{r}
+mc %>% ggplot(aes(x=sat1, y=hue1))+
+  geom_jitter()+
+  geom_smooth()
+```
+<br>
+
+
+### Separate yellow and magenta models for time 1
+<br>
+
+Mean yellow 1 model
+```{r meanY1 model}
+meanY.mdl <- lmer(meanY1 ~ age + ratio + sex + 
+                        bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, REML = FALSE)
+```
+
+Plot mean yellow 1 model
+```{r plot meanY1 model}
+meanY.plot <- plot_model(meanY.mdl,
+           title = "mean yellow 1 model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+```
+<br>
+
+Mean magenta 1 model
+```{r meanM1 model time1}
+meanM.mdl <- lmer(meanM1 ~ age + ratio + sex + 
+                        bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, REML = FALSE)
+```
+<br>
+
+Plot mean magenta 1 model
+```{r plot meanM1 model time1}
+meanM.plot <- plot_model(meanM.mdl,
+           title = "mean magenta 1 model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+```
+<br>
+
+Wrap plot of mean Y1 & mean M1 models
+```{r wrap plots of mean Y1 & M1 models}
+ggarrange(meanY.plot,meanM.plot)
+```
+<br>
+
+
+### Separate yellow and magenta models for time 2
+<br>
+
+Mean yellow 2 model
+```{r meanY2 model}
+meanY2.mdl <- lmer(meanY2 ~ age + ratio + sex + 
+                        bodTemp2 + ambFinal + timeOut2 + (1|family), 
+                    data = time2.mc, REML = FALSE)
+```
+
+Plot mean yellow 2 model 
+```{r plot meanY2 model}
+meanY2.plot <- plot_model(meanY2.mdl,
+           title = "mean yellow 2 model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+```
+<br>
+
+Mean magenta 2 model
+```{r meanM2 model}
+meanM2.mdl <- lmer(meanM2 ~ age + ratio + sex + 
+                        bodTemp2 + ambFinal + timeOut2 + (1|family), 
+                    data = time2.mc, REML = FALSE)
+```
+
+Plot mean magenta 2 model 
+```{r plot meanM2 model}
+meanM2.plot <- plot_model(meanM2.mdl,
+           title = "mean magenta 2 model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+```
+<br>
+
+Wrap plots of mean Y2 & M2 models  
+```{r wrap plots for mean Y & M at time2}
+ggarrange(meanY2.plot,meanM2.plot)
+```
+<br>
+
+### Wrap model plots for mean colors and hue at time1 and time2
+```{r wrap plots for mean colors and hue, out.width='100%'}
+meanColorMdlWrap <- ggarrange(meanY.plot,meanM.plot,hue1Mdl.plot, meanY2.plot,meanM2.plot,hue2Mdl.plot)
+meanColorMdlWrap
+#ggsave("meanColorMdlWrap.png", plot = meanColorMdlWrap, device = "png", dpi = 300, width = 10, height = 8)
+```
+<br>
+
+
+### Include older birds at time 1
+<br> 
+
+Data frame including birds 23-33 days old
+```{r older birds (23-33) dataframe}
+older.mc <- allAges.mc %>% filter(between(age,23,33))
+#create mass/tarsus ratio column
+older.mc$ratio <- older.mc$mass/older.mc$tarsus
+```
+<br>
+
+Mean yellow 1 model with older birds
+```{r older birds meanY1 model}
+olderMeanY.mdl <- lmer(meanY1 ~ age + ratio + sex + 
+                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                    data = older.mc, REML = FALSE)
+```
+
+Plot mean yellow 1 model with older birds
+```{r plot older birds meanY1 model}
+olderMeanY.plot <- plot_model(olderMeanY.mdl,
+           title = "mean yellow model with older birds",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+```
+<br>
+
+Mean magenta 1 model with older birds
+```{r older birds meanM1 model}
+olderMeanM.mdl <- lmer(meanM1 ~ age + ratio + sex + 
+                        bodTemp1 + ambTemp1 + (1|family), 
+                    data = older.mc, REML = FALSE)
+```
+
+Plot mean magenta 1 model with older birds
+```{r plot older birds meanM1 model}
+olderMeanM.plot <- plot_model(olderMeanM.mdl,
+           title = "mean magenta model with older birds",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+```
+<br>
+
+Wrap mean colors with older birds models
+```{r wrap plots of older birds mean models}
+ggarrange(olderMeanY.plot,olderMeanM.plot,meanY.plot,meanM.plot)
+```
+<br>
+
+## Create age bins factor for older bird data frame
+<br>
+
+```{r age bins for older}
+#define bin breaks
+binBreaks <- c(22,25,28,33) #define breaks
+#name bins
+bins <- c("bin1","bin2","bin3") #label bins
+#assign age variable to bins
+older.mc$ageBins <- cut(older.mc$age,breaks = binBreaks,labels = bins) #vectorize
+#create a new column for age bins
+older.mc$ageBins <- as.factor(older.mc$ageBins)
+#checkBins <- data.frame(older.mc$id, older.mc$age, older.mc$ageBins)
+```
+<br>
+
+
+```{r meanY ageBin model}
+ageBinsMeanY.mdl <- lmer(meanY1 ~ ageBins + ratio + sex + 
+                        bodTemp1 + ambTemp1 + timeOut1 + (1|family), 
+                    data = older.mc, REML = FALSE)
+```
+
+```{r plot meanY model}
+ageBinsMeanY.plot <- plot_model(ageBinsMeanY.mdl,
+           title = "age bin mean yellow model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+```
+
+```{r wrap plots for age bin models}
+ggarrange(olderMeanY.plot, ageBinsMeanY.plot)
+```
+<br>
+
+Birds in the oldest category (29-33) are driving the negative age effect. 
+<br>
+
+
+Comparison of model fit for continuous age and age bin models
+```{r age bin model comparison}
+ageBins.mdls <- c(olderMeanY.mdl, ageBinsMeanY.mdl)
+ageBins.modnames <- c("continuous age", "age bins")
+confset(ageBins.mdls, modnames = ageBins.modnames, method = "ordinal")
+```
+There's no difference in the model probabilities. 
+<br>
 
 
 
