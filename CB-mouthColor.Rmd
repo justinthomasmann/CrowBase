@@ -441,6 +441,7 @@ hue1.mdl <- lmer(hue1*100 ~ age + ratio + sex + bodTemp1 + ambTemp1 + (1|family)
 ```
 <br>
 
+
 ```{r plot hue1 ratio model}
 hue1Mdl.plot <- plot_model(hue1.mdl,
            title = "hue 1 model",
@@ -718,6 +719,7 @@ Data frame including birds 23-33 days old
 older.mc <- allAges.mc %>% filter(between(age,23,33))
 #create mass/tarsus ratio column
 older.mc$ratio <- older.mc$mass/older.mc$tarsus
+older.mc <- older.mc %>% filter(explFledge == "N")
 ```
 <br>
 
@@ -817,5 +819,295 @@ There's no difference in the model probabilities.
 <br>
 
 
+```{r hue1 ratio model}
+hue1.mdl <- lmer(hue1*100 ~ age + ratio + sex + bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, REML = FALSE)
+```
+<br>
+
+```{r hue1 age*sex model}
+hue1_inter.mdl <- lmer(hue1*100 ~ age * sex + ratio + bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, REML = FALSE)
+```
+<br>
+
+```{r hue1 no sex model}
+hue1_noSex.mdl <- lmer(hue1*100 ~ age + ratio + bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, REML = FALSE)
+```
+<br>
+
+```{r age bin model comparison}
+sex.mdls <- c(hue1.mdl, hue1_inter.mdl, hue1_noSex.mdl)
+sex.modnames <- c("sex", "age by sex interaction", "no sex")
+confset(sex.mdls, modnames = sex.modnames, method = "ordinal")
+```
+<br>
+
+```{r}
+hue1_noSexMdl.plot <- plot_model(hue1_noSex.mdl,
+           title = "hue1 no sex model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+hue1_noSexMdl.plot
+```
 
 
+## BAYESIAN MODELS
+<br>
+
+```{r}
+bay_hue1.mdl <- stan_glmer(hue1*100 ~ age + ratio + sex + bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, algorithm = "sampling",iter = 6000, chains = 10,seed = 12345)
+posterior_interval(bay_hue1.mdl)
+```
+<br>
+
+```{r}
+bay_hue1Mdl.plot <- plot_model(bay_hue1.mdl,
+           title = "Bayesian hue 1 model",
+           bpe = "median",
+           vline.color = "black",
+           prob.inner = .50,
+           prob.outer = .80,
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1)
+
+bay_hue1Mdl.plot
+```
+<br>
+
+```{r}
+bay_hue1_inter.mdl <- stan_glmer(hue1*100 ~ age * sex + ratio + bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, algorithm = "sampling",iter = 6000, chains = 10,seed = 12345)
+```
+
+```{r}
+bay_hue1_noSex.mdl <- stan_glmer(hue1*100 ~ age + ratio + bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, algorithm = "sampling",iter = 6000, chains = 10,seed = 12345)
+```
+
+```{r}
+loo.bay_hue1 <- loo(bay_hue1.mdl)
+loo.bay_hue1_inter <- loo(bay_hue1_inter.mdl)
+loo.bay_hue1_noSex <- loo(bay_hue1_noSex.mdl)
+
+loo_compare(loo.bay_hue1, loo.bay_hue1_inter, loo.bay_hue1_noSex)
+```
+
+
+
+Mean yellow 1 model
+```{r}
+bay_meanY.mdl <- stan_glmer(meanY1 ~ age + ratio + sex + 
+                        bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, algorithm = "sampling",iter = 6000, chains = 10,seed = 12345)
+```
+<br>
+
+Plot mean yellow 1 model
+```{r}
+bay_meanY.plot <- plot_model(bay_meanY.mdl,
+           title = "mean yellow 1 model",
+           bpe = "median",
+           vline.color = "black",
+           prob.inner = .50,
+           prob.outer = .80,
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1)
+bay_meanY.plot
+```
+<br>
+
+
+
+Mean magenta 2 model
+```{r}
+bay_meanM.mdl <- stan_glmer(meanM1 ~ age + ratio + sex + 
+                        bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, algorithm = "sampling",iter = 6000, chains = 10,seed = 12345)
+```
+<br>
+
+Plot mean magenta 2 model 
+```{r}
+bay_meanM.plot <- plot_model(bay_meanM.mdl,
+           title = "mean magenta 2 model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE,
+           prob.inner = .50,
+           prob.outer = .80,
+           value.offset = .3,
+           line.size = 1)
+bay_meanM.plot
+```
+<br>
+
+```{r}
+bay_r1_hue1.mdl <- stan_glmer(hue1*100 ~ age + ratio + bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, algorithm = "sampling",iter = 6000, chains = 10,seed = 12345)
+```
+<br>
+
+```{r}
+bay_r1_hue1Mdl.plot <- plot_model(bay_r1_hue1.mdl,
+           title = "Bayesian hue 1 model",
+           bpe = "median",
+           vline.color = "black",
+           prob.inner = .50,
+           prob.outer = .80,
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1)
+
+bay_r1_hue1Mdl.plot
+```
+
+```{r}
+mc %>% ggplot(aes(x=sex,y=age))+
+  geom_boxplot()
+summary(mc$age[mc$sex=="F"])
+```
+```{r}
+summary(mc$age[mc$sex=="M"])
+```
+
+
+```{r}
+time2.mc %>% ggplot(aes(x=sex,y=age))+
+  geom_boxplot()
+```
+```{r}
+older.mc %>% ggplot(aes(x=sex,y=age))+
+  geom_boxplot()
+```
+
+```{r}
+mc %>% ggplot(aes(x=palM1,y=tongM1,color=sex))+
+  geom_point()+
+  geom_smooth()
+```
+```{r}
+mc %>% ggplot(aes(x=palY1,y=tongY1,color=sex))+
+  geom_point()+
+  geom_smooth()
+```
+
+```{r palM1 ratio model}
+palM1.mdl <- lmer(palM1 ~ age + ratio + sex + bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, REML = FALSE)
+```
+
+```{r}
+palM1Mdl.plot <- plot_model(palM1.mdl,
+           title = "palM1 no sex model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+palM1Mdl.plot
+```
+
+
+```{r palM1 ratio model}
+tongM1.mdl <- lmer(tongM1 ~ age + ratio + sex + bodTemp1 + ambTemp1 + (1|family), 
+                    data = mc, REML = FALSE)
+```
+
+
+```{r}
+tongM1Mdl.plot <- plot_model(tongM1.mdl,
+           title = "palM1 no sex model",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+tongM1Mdl.plot
+```
+
+```{r}
+summary(lm(tongM1~palM1, data = mc))
+```
+
+```{r}
+mc %>% ggplot(aes(x=ambFinal,y=meanM2, color=as.factor(broodSize)))+
+  geom_jitter(size = 2)+
+  scale_color_brewer(palette = "Dark2")
+```
+```{r}
+mc %>% ggplot(aes(x=ambFinal,y=meanY1,color=as.factor(broodSize)))+
+  geom_jitter(size=2)+
+  scale_color_brewer(palette = "Dark2")
+```
+```{r}
+mc %>% ggplot(aes(x=age,y=ratio, color=sex))+
+  geom_jitter()+
+  geom_smooth()
+```
+```{r}
+summary(lm(ratio~age, data = mc))
+```
+
+range()
+```{r}
+mc %>% ggplot(aes(x=hue1,y=hue2))+
+  geom_point()
+```
+```{r}
+mc$hueDiff <- mc$hue1-mc$hue2
+mc$satDiff <- mc$sat1-mc$sat2
+```
+
+```{r}
+mc %>% ggplot(aes(x=age,y=hueDiff,color=sex))+
+  geom_point()+
+  geom_smooth()
+```
+```{r}
+mc %>% ggplot(aes(x=ratio,y=hueDiff, color=sex))+
+  geom_point()+
+  geom_smooth()
+```
+```{r}
+mc %>% ggplot(aes(x=age,y=satDiff,color=sex))+
+  geom_point()+
+  geom_smooth()
+```
+```{r}
+mc %>% ggplot(aes(x=ratio,y=satDiff,color=sex))+
+  geom_point()+
+  geom_smooth()
+```
+
+
+```{r}
+mc %>% ggplot(aes(x=timeOut2,y=hueDiff, color=sex))+
+  geom_point()+
+  geom_smooth()
+```
+
+```{r older birds meanY1 model}
+olderMeanY_inter.mdl <- lmer(meanY1 ~ age + ratio + 
+                        bodTemp1 + ambTemp1 + (1|family), 
+                    data = older.mc, REML = FALSE)
+```
+
+Plot mean yellow 1 model with older birds
+```{r plot older birds meanY1 model}
+olderMeanY_inter.plot <- plot_model(olderMeanY_inter.mdl,
+           title = "mean yellow model with older birds",
+           bpe = "median",
+           vline.color = "black",
+           show.values = TRUE, 
+           value.offset = .3,
+           line.size = 1.2)
+olderMeanY_inter.plot
+```
