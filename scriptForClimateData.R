@@ -3,11 +3,32 @@ library(lme4)
 library(plyr)
 theme_set(theme_classic())
 
+#Hourly Temperature Data 1990-2020
+
+noaa <- meteo_noaa_hourly(station = "725155-94761", year = 1990:2022, fm12 = FALSE)
+noaa
+
+write.table(noaa, file = "noaaData_2006-2022.txt", sep = "\t",
+            col.names = TRUE, row.names = FALSE )
+
+noaa2 <- meteo_noaa_hourly(station = "725155-99999", year = 1990:2022, fm12 = FALSE)
+noaa2
+
+write.table(noaa2, file = "noaaData_1990-2005.txt", sep = "\t",
+            col.names = TRUE, row.names = FALSE )
+
+
+
 #Don't forget to set your working directory! Tell R where the data are on
 #your computer. Session -> Set working directory -> Choose directory...
 
 #Read in NOAA Temperature Data 2006-2022
-df <- read.csv("noaaData_2007-2022.csv",h=T)
+df1 <- read.csv("noaaData_2006-2022.csv",h=T)
+df2 <- read.csv("noaaData_1990-2005.csv", h=T)
+
+df <- rbind(df2,df1)
+
+write.csv(df, file = "noaaData_1990-2022.csv")
 
 #Create column combining year and month for summary stats
 df$yearMonth <- paste(df$year, df$month, sep = "_")
@@ -24,16 +45,9 @@ df$obs<-1:nrow(df)
 #slp = sea level pressure
 
 #Data frame including only March, April and May
-marAprMay.df <- df %>% filter(between(month, 3, 5) & between(year, 2006, 2021))
+marAprMay.df <- df %>% filter(between(month, 3, 5) & between(year, 1990, 2021))
 summary(marAprMay.df)
 
-
-#Box plots of temperatures for March, April and May of each year. *Note here I'm
-#using 'obs' on the x-axis because R doesn't like the way the 'date' variable
-#is formatted. I'm still working on this.
-marAprMay.df %>%
-  ggplot(aes(x=obs, y=t2m, color=as.factor(year), fill=as.factor(month)))+
-  geom_boxplot()
 
 #Data frame with daily mean, maximum, minimum and standard deviation
 dailyTemp.df <- marAprMay.df %>%
@@ -47,7 +61,7 @@ dailyTemp.df <- marAprMay.df %>%
 dailyTemp.df$Range <- dailyTemp.df$Max - dailyTemp.df$Min
 
 #Add back Year column
-dailyTemp.df$Year <- rep(c(2006:2021),each=92)
+dailyTemp.df$Year <- rep(c(1990:2021),each=92)
 
 #Add back Month column
 dailyTemp.df <- dailyTemp.df %>%
@@ -59,12 +73,17 @@ dailyTemp.df <- dailyTemp.df %>%
 #Add back obs column
 dailyTemp.df$obs<-1:nrow(dailyTemp.df)
 
+write.table(dailyTemp.df, file = "noaaDailyTemps_1990-2021.txt", sep = "\t",
+            col.names = TRUE, row.names = FALSE)
+
 dailyTemp.df %>%
   ggplot(aes(x=yearMonth, y=Mean, fill=Month))+
   geom_boxplot()+
    theme(axis.text.x = element_blank())+
    ylab("Average Temperature (C)")+
-   xlab("2006-2021")
+   xlab("1990-2021")
+
+summary(lm(dailyTemp.df$Mean~dailyTemp.df$yearMonth))
 
 #March-only data frame
 marchDaily.df <- subset(dailyTemp.df, dailyTemp.df$Month == 3)
@@ -86,4 +105,5 @@ mayDaily.df <- subset(dailyTemp.df, dailyTemp.df$Month == 5)
 mayDaily.df %>%
   ggplot(aes(x=as.factor(Year), y=Mean))+
   geom_boxplot()
+
 
