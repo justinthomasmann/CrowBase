@@ -1,0 +1,142 @@
+---
+title: "CB-outliers"
+author: "Justin Mann"
+date: "3/11/2021"
+output: html_document
+---
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(RColorBrewer) 
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+brewer.pal(n=8, name = "Dark2"); #display.brewer.pal(n = 8, name = "Dark2")
+theme_set(theme_classic())
+```
+
+## full dataset (df)
+
+```{r df}
+df=tibble(read.csv("Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.csv", h=T))
+```
+
+```{r findEm function}
+findEm <- function(x){
+outVals=boxplot.stats(x)$out
+which(x %in% outVals)
+outRows <- which(x %in% c(outVals))
+df[outRows,]
+}
+```
+
+```{r bill width outliers}
+billW_outliers <- findEm(x = df$billW)
+billW_outliers <- billW_outliers %>% 
+   select(id,lifeStage,calcAge,billW)
+billW_outliers <- arrange(billW_outliers,billW)
+
+write.csv(billW_outliers, "outliers_billW.csv")
+```
+
+```{r bill depth outliers}
+billD_outliers <- findEm(x = df$billD)
+billD_outliers <- billD_outliers %>% 
+   select(id,lifeStage,calcAge,billD)
+billD_outliers <- arrange(billD_outliers,billD)
+
+write.csv(billD_outliers, "outliers_billD.csv")
+```
+
+```{r nares to tip outliers}
+billNT_outliers <- findEm(x = df$billNT)
+billNT_outliers <- billNT_outliers %>% 
+   select(id,lifeStage,calcAge,billNT)
+billNT_outliers <- arrange(billNT_outliers,billNT)
+
+write.csv(billNT_outliers, "outliers_billNT.csv")
+```
+
+```{r TEC outliers}
+TEC_outliers <- findEm(x = df$TEC)
+TEC_outliers <- TEC_outliers %>% 
+   select(id,lifeStage,calcAge,TEC)
+TEC_outliers <- arrange(TEC_outliers,TEC)
+
+write.csv(billNT_outliers, "outliers_TEC.csv")
+```
+
+```{r head outliers}
+head_outliers <- findEm(x = df$head)
+head_outliers <- head_outliers %>% 
+   select(id,lifeStage,calcAge,head)
+head_outliers <- arrange(head_outliers,head)
+
+write.csv(head_outliers, "outliers_head.csv")
+```
+
+```{r skull outliers}
+skull_outliers <- findEm(x = df$skull)
+skull_outliers <- skull_outliers %>% 
+   select(id,lifeStage,calcAge,skull)
+skull_outliers <- arrange(skull_outliers,skull)
+
+write.csv(skull_outliers, "outliers_skull.csv")
+```
+
+```{r wingChord outliers}
+wingChord_outliers <- findEm(x = df$wingChord)
+wingChord_outliers <- wingChord_outliers %>% 
+   select(id,lifeStage,calcAge,wingChord)
+wingChord_outliers <- arrange(wingChord_outliers,wingChord)
+
+write.csv(wingChord_outliers, "outliers_wingChord.csv")
+```
+
+```{r exp7Primary outliers}
+exp7Primary_outliers <- findEm(x = df$exp7Primary)
+exp7Primary_outliers <- exp7Primary_outliers %>% 
+   select(id,lifeStage,calcAge,exp7Primary)
+exp7Primary_outliers <- arrange(exp7Primary_outliers,exp7Primary)
+
+write.csv(exp7Primary_outliers, "outliers_exp7Primary.csv")
+```
+
+```{r weight outliers}
+weight_outliers <- findEm(x = df$weight)
+weight_outliers <- weight_outliers %>% 
+   select(id,lifeStage,calcAge,weight)
+weight_outliers <- arrange(weight_outliers,weight)
+
+write.csv(weight_outliers, "outliers_weight.csv")
+```
+
+
+```{r tailLength outliers}
+tailLength_outliers <- findEm(x = df$tailLength)
+tailLength_outliers <- tailLength_outliers %>% 
+   select(id,lifeStage,calcAge,tailLength)
+tailLength_outliers <- arrange(tailLength_outliers,tailLength)
+
+write.csv(tailLength_outliers, "outliers_tailLength.csv")
+```
+
+
+```{r sevenPrimary outliers}
+sevenPrimary_outliers <- findEm(x = df$sevenPrimary)
+sevenPrimary_outliers <- sevenPrimary_outliers %>% 
+   select(id,lifeStage,calcAge,sevenPrimary)
+sevenPrimary_outliers <- arrange(sevenPrimary_outliers,sevenPrimary)
+
+write.csv(sevenPrimary_outliers, "outliers_sevenPrimary.csv")
+```
+
+
+```{r tarsus outliers}
+tarsus_outliers <- findEm(x = df$tarsus)
+tarsus_outliers <- tarsus_outliers %>% 
+   select(id,lifeStage,calcAge,tarsus)
+tarsus_outliers <- arrange(tarsus_outliers,tarsus)
+
+write.csv(tarsus_outliers, "outliers_tarsus.csv")
+```

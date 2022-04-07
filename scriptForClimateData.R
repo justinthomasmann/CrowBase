@@ -76,6 +76,9 @@ dailyTemp.df$obs<-1:nrow(dailyTemp.df)
 write.table(dailyTemp.df, file = "noaaDailyTemps_1990-2021.txt", sep = "\t",
             col.names = TRUE, row.names = FALSE)
 
+#Below this,
+df <- read.delim("noaaDailyTemps_1990-2021.txt", sep = "\t")
+
 dailyTemp.df %>%
   ggplot(aes(x=yearMonth, y=Mean, fill=Month))+
   geom_boxplot()+
@@ -105,5 +108,19 @@ mayDaily.df <- subset(dailyTemp.df, dailyTemp.df$Month == 5)
 mayDaily.df %>%
   ggplot(aes(x=as.factor(Year), y=Mean))+
   geom_boxplot()
+
+
+#Below this,
+df <- read.delim("noaaDailyTemps_1990-2021.txt", sep = "\t")
+
+df %>%
+  ggplot(aes(x=yearMonth, y=Mean, fill=Month))+
+  geom_boxplot()+
+  theme(axis.text.x = element_blank())+
+  ylab("Average Temperature (C)")+
+  xlab("1990-2021")
+
+summary(lm(df$Mean~df$Year))
+
 
 
