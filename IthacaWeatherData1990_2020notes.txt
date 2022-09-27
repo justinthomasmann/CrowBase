@@ -1,0 +1,27 @@
+Data from: Northeast Regional Climate Center CLIMOD2 http://climod2.nrcc.cornell.edu/
+accessed 9/26/22 by Justin Mann
+Data for ITHACA CORNELL UNIV, NY
+
+All data are in English units (degrees Fahrenheit and inches), unless otherwise noted.
+
+Observations for each day cover the 24 hours ending
+at the time given below (Local Standard Time).
+Observation times may have changed during this period.
+Max Temperature : 8am, unknown, 7am, 6am
+Min Temperature : 8am, unknown, 7am, 6am
+Avg Temperature : 8am, unknown, 7am, 6am
+Precipitation : 8am, unknown, 7am, 6am
+Snowfall : unknown, unknown, 7am, 6am, 8am
+Snow Depth : unknown, unknown, 7am, 6am, 8am
+HDD : 8am, unknown, 7am, 6am
+CDD : 8am, unknown, 7am, 6am
+GDD : 8am, unknown, 7am, 6am
+At Obs Temperature : 8am, 7am, 9am, 6am, midnight, 5am
+
+
+Definitions
+T: Trace amount- Less than 0.01" precipitation; less than 0.1" snowfall; less than 1" snow depth.
+S: Subsequent- Indicates the observation is missing, but is included in a subsequent value.
+A: Accumulated- Indicates an accumulated value which includes the current day and any immediately preceeding missing days (flagged by "S").
+ -  or M: Indicates missing data.
+Period of Record: The beginning and ending dates of observations for a station.
