@@ -20,6 +20,9 @@ At Obs Temperature : 8am, 7am, 9am, 6am, midnight, 5am
 
 
 Definitions
+HDD: Heating Degree Days (base 65)
+CDD: Cooling Degree Days (base 65)
+GDD: Growing Degree Days (base 50)
 T: Trace amount- Less than 0.01" precipitation; less than 0.1" snowfall; less than 1" snow depth.
 S: Subsequent- Indicates the observation is missing, but is included in a subsequent value.
 A: Accumulated- Indicates an accumulated value which includes the current day and any immediately preceeding missing days (flagged by "S").
