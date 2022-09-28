@@ -5,11 +5,7 @@ date: "2022-09-27"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-```{r libraries, echo=FALSE}
+```{r libraries, include=FALSE}
 library(tidyverse)
 library(dplyr)
 library(zoo)
@@ -17,12 +13,25 @@ library(zoo)
 
 ## CLIMOD2 Dataset for Cornell University Station
 
-```{r}
-climod.df <- read.csv("IthacaWeatherData1990_2020.csv", h=TRUE)
+```{r data frame}
+df <- read.csv("IthacaWeatherData1990_2020.csv", h=TRUE)
 
-?rollmean()
-climod.df$rollmean11 <- rollmean(climod.df$MaxTemp, 19, fill = NA)
-rollapply(climod.df$MaxTemp, 3, function(x) mean(x))
+#coerce climate variables to class numeric 
+df$MaxTemp <- as.numeric(df$MaxTemp)
+df$Precip <- as.numeric(df$Precip)
+df$HDD <- as.numeric(df$HDD)
+
+df$leadMax11 <- dplyr::lead(df$MaxTemp, n = 5)
+df$leadMean11 <- zoo::rollmean(df$leadMax11, k=11, fill = NA, align = 'right')
+df$MaxTempMean11 <- dplyr::lag(df$leadMean11, n = 5)
+
+
+
+
+```
+
+
+```{r }
 
 ```
 
