@@ -1,0 +1,28 @@
+---
+title: "Nestlings and Climate"
+author: "Justin Mann"
+date: "2022-09-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, echo=FALSE}
+library(tidyverse)
+library(dplyr)
+library(zoo)
+```
+
+## CLIMOD2 Dataset for Cornell University Station
+
+```{r}
+climod.df <- read.csv("IthacaWeatherData1990_2020.csv", h=TRUE)
+
+?rollmean()
+climod.df$rollmean11 <- rollmean(climod.df$MaxTemp, 19, fill = NA)
+rollapply(climod.df$MaxTemp, 3, function(x) mean(x))
+
+```
+
