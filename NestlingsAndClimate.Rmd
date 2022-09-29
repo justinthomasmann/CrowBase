@@ -20,18 +20,84 @@ df <- read.csv("IthacaWeatherData1990_2020.csv", h=TRUE)
 df$MaxTemp <- as.numeric(df$MaxTemp)
 df$Precip <- as.numeric(df$Precip)
 df$HDD <- as.numeric(df$HDD)
+```
 
+
+```{r MaxTempMean11}
+#create columns to contain
 df$leadMax11 <- dplyr::lead(df$MaxTemp, n = 5)
 df$leadMean11 <- zoo::rollmean(df$leadMax11, k=11, fill = NA, align = 'right')
 df$MaxTempMean11 <- dplyr::lag(df$leadMean11, n = 5)
-
-
-
-
 ```
 
 
-```{r }
-
+```{r code check}
+#verify that MaxTempMean11 is accurately calculating the mean Max temp for the previous 11 days.
+c(mean(df[6:16,7]), df[16,18]) #manually calculated mean matches MaxTempMean11
 ```
+
+
+```{r MaxTempMean19}
+df$leadMax19 <- dplyr::lead(df$MaxTemp, n = 9)
+df$leadMean19 <- zoo::rollmean(df$leadMax19, k=19, fill = NA, align = 'right')
+df$MaxTempMean19 <- dplyr::lag(df$leadMean19, n = 9)
+```
+
+```{r code check}
+#verify that MaxTempMean19 is accurately calculating the mean Max temp for the previous 19 days.
+c(mean(df[10:28,7]), df[28,21]) #manually calculated mean should match MaxTempMean11
+```
+
+
+```{r TotPrecip11}
+df$TotPrecip11 <- zoo::rollapply(df$Precip, width=11, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+```
+
+```{r code check}
+#verify that TotPrecip11 is accurately calculating the summed precip for the previous 11 days.
+c(sum(df[1:11,10], na.rm = TRUE), df[11,22]) #manually calculated sum should match TotPrecip11
+```
+
+
+```{r TotPrecip19}
+df$TotPrecip19 <- zoo::rollapply(df$Precip, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+```
+
+```{r code check}
+#verify that TotPrecip19 is accurately calculating the summed precip for the previous 19 days.
+c(sum(df[11:29,10], na.rm = TRUE), df[29,23]) #manually calculated sum should match TotPrecip19
+```
+
+
+```{r TotHDD11}
+df$TotHDD11 <- zoo::rollapply(df$HDD, width=11, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+```
+
+```{r code check}
+#verify that TotHDD11 is accurately calculating the summed HDD for the previous 11 days.
+c(sum(df[111:121,13], na.rm = TRUE), df[121,24]) #manually calculated sum should match TotHDD11
+```
+
+
+```{r TotHDD19}
+df$TotHDD19 <- zoo::rollapply(df$HDD, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+```
+
+```{r code check}
+#verify that TotHDD19 is accurately calculating the summed HDD for the previous 19 days.
+c(sum(df[111:129,13], na.rm = TRUE), df[129,25]) #manually calculated sum should match TotHDD19
+```
+
+
+```{r new dataframe}
+#New dataframe with the derived climate metrics
+climMetrics.df <- as.data.frame(df[60:11514,c(1:6, 18, 21:25)])
+```
+
+
+```{r}
+write.csv(climMetrics.df, "C:\\Users\\Justin Mann\\Documents\\RProjects\\CrowBase\\ClimateMetrics.csv",
+          row.names = FALSE)
+```
+
 
