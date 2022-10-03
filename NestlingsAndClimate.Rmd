@@ -23,17 +23,41 @@ df$HDD <- as.numeric(df$HDD)
 ```
 
 
-```{r MaxTempMean11}
-#create columns to contain
-df$leadMax11 <- dplyr::lead(df$MaxTemp, n = 5)
-df$leadMean11 <- zoo::rollmean(df$leadMax11, k=11, fill = NA, align = 'right')
-df$MaxTempMean11 <- dplyr::lag(df$leadMean11, n = 5)
+```{r MaxTempMean1_11}
+#create columns to contain mean MaxTemp for 11 day rolling windows for each julian day
+
+df$MaxTempMean1_11 <- zoo::rollapply(df$MaxTemp, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check: Is MaxTempMean1_11 calculating the mean Max temp for the following 11 days.
+c(mean(df[1:11,7]), df[1,16]) #manually calculated mean matches MaxTempMean1_11
+
 ```
 
 
-```{r code check}
-#verify that MaxTempMean11 is accurately calculating the mean Max temp for the previous 11 days.
-c(mean(df[6:16,7]), df[16,18]) #manually calculated mean matches MaxTempMean11
+```{r MaxTempMean12_22}
+#Create MaxTemp column that is 11 days ahead
+df$MaxTempMean12_22 <- dplyr::lead(df$MaxTempMean1_11, n = 11)
+
+#Code check: Is MaxTempMean12_22 calculating the mean Max temp for the second window of 11 days.
+c(mean(df[12:22,7]), df[1,17]) #manually calculated mean matches MaxTempMean12_22
+```
+
+
+```{r MaxTempMean23_33}
+#Create MaxTemp column that is 22 days ahead
+df$MaxTempMean23_33 <- dplyr::lead(df$MaxTempMean12_22, n = 11)
+
+#Code check: Is MaxTempMean23_33 calculating the mean Max temp for the third window of 11 days.
+c(mean(df[23:33,7]), df[1,18]) #manually calculated mean matches MaxTempMean23_33
+```
+
+
+```{r MaxTempMean34_44}
+#Create MaxTemp column that is 33 days ahead
+df$leadMax34_44 <- dplyr::lead(df$MaxTempMean23_33, n = 11)
+
+#Code check: Is MaxTempMean33_43 calculating the mean Max temp for the fourth window of 11 days.
+c(mean(df[34:44,7]), df[1,19]) #manually calculated mean matches MaxTempMean33_43
 ```
 
 
