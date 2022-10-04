@@ -363,8 +363,10 @@ display: none;
 </div>
 
 
-<div id="climod2-dataset-for-cornell-university-station" class="section level2">
-<h2>CLIMOD2 Dataset for Cornell University Station</h2>
+<div id="climod2-data-for-cornell-university-weather-station" class="section level2">
+<h2>CLIMOD2 Data for Cornell University Weather Station</h2>
+<p><a href="http://www.nrcc.cornell.edu/" class="uri">http://www.nrcc.cornell.edu/</a></p>
+<p><a href="http://climod2.nrcc.cornell.edu/" class="uri">http://climod2.nrcc.cornell.edu/</a></p>
 <pre class="r"><code>df &lt;- read.csv(&quot;IthacaWeatherData1990_2020.csv&quot;, h=TRUE)
 
 #coerce climate variables to class numeric 
@@ -381,81 +383,216 @@ df$MaxTemp &lt;- as.numeric(df$MaxTemp)</code></pre>
 </div>
 <div id="climate-metrics" class="section level2">
 <h2>Climate Metrics</h2>
-<p>*Objective: to match data on climate conditions during: +Incubation
-(conditions for 19 days prior to hatch date) +Post-hatch (conditions for
-1-11, 12-22, 23-33, and 34-44 days after hatch date)</p>
-<pre class="r"><code>?zoo::rollapply()</code></pre>
+<p>Objective: to match data on climate conditions during:</p>
+<ul>
+<li><p>Incubation (conditions for 19 days prior to hatch date)</p></li>
+<li><p>Post-hatch (conditions for 1-11, 12-22, 23-33, and 34-44 days
+after hatch date)</p></li>
+</ul>
+<div id="metric-1-post-hatch-max-temp" class="section level3">
+<h3>Metric 1: Post-hatch Max Temp</h3>
+<pre class="r"><code>#zoo::rollapply(): align = &#39;left&#39; applies to the succeeding days, while align = &#39;right&#39; applies to the preceding days  
+?zoo::rollapply()</code></pre>
 <pre><code>## starting httpd help server ... done</code></pre>
 <pre class="r"><code>#An 11-day rolling window calculates the mean of MaxTemp for the next 11 days
 df$MaxTempMean1_11 &lt;- zoo::rollapply(df$MaxTemp, width=11, FUN=mean, align = &#39;left&#39;, fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean(df[1:11,7]), df[1,16]) #mean() calculation should match MaxTempMean1_11</code></pre>
-<pre><code>## [1] 39.54545 39.54545</code></pre>
+c(mean=mean(df[1:11,7]),metric=df[1,16])</code></pre>
+<pre><code>##     mean   metric 
+## 39.54545 39.54545</code></pre>
+<pre class="r"><code>#mean() calculation should match metric</code></pre>
+<pre class="r"><code>print(df[1:11,7])</code></pre>
+<pre><code>##  [1] 42 30 39 43 48 36 36 41 39 44 37</code></pre>
 <pre class="r"><code>#MaxTempMean for days 12-22
 df$MaxTempMean12_22 &lt;- dplyr::lead(df$MaxTempMean1_11, n = 11)
 
 #Code check
-c(mean(df[12:22,7]), df[1,17]) #mean() calculation should match MaxTempMean12_22</code></pre>
-<pre><code>## [1] 38.54545 38.54545</code></pre>
+c(mean=mean(df[12:22,7]), metric=df[1,17])#mean() calculation should match metric</code></pre>
+<pre><code>##     mean   metric 
+## 38.54545 38.54545</code></pre>
+<pre class="r"><code>print(df[12:22,7])#11 values</code></pre>
+<pre><code>##  [1] 39 29 23 33 37 52 55 51 29 35 41</code></pre>
 <pre class="r"><code>#MaxTempMean for days 23-33
 df$MaxTempMean23_33 &lt;- dplyr::lead(df$MaxTempMean12_22, n = 11)
 
 #Code check
-c(mean(df[23:33,7]), df[1,18]) #mean() calculation should match MaxTempMean23_33</code></pre>
-<pre><code>## [1] 41.72727 41.72727</code></pre>
+c(mean=mean(df[23:33,7]), metric=df[1,18])#mean() calculation should match metric</code></pre>
+<pre><code>##     mean   metric 
+## 41.72727 41.72727</code></pre>
+<pre class="r"><code>print(df[23:33,7])#11 values</code></pre>
+<pre><code>##  [1] 40 41 55 54 32 40 38 34 35 43 47</code></pre>
 <pre class="r"><code>#MaxTempMean for days 34-44
 df$leadMax34_44 &lt;- dplyr::lead(df$MaxTempMean23_33, n = 11)
 
 #Code check
-c(mean(df[34:44,7]), df[1,19]) #mean() calculation should match MaxTempMean34_44</code></pre>
-<pre><code>## [1] 39 39</code></pre>
+c(mean=mean(df[34:44,7]), metric=df[1,19])#mean() calculation should match metric</code></pre>
+<pre><code>##   mean metric 
+##     39     39</code></pre>
+<pre class="r"><code>print(df[34:44,7])#11 values</code></pre>
+<pre><code>##  [1] 35 35 26 35 42 45 49 53 39 36 34</code></pre>
+</div>
+<div id="metric-2-incubation-max-temp" class="section level3">
+<h3>Metric 2: Incubation Max Temp</h3>
 <pre class="r"><code>#MaxTemp mean for 19 days prior to hatch date
 df$MeanMaxTempIncubation &lt;- zoo::rollapply(df$MaxTemp, width=19, FUN=mean, align = &#39;right&#39;, fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean(df[1:19,7]), df[19,20]) #mean() calculation should match MaxTempMeanIncubation</code></pre>
-<pre><code>## [1] 39.68421 39.68421</code></pre>
+c(mean=mean(df[1:19,7]), metric=df[19,20]) #mean() calculation should match metric</code></pre>
+<pre><code>##     mean   metric 
+## 39.68421 39.68421</code></pre>
+<pre class="r"><code>print(df[1:19,7])#19 values</code></pre>
+<pre><code>##  [1] 42 30 39 43 48 36 36 41 39 44 37 39 29 23 33 37 52 55 51</code></pre>
+</div>
+<div id="metric-3-post-hatch-precipitation" class="section level3">
+<h3>Metric 3: Post-hatch Precipitation</h3>
 <pre class="r"><code>df$PrecipSum1_11 &lt;- zoo::rollapply(df$Precip, width=11, FUN=sum, align = &#39;left&#39;, fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check 
-c(sum(df[1:11,10], na.rm = TRUE), df[1,21]) #mean() calculation should match PrecipSum1_11</code></pre>
-<pre><code>## [1] 0.2 0.2</code></pre>
+c(sum=sum(df[1:11,10], na.rm = TRUE), metric=df[1,21]) #sum() calculation should match metric</code></pre>
+<pre><code>##    sum metric 
+##    0.2    0.2</code></pre>
+<pre class="r"><code>print(df[1:11,10])#11 values)</code></pre>
+<pre><code>##  [1] 0.07 0.01 0.00 0.00 0.00 0.00   NA 0.00 0.00 0.01 0.11</code></pre>
 <pre class="r"><code>#PrecipSum column that is 11 days ahead
 df$PrecipSum12_22 &lt;- dplyr::lead(df$PrecipSum1_11, n = 11)
 
 #Code check
-c(sum(df[12:22,10], na.rm = TRUE), df[1,22]) #sum() calculation should match PrecipSum12_22</code></pre>
-<pre><code>## [1] 0.66 0.66</code></pre>
+c(sum=sum(df[12:22,10], na.rm = TRUE), metric=df[1,22]) #sum() calculation should match metric</code></pre>
+<pre><code>##    sum metric 
+##   0.66   0.66</code></pre>
+<pre class="r"><code>print(df[12:22,10])</code></pre>
+<pre><code>##  [1] 0.01 0.01   NA 0.04 0.04   NA 0.02   NA 0.00 0.53 0.01</code></pre>
 <pre class="r"><code>#PrecipSum column that is 22 days ahead
 df$PrecipSum23_33 &lt;- dplyr::lead(df$PrecipSum12_22, n = 11)
 
 #Code check
-c(sum(df[23:33,10], na.rm = TRUE), df[1,23]) #sum() calculation should match PrecipSum23_33</code></pre>
-<pre><code>## [1] 1.61 1.61</code></pre>
+c(sum=sum(df[23:33,10], na.rm = TRUE), metric=df[1,23]) #sum() calculation should match metric</code></pre>
+<pre><code>##    sum metric 
+##   1.61   1.61</code></pre>
+<pre class="r"><code>print(df[23:33,10])#11 values</code></pre>
+<pre><code>##  [1] 0.03 0.07   NA 0.11 0.09 0.00 0.03 0.87 0.00 0.00 0.41</code></pre>
 <pre class="r"><code>#PrecipSum column that is 33 days ahead
 df$PrecipSum34_44 &lt;- dplyr::lead(df$PrecipSum23_33, n = 11)
 
-#Code check: Is PrecipSum33_43 calculating the mean Max temp for the fourth window of 11 days.
-c(sum(df[34:44,10]), df[1,24]) #sum() calculation should match PrecipSum33_43</code></pre>
-<pre><code>## [1] 1.23 1.23</code></pre>
-<pre class="r"><code>df$PrecipSumIncubation &lt;- zoo::rollapply(df$Precip, width=19, FUN=sum, align = &#39;right&#39;, fill = NA, partial = TRUE, na.rm = TRUE)
+#Code check
+c(sum=sum(df[34:44,10]), metric=df[1,24]) #sum() calculation should match metric</code></pre>
+<pre><code>##    sum metric 
+##   1.23   1.23</code></pre>
+<pre class="r"><code>print(df[34:44,10])#11 values</code></pre>
+<pre><code>##  [1] 0.35 0.35 0.18 0.00 0.00 0.00 0.00 0.35 0.00 0.00 0.00</code></pre>
+</div>
+<div id="metric-4-incubation-precipitation" class="section level3">
+<h3>Metric 4: Incubation Precipitation</h3>
+<pre class="r"><code>#PrecipSum column that looks back 19 days from hatch date
+df$PrecipSumIncubation &lt;- zoo::rollapply(df$Precip, width=19, FUN=sum, align = &#39;right&#39;, fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum(df[11:29,10], na.rm = TRUE), df[29,25]) #sum() calculation should match PrecipSumIncubation</code></pre>
-<pre><code>## [1] 1.1 1.1</code></pre>
-<pre class="r"><code>df$TotHDD11 &lt;- zoo::rollapply(df$HDD, width=11, FUN=sum, align = &#39;right&#39;, fill = NA, partial = TRUE, na.rm = TRUE)</code></pre>
-<pre class="r"><code>#verify that TotHDD11 is accurately calculating the summed HDD for the previous 11 days.
-c(sum(df[111:121,13], na.rm = TRUE), df[121,24]) #manually calculated sum should match TotHDD11</code></pre>
-<pre><code>## [1] 67.0  0.3</code></pre>
-<pre class="r"><code>df$TotHDD19 &lt;- zoo::rollapply(df$HDD, width=19, FUN=sum, align = &#39;right&#39;, fill = NA, partial = TRUE, na.rm = TRUE)</code></pre>
-<pre class="r"><code>#verify that TotHDD19 is accurately calculating the summed HDD for the previous 19 days.
-c(sum(df[111:129,13], na.rm = TRUE), df[129,25]) #manually calculated sum should match TotHDD19</code></pre>
-<pre><code>## [1] 174.00   1.74</code></pre>
+c(sum=sum(df[1:19,10], na.rm = TRUE), metric=df[19,25]) #sum() calculation should match metric</code></pre>
+<pre><code>##    sum metric 
+##   0.32   0.32</code></pre>
+<pre class="r"><code>print(df[1:19,10])#19 values</code></pre>
+<pre><code>##  [1] 0.07 0.01 0.00 0.00 0.00 0.00   NA 0.00 0.00 0.01 0.11 0.01 0.01   NA 0.04
+## [16] 0.04   NA 0.02   NA</code></pre>
+</div>
+<div id="metric-5-post-hatch-growing-degree-days" class="section level3">
+<h3>Metric 5: Post-hatch Growing Degree Days</h3>
+<pre class="r"><code>#GDDSum column the first 11 days 
+df$GDDSum1_11 &lt;- zoo::rollapply(df$GDD, width=11, FUN=sum, align = &#39;left&#39;, fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(sum=sum(df[112:122,15], na.rm = TRUE), metric=df[112,26]) #sum() calculation should match metric</code></pre>
+<pre><code>##    sum metric 
+##    128    128</code></pre>
+<pre class="r"><code>print(df[112:122,15])</code></pre>
+<pre><code>##  [1]  0  2  2 16 18 18 20 26 14  8  4</code></pre>
+<pre class="r"><code>#GDDSum column that is 11 days ahead
+df$GDDSum12_22 &lt;- dplyr::lead(df$GDDSum1_11, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,15], na.rm = TRUE), metric=df[55,27]) #sum() calculation should match metric</code></pre>
+<pre><code>##    sum metric 
+##     72     72</code></pre>
+<pre class="r"><code>print(df[66:76,15])</code></pre>
+<pre><code>##  [1]  0  0  0  0  0  0  8 11 15 20 18</code></pre>
+<pre class="r"><code>#GDDSum column that is 22 days ahead
+df$GDDSum23_33 &lt;- dplyr::lead(df$GDDSum12_22, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,15], na.rm = TRUE), metric=df[44,28]) #sum() calculation should match metric</code></pre>
+<pre><code>##    sum metric 
+##     72     72</code></pre>
+<pre class="r"><code>#GDDSum column that is 33 days ahead
+df$GDDSum34_44 &lt;- dplyr::lead(df$GDDSum23_33, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,15], na.rm = TRUE), metric=df[33,29]) #sum() should match metric</code></pre>
+<pre><code>##    sum metric 
+##     72     72</code></pre>
+</div>
+<div id="metric-6-incubation-growing-degree-days" class="section level3">
+<h3>Metric 6: Incubation Growing Degree Days</h3>
+<pre class="r"><code>#GDDSum for the 19 days preceding hatch date
+df$GDDSumIncubation &lt;- zoo::rollapply(df$GDD, width=19, FUN=sum, align = &#39;right&#39;, fill = NA, partial = TRUE, na.rm = TRUE)
+
+#code check
+c(sum=sum(df[111:129,15], na.rm = TRUE), metric=df[129,30]) #sum() should match metric</code></pre>
+<pre><code>##    sum metric 
+##    153    153</code></pre>
+<pre class="r"><code>print(df[111:129,15])#19 values</code></pre>
+<pre><code>##  [1]  3  0  2  2 16 18 18 20 26 14  8  4  0  0  6  0  0  1 15</code></pre>
+</div>
+<div id="metric-7-post-hatch-cooling-degree-days" class="section level3">
+<h3>Metric 7: Post-hatch Cooling Degree Days</h3>
+<pre class="r"><code>#CDDSum column the first 11 days 
+df$CDDSum1_11 &lt;- zoo::rollapply(df$CDD, width=11, FUN=sum, align = &#39;left&#39;, fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(sum=sum(df[112:122,14], na.rm = TRUE), metric=df[112,31]) #sum() calculation should match metric</code></pre>
+<pre><code>##    sum metric 
+##     23     23</code></pre>
+<pre class="r"><code>print(df[112:122,14])#11 values</code></pre>
+<pre><code>##  [1]  0  0  0  1  3  3  5 11  0  0  0</code></pre>
+<pre class="r"><code>#CDDSum column that is 11 days ahead
+df$CDDSum12_22 &lt;- dplyr::lead(df$CDDSum1_11, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,14], na.rm = TRUE), metric=df[55,32]) #sum() calculation should match metric</code></pre>
+<pre><code>##    sum metric 
+##      8      8</code></pre>
+<pre class="r"><code>print(df[66:76,14])</code></pre>
+<pre><code>##  [1] 0 0 0 0 0 0 0 0 0 5 3</code></pre>
+<pre class="r"><code>#CDDSum column that is 22 days ahead
+df$CDDSum23_33 &lt;- dplyr::lead(df$CDDSum12_22, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,14], na.rm = TRUE), metric=df[44,33]) #sum() calculation should match metric</code></pre>
+<pre><code>##    sum metric 
+##      8      8</code></pre>
+<pre class="r"><code>#CDDSum column that is 33 days ahead
+df$CDDSum34_44 &lt;- dplyr::lead(df$CDDSum23_33, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,14], na.rm = TRUE), metric=df[33,34]) #sum() should match metric</code></pre>
+<pre><code>##    sum metric 
+##      8      8</code></pre>
+</div>
+<div id="metric-8-incubation-cooling-degree-days" class="section level3">
+<h3>Metric 8: Incubation Cooling Degree Days</h3>
+<pre class="r"><code>#CDDSum for the 19 days preceding hatch date
+df$CDDSumIncubation &lt;- zoo::rollapply(df$CDD, width=19, FUN=sum, align = &#39;right&#39;, fill = NA, partial = TRUE, na.rm = TRUE)
+
+#code check
+c(sum=sum(df[111:129,14], na.rm = TRUE), metric=df[129,35]) #sum() should match metric</code></pre>
+<pre><code>##    sum metric 
+##     23     23</code></pre>
+<pre class="r"><code>print(df[111:129,14])#19 values</code></pre>
+<pre><code>##  [1]  0  0  0  0  1  3  3  5 11  0  0  0  0  0  0  0  0  0  0</code></pre>
 <pre class="r"><code>#New dataframe with the derived climate metrics
-climMetrics.df &lt;- as.data.frame(df[60:11514,c(1:6, 18, 21:25)])</code></pre>
-<pre class="r"><code># write.csv(climMetrics.df, &quot;C:\\Users\\Justin Mann\\Documents\\RProjects\\CrowBase\\ClimateMetrics.csv&quot;,
-#           row.names = FALSE)</code></pre>
+ClimateMetrics.df &lt;- as.data.frame(df[60:11514,c(1:7,10,14:35)])</code></pre>
+<pre class="r"><code># write.csv(ClimateMetrics.df, &quot;C:\\Users\\Justin Mann\\Documents\\RProjects\\CrowBase\\ClimateMetrics.csv&quot;,
+#            row.names = FALSE)</code></pre>
+</div>
 </div>
 
 
