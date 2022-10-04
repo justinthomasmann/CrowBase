@@ -290,6 +290,6 @@ ClimateMetrics.df <- as.data.frame(df[60:11514,c(1:7,10,14:35)])
 ```
 
 ```{r}
-# write.csv(climMetrics.df, "C:\\Users\\Justin Mann\\Documents\\RProjects\\CrowBase\\ClimateMetrics.csv",
-#           row.names = FALSE)
+# write.csv(ClimateMetrics.df, "C:\\Users\\Justin Mann\\Documents\\RProjects\\CrowBase\\ClimateMetrics.csv",
+#            row.names = FALSE)
 ```
