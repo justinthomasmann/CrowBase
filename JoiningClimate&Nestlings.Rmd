@@ -1,0 +1,43 @@
+---
+title: "Joining Climate and Nestlings"
+author: "Justin Mann"
+date: "2022-10-28"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange
+library(glmmTMB) #zi & overdispersed models
+library(ggbiplot) #pca plots
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation
+library(DescTools) #Dunn's rank sum test
+library(loo) #use loo() to compare fits between bayesian models
+library(BayesianFirstAid) #bayes.prop.test for comparison of response between groups
+launch_shinystan_demo()
+```
+
+## Import Nestling Data
+
+```{r cars}
+N.df <- read.csv("nestlingMorph.csv", h=TRUE)
+N.df <- filter(N.df, population == "Ithaca" & species == "AMCR")
+summary(as.factor(N.df$species))
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
