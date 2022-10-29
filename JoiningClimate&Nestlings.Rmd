@@ -98,5 +98,6 @@ df <- df %>%
 df <- df %>% 
   select(!c(observation, nestlingMeasurementID,population,species,
             lifeStage,measureNumber,Obs,MaxTemp,Precip,CDD,GDD,))
+write.csv(df, "Nestlings&ClimateProto.csv")
 ```
 
