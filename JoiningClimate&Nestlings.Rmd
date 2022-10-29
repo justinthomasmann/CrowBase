@@ -32,6 +32,8 @@ N.df <- filter(N.df, population == "Ithaca" & species == "AMCR")
 summary(as.factor(N.df$species))
 ```
 
+## Import and join the new sexing data to Nestling dataframe 
+
 ```{r S.df = sexing dataframe}
 S.df <- read.csv("CrowBloodSexing_2010-2022.csv", h=TRUE)
 #Filter to only individuals with sexes
@@ -40,6 +42,7 @@ S.df <- filter(S.df, sex == c("M","F"))
 S.df <- S.df %>% 
   select(id, sex)
 ```
+
 
 ```{r updating sexes}
 #Nestling dataframe with only sex and id
@@ -53,6 +56,29 @@ N.df$sex <- Ns.df$sex
 write.csv(N.df, "NestlingSexesUpdated.csv")
 ```
 
+## Attempting a join of birds that currently have hatching dates 
+
+```{r filter to only birds with hatch dates}
+N.df <- read.csv("NestlingSexesUpdated.csv", h=TRUE)
+
+#Select id and measurement date from N.df
+Nmc.df <- N.df %>% 
+  select(id,measurementDate)
+
+#Grabbing missing measurement dates from mouth color dataset
+MC.df <- read.csv("CB-mouthColor.csv", h=TRUE)
+#Select id and measurement date
+MC.df <- MC.df %>% 
+  select(id,measurementDate)
+#Update rows to add mouthColor measurement dates
+Nmc.df <- Nmc.df %>%   
+  rows_update(MC.df, by = "id", unmatched = "ignore")
 
 
-## 
+
+
+
+H.df <- N.df %>% 
+  filter(N.df, hatchDate!="?")
+```
+
