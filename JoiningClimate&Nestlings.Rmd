@@ -26,18 +26,33 @@ launch_shinystan_demo()
 
 ## Import Nestling Data
 
-```{r cars}
+```{r N.df = nestling dataframe}
 N.df <- read.csv("nestlingMorph.csv", h=TRUE)
 N.df <- filter(N.df, population == "Ithaca" & species == "AMCR")
 summary(as.factor(N.df$species))
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r S.df = sexing dataframe}
+S.df <- read.csv("CrowBloodSexing_2010-2022.csv", h=TRUE)
+#Filter to only individuals with sexes
+S.df <- filter(S.df, sex == c("M","F"))
+#New sexing dataframe with only sex and id
+S.df <- S.df %>% 
+  select(id, sex)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r updating sexes}
+#Nestling dataframe with only sex and id
+Ns.df  <- N.df %>% 
+  select(id, sex)
+#Update Ns.df with new sexing data 
+Ns.df <- Ns.df %>%   
+  rows_update(S.df, by = "id", unmatched = "ignore")
+#Replace old column with sexes missing with the new column with new sexes added
+N.df$sex <- Ns.df$sex
+write.csv(N.df, "NestlingSexesUpdated.csv")
+```
+
+
+
+## 
