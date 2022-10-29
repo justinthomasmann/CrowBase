@@ -58,7 +58,7 @@ write.csv(N.df, "NestlingSexesUpdated.csv")
 
 ## Attempting a join of birds that currently have hatching dates 
 
-```{r filter to only birds with hatch dates}
+```{r add hatch dates for mouth color birds}
 N.df <- read.csv("NestlingSexesUpdated.csv", h=TRUE)
 
 #Select id and measurement date from N.df
@@ -77,10 +77,26 @@ Nmc.df <- Nmc.df %>%
 N.df$measurementDate <- Nmc.df$measurementDate
 write.csv(N.df, "NestlingMDatesUpdated.csv")
 
+```
 
 
+```{r proto.df}
+proto.df <- read.csv("NestlingMDatesUpdated.csv", h=TRUE)
+#include only nestlings with a hatch date
+proto.df <- proto.df %>% 
+  filter(!is.na(hatchDate))
+proto.df$hatchDateJul <- as.integer(proto.df$hatchDateJul)
+class(proto.df$hatchDateJul)
+```
 
-H.df <- N.df %>% 
-  filter(N.df, hatchDate!="?")
+```{r clim.df}
+clim.df <- read.csv("ClimateMetrics.csv", h=TRUE)
+
+df <- left_join(proto.df,clim.df, by = "hatchDateJul")
+df <- df %>% 
+  filter(year!=1989)
+df <- df %>% 
+  select(!c(observation, nestlingMeasurementID,population,species,
+            lifeStage,measureNumber,Obs,MaxTemp,Precip,CDD,GDD,))
 ```
 
