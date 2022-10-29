@@ -73,7 +73,9 @@ MC.df <- MC.df %>%
 #Update rows to add mouthColor measurement dates
 Nmc.df <- Nmc.df %>%   
   rows_update(MC.df, by = "id", unmatched = "ignore")
-
+#Replace old column with missing dates with the new column with MC dates added
+N.df$measurementDate <- Nmc.df$measurementDate
+write.csv(N.df, "NestlingMDatesUpdated.csv")
 
 
 
