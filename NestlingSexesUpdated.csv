@@ -1,4 +1,4 @@
-,nestlingMeasurementID,year,population,species,lifeStage,id,age,nest,nestName,sex,tarsus,sevenPrimary,tailLength,calcAge,billNT,billD,billW,TEC,head,skull,wingChord,exp7Primary,mass,measureNumber,measurmentDate,measurementJulDate,hatchDate,hatchDateJul
+,nestlingMeasurementID,year,population,species,lifeStage,id,age,nest,nestName,sex,tarsus,sevenPrimary,tailLength,calcAge,billNT,billD,billW,TEC,head,skull,wingChord,exp7Primary,mass,measureNumber,measurementDate,measurementJulDate,hatchDate,hatchDateJul
 1,1008,1989,Ithaca,AMCR,nestling,WSWG ALEX89,26,ALEX,ALEX89,NA,60.2,117,52,26.07,23.6,13.9,12.6,38.1,80.3,42.2,170,NA,410,5,5/18/1989,138,4/22/1989,112
 2,1009,1989,Ithaca,AMCR,nestling,YSWG ALEX89,26,ALEX,ALEX89,NA,59,93,50,25.32,22,13.2,12.9,34,76.2,42.2,155,NA,330,5,5/18/1989,138,4/22/1989,112
 3,1006,1989,Ithaca,AMCR,nestling,BSWG ALEX89,26,ALEX,ALEX89,NA,61,105,50,25.65,23.2,13.8,12.9,39,80.7,41.7,160,NA,400,5,5/18/1989,138,4/22/1989,112
