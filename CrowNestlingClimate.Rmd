@@ -27,11 +27,17 @@ library(AICcmodavg) #aictab() for AICc model comparisons
 ## Prototype Dataframe
 
 ```{r df}
-df <- read.csv("CrowNestlingClimate.csv", h=TRUE)
-df$billArea <- df$billW*df$billD
-df <- df %>% 
-  filter(calcAge == c(22:31))
+nestlings <- read.csv("CrowNestlingClimate.csv", h=TRUE)
+nestlings <- nestlings[,1:33]
+nestlings <- nestlings %>% 
+  filter(Year!=1989)
+climate <- read.csv("ClimateMetrics.csv", h=TRUE)
 ```
+
+```{r}
+df <- left_join(nestlings,climate, by = "HatchDateJul")
+```
+
 
 ## Pairs Plots
 
