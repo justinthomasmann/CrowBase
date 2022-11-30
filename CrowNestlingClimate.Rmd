@@ -29,11 +29,13 @@ library(AICcmodavg) #aictab() for AICc model comparisons
 ```{r df}
 nestlings <- read.csv("CrowNestlingClimate.csv", h=TRUE)
 nestlings <- nestlings[,1:33]
+nestlings <- nestlings %>% 
+  filter(Year!=1989)
 climate <- read.csv("ClimateMetrics.csv", h=TRUE)
 ```
 
 ```{r}
-df <- left_join(nestlings,climate, by = "hatchDateJul")
+df <- left_join(nestlings,climate, by = "HatchDateJul")
 ```
 
 
