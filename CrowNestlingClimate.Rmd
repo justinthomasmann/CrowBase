@@ -1,0 +1,46 @@
+---
+title: "CrowNestlingClimate"
+author: "Justin Mann"
+date: "2022-11-01"
+output: html_document
+---
+
+```{r libraries}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange
+library(glmmTMB) #zi & overdispersed models
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+library(loo) #use loo() to compare fits between bayesian models
+library(plotly)
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+```
+
+## Prototype Dataframe
+
+```{r df}
+df <- read.csv("CrowNestlingClimate.csv", h=TRUE)
+df$billArea <- df$billW*df$billD
+df <- df %>% 
+  filter(calcAge == c(22:31))
+```
+
+## Pairs Plots
+
+```{r}
+?pairs()
+pairs(df[,c(7,11:14,28:32,48)])
+```
+
+```{r}
+glmer(billArea~,data = df)
+```
+
