@@ -14,14 +14,15 @@ library(sjPlot) #plot_model & tab_model (blue = #377EB8)
 library(ggpubr) #ggarrange
 library(glmmTMB) #zi & overdispersed models
 library(lmerTest) #lmerTest::step
-library(ggeffects) #ggpredict
-library(rstanarm) #stan models
-library(shinystan) #stan model evaluation
+#BAYESIAN PACKAGES
+#library(rstanarm) #stan models
+#library(shinystan) #stan model evaluation
 #launch_shinystan_demo()
-library(loo) #use loo() to compare fits between bayesian models
+#library(loo) #use loo() to compare fits between bayesian models
 library(plotly)
 library(MuMIn) #dredge() for unsupervised model selection
 library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa)
 ```
 
 ## Prototype Dataframe
