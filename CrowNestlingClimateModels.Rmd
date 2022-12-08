@@ -1,0 +1,103 @@
+---
+title: "CrowNestlingClimateModels"
+author: "Justin Mann"
+date: "2022-12-03"
+output: html_document
+---
+```{r libraries echo=TRUE, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange
+library(glmmTMB) #zi & overdispersed models
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+#PACKAGES FOR BAYESIAN MODELS
+# library(rstanarm) #stan models
+# library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+# library(loo) #use loo() to compare fits between bayesian models
+library(plotly)
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa)
+theme_set(theme_classic())
+```
+
+
+## Crow Nestling Climate Models 
+
+
+```{r full dataframe, echo=F, include=FALSE}
+df <- read.csv("CrowNestlingClimateJoined.csv", h=T)
+```
+
+
+```{r sex filter}
+#Include only sexed nestlings
+length(df$AllSex[df$AllSex=="M"])#582 males
+length(df$AllSex[df$AllSex=="F"])#587 females
+length(df$AllSex[df$AllSex=="M"]) + length(df$AllSex[df$AllSex=="F"])#1169 sexed individuals
+
+
+df <- df %>%
+  filter(AllSex =="M" | AllSex=="F")
+#filter shows 1169 sexed individuals
+levels(as.factor(df$AllSex))
+#Only the characters M and F remain in the dataframe
+```
+
+```{r age filter}
+#Prior to filter the range of calc age integer is 15-33
+range(df$CalcAgeInteger)
+#There are 16 nestlings below the age of 21
+length(df$CalcAgeInteger[df$CalcAgeInteger<21])
+
+#The filter drops those 16 individuals (1169-16=1153)
+df <- df %>% 
+  filter(CalcAgeInteger %in% (21:33))
+#New range is between 21-33 days old
+range(df$CalcAge)
+```
+```{r}
+group1.mdl <- function(Dependent,Independent){
+  mdl <- lmer(data=df, Dependent ~ Independent + AllSex + (1|NestName))
+  summary(mdl)
+  
+}
+```
+
+
+```{r}
+plotit <- function(x,y){
+  df %>% 
+    ggplot(aes(x=x,y=y, color=AllSex))+
+    geom_point()+
+    geom_smooth()
+}
+```
+
+```{r}
+group1.mdl(df$Tarsus,df$MaxTempMean1_11)
+plotit(df$MaxTempMean1_11,df$Tarsus)
+```
+
+
+
+
+
+
+
+```{r UBill Surface}
+#filter out any individuals with zeros for UBillSurface
+df <- df %>% 
+  filter(UBillSurface>0)
+df %>% 
+  ggplot(aes(x=MaxTempMean1_11,y=Tarsus, color=AllSex, name = ID))+
+  geom_point()+
+  geom_smooth()
+UBillSurface.plot
+ggplotly(UBillSurface.plot)
+```
+
