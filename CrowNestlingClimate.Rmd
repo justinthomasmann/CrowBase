@@ -32,10 +32,13 @@ nestlings <- nestlings[,1:33]
 nestlings <- nestlings %>% 
   filter(Year!=1989)
 climate <- read.csv("ClimateMetrics.csv", h=TRUE)
+climate <- climate %>% 
+  select(Month, Day, HatchDateJul,MaxTempMean1_11,MaxTempMean12_22, MeanMaxTempIncubation,PrecipSum1_11,PrecipSum12_22,PrecipSumIncubation,GDDSum1_11,GDDSum12_22,GDDSumIncubation,CDDSum1_11,CDDSum12_22,CDDSumIncubation)
 ```
 
 ```{r}
 df <- left_join(nestlings,climate, by = "HatchDateJul")
+write.csv(df, "CrowNestlingClimateJoined.csv")
 ```
 
 

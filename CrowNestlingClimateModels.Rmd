@@ -1,0 +1,74 @@
+---
+title: "CrowNestlingClimateModels"
+author: "Justin Mann"
+date: "2022-12-03"
+output: html_document
+---
+```{r libraries echo=TRUE, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange
+library(glmmTMB) #zi & overdispersed models
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+library(loo) #use loo() to compare fits between bayesian models
+library(plotly)
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+```
+
+
+## Crow Nestling Climate Models 
+
+
+```{r full dataframe, echo=F, include=FALSE}
+df <- read.csv("CrowNestlingClimateJoined.csv", h=T)
+```
+
+
+```{r filters}
+df <- df %>%
+  filter(AllSex =="M" | AllSex=="F")
+levels(as.factor(df$AllSex))
+length(df$AllSex[df$AllSex=="M"])#582 males
+length(df$AllSex[df$AllSex=="F"])#587 females
+
+df <- df %>% 
+  filter(CalcAge %in% (21:33))
+range(df$CalcAge)
+```
+
+```{r}
+df <- df %>% 
+  filter(UpperBill>0)
+summary(lmer(data = df, UBillSurface ~ MaxTempMean1_11 + AllSex + (1|Year)))
+
+summary(lmer(data = df, UBillSurface ~ MaxTempMean12_22 + AllSex + (1|Year)))
+
+summary(lmer(data = df, UBillSurface ~ MeanMaxTempIncubation + AllSex + (1|Year)))
+
+summary(lmer(data = df, UBillSurface ~ PrecipSum1_11 + AllSex + (1|Year)))
+
+#Significant positive effect of summed precipitation days 12-22 on upper bill
+#and upper bill surface
+summary(lmer(data = df, UBillSurface ~ PrecipSum12_22 + AllSex + (1|Year)))
+
+summary(lmer(data = df, UBillSurface ~ PrecipSumIncubation + AllSex + (1|Year)))
+
+summary(lm(data = df, UBillSurface ~ CDDSum12_22 + AllSex))
+
+```
+
+
+```{r}
+df %>% 
+  ggplot(aes(x=PrecipSum12_22,y=UpperBill))+
+  geom_point()+
+  geom_smooth()
+```
+
