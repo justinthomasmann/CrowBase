@@ -80,8 +80,12 @@ plotit <- function(x,y){
 
 ```{r}
 group1.mdl(df$Tarsus,df$MaxTempMean1_11)
-plotit(df$MaxTempMean1_11,df$Tarsus)
+plotit(df$MaxTempMean12_22,df$Tarsus)
 ```
+```{r}
+summary(lm(data=df, Tarsus ~ CalcAge + AllSex + MaxTempMean1_11))
+```
+
 
 
 
