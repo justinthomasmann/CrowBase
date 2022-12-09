@@ -14,10 +14,11 @@ library(zoo)
 ## CLIMOD2 Dataset for Cornell University Station
 
 ```{r data frame}
-df <- read.csv("IthacaWeatherData1990_2020.csv", h=TRUE)
+df <- read.csv("IthacaWeatherData1990_2022.csv", h=TRUE)
 
 #coerce climate variables to class numeric 
 df$MaxTemp <- as.numeric(df$MaxTemp)
+df$MinTemp <- as.numeric(df$MinTemp)
 df$Precip <- as.numeric(df$Precip)
 df$HDD <- as.numeric(df$HDD)
 df$CDD <- as.numeric(df$CDD)
@@ -38,8 +39,7 @@ range(df$Year)
 df$MaxTempMean1_11 <- zoo::rollapply(df$MaxTemp, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean(df[1:11,7]), df[1,16]) #mean() calculation should match MaxTempMean1_11
-
+c(mean(df$MaxTemp[1:11]), df[1,16]) #mean() calculation should match MaxTempMean1_11
 ```
 
 
@@ -48,8 +48,10 @@ c(mean(df[1:11,7]), df[1,16]) #mean() calculation should match MaxTempMean1_11
 df$MaxTempMean12_22 <- dplyr::lead(df$MaxTempMean1_11, n = 11)
 
 #Code check
-c(mean(df[12:22,7]), df[1,17]) #mean() calculation should match MaxTempMean12_22
+c(mean(df$MaxTemp[12:22]), df[1,17]) #mean() calculation should match MaxTempMean12_22
+
 ```
+
 
 
 ```{r MaxTempMean23_33}
@@ -57,16 +59,7 @@ c(mean(df[12:22,7]), df[1,17]) #mean() calculation should match MaxTempMean12_22
 df$MaxTempMean23_33 <- dplyr::lead(df$MaxTempMean12_22, n = 11)
 
 #Code check
-c(mean(df[23:33,7]), df[1,18]) #mean() calculation should match MaxTempMean23_33
-```
-
-
-```{r MaxTempMean34_44}
-#MaxTempMean for days 34-44
-df$leadMax34_44 <- dplyr::lead(df$MaxTempMean23_33, n = 11)
-
-#Code check
-c(mean(df[34:44,7]), df[1,19]) #mean() calculation should match MaxTempMean34_44
+c(mean(df$MaxTemp[23:33]), df[1,18]) #mean() calculation should match MaxTempMean23_33
 ```
 
 
@@ -75,7 +68,7 @@ c(mean(df[34:44,7]), df[1,19]) #mean() calculation should match MaxTempMean34_44
 df$MeanMaxTempIncubation <- zoo::rollapply(df$MaxTemp, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean(df[1:19,7]), df[19,20]) #mean() calculation should match MaxTempMeanIncubation
+c(mean(df[1:19,7]), df[19,19]) #mean() calculation should match MaxTempMeanIncubation
 ```
 
 
@@ -83,7 +76,7 @@ c(mean(df[1:19,7]), df[19,20]) #mean() calculation should match MaxTempMeanIncub
 df$PrecipSum1_11 <- zoo::rollapply(df$Precip, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check 
-c(sum(df[1:11,10], na.rm = TRUE), df[1,21]) #mean() calculation should match PrecipSum1_11
+c(sum(df[1:11,10], na.rm = TRUE), df[1,20]) #mean() calculation should match PrecipSum1_11
 ```
 
 
