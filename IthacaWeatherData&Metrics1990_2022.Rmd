@@ -15,8 +15,9 @@ library(zoo)
 
 ```{r data frame}
 df <- read.csv("IthacaWeatherData1990_2022.csv", h=TRUE)
-
-#coerce climate variables to class numeric 
+range(df$MaxTemp)
+#coerce climate variables to class numeric
+#will introduce NAs where missing data are coded as characters
 df$MaxTemp <- as.numeric(df$MaxTemp)
 df$MinTemp <- as.numeric(df$MinTemp)
 df$Precip <- as.numeric(df$Precip)
@@ -85,7 +86,7 @@ c(sum(df[1:11,10], na.rm = TRUE), df[1,20]) #mean() calculation should match Pre
 df$PrecipSum12_22 <- dplyr::lead(df$PrecipSum1_11, n = 11)
 
 #Code check
-c(sum(df[12:22,10], na.rm = TRUE), df[1,22]) #sum() calculation should match PrecipSum12_22
+c(sum(df[12:22,10], na.rm = TRUE), df[1,21]) #sum() calculation should match PrecipSum12_22
 ```
 
 
@@ -94,7 +95,7 @@ c(sum(df[12:22,10], na.rm = TRUE), df[1,22]) #sum() calculation should match Pre
 df$PrecipSum23_33 <- dplyr::lead(df$PrecipSum12_22, n = 11)
 
 #Code check
-c(sum(df[23:33,10], na.rm = TRUE), df[1,23]) #sum() calculation should match PrecipSum23_33
+c(sum(df[23:33,10], na.rm = TRUE), df[1,22]) #sum() calculation should match PrecipSum23_33
 ```
 
 
