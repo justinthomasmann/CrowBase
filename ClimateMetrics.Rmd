@@ -18,14 +18,41 @@ library(zoo)
 <http://climod2.nrcc.cornell.edu/>
 
 ```{r data frame}
-df <- read.csv("IthacaWeatherData1990_2020.csv", h=TRUE)
+df <- read.csv("IthacaWeatherData1990_2022.csv", h=TRUE)
 
-#coerce climate variables to class numeric 
+#coerce climate variables to class numeric, NAs introduced where missing data were coded as characters 
 df$MaxTemp <- as.numeric(df$MaxTemp)
+df$MinTemp <- as.numeric(df$MinTemp)
 df$Precip <- as.numeric(df$Precip)
 df$HDD <- as.numeric(df$HDD)
 df$CDD <- as.numeric(df$CDD)
 df$GDD <- as.numeric(df$GDD)
+```
+
+```{r metric and celcius conversions}
+f2c <- function(x){
+  x <- (5/9) * (x-32)
+  return(x)
+}
+f2c(42)#first MaxTemp = 5.555C
+
+df$MaxTempC <- mapply(f2c, df$MaxTemp)
+df$MinTempC <- mapply(f2c, df$MinTemp)
+
+in2cm <- function(x){
+  x <- x * 2.54
+  return(x)
+}
+in2cm(0.07)#first precip amount = 0.1778 cm
+df$PrecipCM <- mapply(in2cm, df$Precip)
+```
+
+
+```{r reorder df to include C and cm}
+df <- df %>% 
+  select(Date,Obs,Year,Month,Day,Julian,MaxTempC,MinTempC,AtObsTemp,
+         PrecipCM,Snowfall,SnowDepth,HDD,CDD,GDD)
+
 ```
 
 ## Climate Metrics
@@ -43,7 +70,7 @@ Objective: to match data on climate conditions during:
 ?zoo::rollapply()
 
 #An 11-day rolling window calculates the mean of MaxTemp for the next 11 days
-df$MaxTempMean1_11 <- zoo::rollapply(df$MaxTemp, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+df$MaxTempMean1_11 <- zoo::rollapply(df$MaxTempC, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
 c(mean=mean(df[1:11,7]),metric=df[1,16])
@@ -94,7 +121,7 @@ print(df[34:44,7])#11 values
 
 ```{r MaxTempMeanIncubation}
 #MaxTemp mean for 19 days prior to hatch date
-df$MeanMaxTempIncubation <- zoo::rollapply(df$MaxTemp, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+df$MeanMaxTempIncubation <- zoo::rollapply(df$MaxTempC, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
 c(mean=mean(df[1:19,7]), metric=df[19,20]) #mean() calculation should match metric
@@ -107,7 +134,7 @@ print(df[1:19,7])#19 values
 ### Metric 3: Post-hatch Precipitation
 
 ```{r PrecipSum1_11}
-df$PrecipSum1_11 <- zoo::rollapply(df$Precip, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+df$PrecipSum1_11 <- zoo::rollapply(df$PrecipCM, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check 
 c(sum=sum(df[1:11,10], na.rm = TRUE), metric=df[1,21]) #sum() calculation should match metric
@@ -157,7 +184,7 @@ print(df[34:44,10])#11 values
 
 ```{r PrecipSumIncubation}
 #PrecipSum column that looks back 19 days from hatch date
-df$PrecipSumIncubation <- zoo::rollapply(df$Precip, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+df$PrecipSumIncubation <- zoo::rollapply(df$PrecipCM, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
 c(sum=sum(df[1:19,10], na.rm = TRUE), metric=df[19,25]) #sum() calculation should match metric
@@ -282,14 +309,45 @@ c(sum=sum(df[111:129,14], na.rm = TRUE), metric=df[129,35]) #sum() should match 
 print(df[111:129,14])#19 values
 ```
 
+```{r MinTempMean1_11}
+#An 11-day rolling window calculates the mean of MinTemp for the next 11 days
+df$MinTempMean1_11 <- zoo::rollapply(df$MinTempC, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(mean=mean(df[1:11,8]),metric=df[1,36])
+#mean() calculation should match metric
+```
+
+```{r MinTempMean12_22}
+#MaxTempMean for days 12-22
+df$MinTempMean12_22 <- dplyr::lead(df$MinTempMean1_11, n = 11)
+
+#Code check
+c(mean=mean(df[12:22,8]), metric=df[1,37])#mean() calculation should match metric
+```
+
+
+```{r MinTempMeanIncubation}
+#MaxTemp mean for 19 days prior to hatch date
+df$MeanMinTempIncubation <- zoo::rollapply(df$MinTempC, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(mean=mean(df[1:19,8]), metric=df[19,38]) #mean() calculation should match metric
+```
 
 
 ```{r new dataframe}
 #New dataframe with the derived climate metrics
-ClimateMetrics.df <- as.data.frame(df[60:11514,c(1:7,10,14:35)])
+ClimateMetrics.df <- df %>% 
+  select(Date,Month,Day,Julian,
+         MaxTempMean1_11,MaxTempMean12_22,MeanMaxTempIncubation,
+         MinTempMean1_11,MinTempMean12_22,MeanMinTempIncubation,
+         PrecipSum1_11,PrecipSum12_22,PrecipSumIncubation,
+         GDDSum1_11,GDDSum12_22,GDDSumIncubation,
+         CDDSum1_11,CDDSum12_22,CDDSumIncubation)
 ```
 
 ```{r}
-# write.csv(ClimateMetrics.df, "C:\\Users\\Justin Mann\\Documents\\RProjects\\CrowBase\\ClimateMetrics.csv",
+# write.csv(ClimateMetrics.df, "ClimateMetrics.csv",
 #            row.names = FALSE)
 ```
