@@ -1,0 +1,86 @@
+---
+title: "CrowNestlingClimateModels"
+author: "Justin Mann"
+date: "2022-12-03"
+output: html_document
+---
+```{r libraries echo=TRUE, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange
+library(glmmTMB) #zi & overdispersed models
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+#PACKAGES FOR BAYESIAN MODELS
+# library(rstanarm) #stan models
+# library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+# library(loo) #use loo() to compare fits between bayesian models
+library(plotly)
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa)
+theme_set(theme_classic())
+```
+
+
+## Crow Nestling Climate Models 
+
+
+```{r dataframes}
+#Male dataframe
+M.df <- read.csv("MaleNestlingClimateJoined.csv",h=TRUE)
+#Female dataframe
+F.df <- read.csv("FemaleNestlingClimateJoined.csv",h=TRUE)
+#Join them so that all hatch dates have climate metrics represented in the PCA
+df <- rbind(F.df,M.df)
+```
+
+
+```{r}
+group1.mdl <- function(Dependent,Independent){
+  mdl <- lmer(data=df, Dependent ~ Independent + AllSex + (1|NestName))
+  summary(mdl)
+  
+}
+```
+
+
+```{r}
+plotit <- function(x,y){
+  df %>% 
+    ggplot(aes(x=x,y=y, color=AllSex))+
+    geom_point()+
+    geom_smooth()
+}
+```
+
+```{r}
+group1.mdl(df$Tarsus,df$MaxTempMean1_11)
+plotit(df$MaxTempMean12_22,df$Tarsus)
+```
+```{r}
+summary(lm(data=df, Tarsus ~ CalcAge + AllSex + MaxTempMean1_11))
+```
+
+
+
+
+
+
+
+
+```{r UBill Surface}
+#filter out any individuals with zeros for UBillSurface
+df <- df %>% 
+  filter(UBillSurface>0)
+df %>% 
+  ggplot(aes(x=MaxTempMean1_11,y=Tarsus, color=AllSex, name = ID))+
+  geom_point()+
+  geom_smooth()
+UBillSurface.plot
+ggplotly(UBillSurface.plot)
+```
+
