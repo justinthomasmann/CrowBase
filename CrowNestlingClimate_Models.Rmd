@@ -4,7 +4,7 @@ author: "Justin Mann"
 date: "2022-12-03"
 output: html_document
 ---
-```{r libraries echo=TRUE, include=FALSE}
+```{r libraries echo=FALSE, include=FALSE}
 library(tidyverse)
 library(dplyr)
 library(lme4) #frequentist models  
@@ -34,35 +34,104 @@ theme_set(theme_classic())
 M.df <- read.csv("MaleNestlingClimateJoined.csv",h=TRUE)
 #Female dataframe
 F.df <- read.csv("FemaleNestlingClimateJoined.csv",h=TRUE)
+F.df <- F.df[-503,]
 #Join them so that all hatch dates have climate metrics represented in the PCA
-df <- rbind(F.df,M.df)
+BothSexes.df <- rbind(F.df,M.df)
 ```
 
 
 ```{r}
-group1.mdl <- function(Dependent,Independent){
-  mdl <- lmer(data=df, Dependent ~ Independent + AllSex + (1|NestName))
-  summary(mdl)
-  
-}
+#can we control for weight and age in one metric?
+#ensure variables are numeric
+F.df$CalcAge <- as.numeric(F.df$CalcAge)
+F.df$Weight <- as.numeric(F.df$Weight)
+
+#Column for weight divided by age
+F.df$WeightByAge <- F.df$Weight/F.df$CalcAge
+
+#Regress weight and age
+WeightControl.mdl <- lm(data = F.df, Weight ~ CalcAge)
+#Column for residuals
+F.df$WeightAgeResiduals <- WeightControl.mdl$residuals
+#Wide range so let's scale it
+range(F.df$WeightAgeResiduals)
+#Residuals rescaled
+F.df$WeightAgeResiduals <- scale(F.df$WeightAgeResiduals)
+
+#Regress UBS by age
+AgeControl.mdl <- lm(data = F.df, UBillSurface ~ CalcAge)
+F.df$UBSAgeResiduals <- AgeControl.mdl$residuals
+summary(lm(data = F.df, UBSAgeResiduals ~ Weight))
 ```
 
 
 ```{r}
-plotit <- function(x,y){
-  df %>% 
-    ggplot(aes(x=x,y=y, color=AllSex))+
-    geom_point()+
-    geom_smooth()
-}
+F.df %>% 
+  ggplot(aes(x=WeightAgeResiduals,y=UBillSurface))+
+  geom_point(shape = 1)+
+  geom_abline(intercept = 160.675, slope = 6.4)
 ```
+
 
 ```{r}
-group1.mdl(df$Tarsus,df$MaxTempMean1_11)
-plotit(df$MaxTempMean12_22,df$Tarsus)
+F.df %>% 
+  ggplot(aes(x=Weight,y=UBSAgeResiduals))+
+  geom_point(shape = 1)+
+  geom_abline(intercept = -50.79, slope = 0.14)
 ```
+
+
 ```{r}
-summary(lm(data=df, Tarsus ~ CalcAge + AllSex + MaxTempMean1_11))
+F.UBSAgeResiduals1.mdl <- lm(data = F.df, UBSAgeResiduals ~ MaxTempMean1_11 + Weight)
+summary(F.UBSAgeResiduals1.mdl)
+```
+
+
+
+```{r}
+F.UBillSurface1.mdl <- lm(data = F.df, UBillSurface ~ MaxTempMean1_11 + WeightByAge)
+summary(F.UBillSurface1.mdl)
+```
+
+
+```{r}
+#Remove row 378, which has a doa bird with NA for weight
+F.df <- F.df[-378,]
+
+F.UBillSurface2.mdl <- lm(data = F.df, UBillSurface ~ MaxTempMean1_11 + Weight + CalcAge)
+summary(F.UBillSurface2.mdl)
+```
+
+
+```{r}
+F.UBillSurface3.mdl <- lm(data = F.df, UBillSurface ~ MaxTempMean1_11 + WeightAgeResiduals)
+summary(F.UBillSurface3.mdl)
+```
+
+
+```{r}
+?aictab()
+F.set1 <- list(F.UBillSurface1.mdl,F.UBillSurface2.mdl, F.UBillSurface3.mdl)
+F.mdlnames1 <- c("WeightByAge", "WeightPlusAge","WeightAgeResiduals")
+#Weight plus Age is the best fit because those two main effects are explaining way more variation than climate metrics, but this is expected and uninteresting, so I wouldn't consider that as a best-fit-model.
+aictab(cand.set = F.set1, modnames = F.mdlnames1)
+```
+
+
+```{r}
+F.UBS.Precip1.mdl <- lm(data = F.df, UBillSurface ~ PrecipSum1_11 + WeightAgeResiduals)
+summary(F.UBS.Precip1.mdl)
+```
+
+
+```{r}
+F.UBS.Max2.mdl <- lm(data = F.df, UBillSurface ~ MaxTempMean1_11*PrecipSum1_11 + WeightAgeResiduals)
+summary(F.UBS.Max2.mdl)
+```
+
+
+```{r}
+hist(F.UBS.Max2.mdl$residuals)
 ```
 
 
@@ -71,16 +140,4 @@ summary(lm(data=df, Tarsus ~ CalcAge + AllSex + MaxTempMean1_11))
 
 
 
-
-```{r UBill Surface}
-#filter out any individuals with zeros for UBillSurface
-df <- df %>% 
-  filter(UBillSurface>0)
-df %>% 
-  ggplot(aes(x=MaxTempMean1_11,y=Tarsus, color=AllSex, name = ID))+
-  geom_point()+
-  geom_smooth()
-UBillSurface.plot
-ggplotly(UBillSurface.plot)
-```
 
