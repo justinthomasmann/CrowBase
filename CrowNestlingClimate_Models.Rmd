@@ -4,7 +4,9 @@ author: "Justin Mann"
 date: "2022-12-03"
 output: html_document
 ---
-```{r libraries echo=FALSE, include=FALSE}
+
+
+```{r libraries}
 library(tidyverse)
 library(dplyr)
 library(lme4) #frequentist models  
@@ -29,6 +31,8 @@ theme_set(theme_classic())
 ## Crow Nestling Climate Models 
 
 
+### Read in data
+
 ```{r dataframes}
 #Males
 M.df <- read.csv("MaleNestlingClimateJoined.csv",h=TRUE)
@@ -41,19 +45,20 @@ B.df <- rbind(F.df,M.df)
 ```
 
 
-```{r}
+### Deal with NAs and make sure variables are the correct class (numeric or factor)
+
+```{r raw summary}
 summary(B.df)
 ```
 
 
-
 ```{r prepare variables}
-#some metrics aren't recognized as numeric, so we'll coerce them as numeric 
+#some metrics aren't recognized as numeric, so we'll coerce them using the as.numeric function
 is.numeric(B.df$TEC)
 B.df$TEC <- as.numeric(B.df$TEC)
 B.df$Skull <- as.numeric(B.df$Skull)
 
-#Also renaming some variables in the process
+#Renaming some variables while we're at it
 
 #UB = upper bill
 B.df$UB <- as.numeric(B.df$UpperBill)
@@ -64,6 +69,10 @@ B.df$TBS <- as.numeric(B.df$TotBillSurface)
 
 #Make Month a factor for plotting
 B.df$Month <- as.factor(B.df$Month)
+
+#There is one lower case f instead of upper case F in AllSex column for one female
+B.df$AllSex <- gsub('f', 'F', B.df$AllSex)
+B.df$AllSex <- as.factor(B.df$AllSex)
 
 #Simplify the df
 B.df <- B.df %>% 
@@ -79,26 +88,32 @@ summary(B.df)
 
 
 ```{r fix NAs in months}
-#6 individuals with HatchDateJulYear 2002099 are showing NAs, should be 4 (April)
+#6 individuals with HatchDateJulYear 2002099 and 2012099 are showing NAs, should be 4 (April)
 B.df$Month <- B.df$Month %>% replace_na("4")
-#There is one lower case f instead of upper case F for one female
-B.df$AllSex <- gsub('f', 'F', B.df$AllSex)
-B.df$AllSex <- as.factor(B.df$AllSex)
+
 summary(B.df)
 ```
+We could leave NAs in the dataframe, but the dredge function (for top model selection) will not work with NAs in the dataframe.
 
-
-```{r remaining NAs in morphometrics}
+```{r remove NAs in morphometrics}
 #7 more rows have NAs in morphometrics
 sum(!complete.cases(B.df[-1]))
 
-#Can remove them by uncommenting and running the following line
+#Omit the remaining rows with NAs
 B.df <- na.omit(B.df)
+
+#One final summary to make sure everything is clean and correct
 summary(B.df)
 ```
 
 
-```{r create bill metric ~ CalcAge residuals}
+## No more missing data. Ready for modelling!
+
+Now, we'll regress our morphological metrics against age and make columns with the residuals for models that control for age. 
+
+We'll include histograms of each set of residuals to check for funky distributions.
+
+```{r create morphometric ~ CalcAge residuals}
 #Bill Depth
 BDAge.mdl <- lm(data = B.df, BillDepth ~ CalcAge)
 B.df$BDAgeResids <- BDAge.mdl$residuals  
@@ -145,8 +160,7 @@ B.df$TarsusAgeResids <- TarsusAge.mdl$residuals
 hist(B.df$TarsusAgeResids)
 ```
 
-
-
+Now that the dataframe is clean and residual columns are added, we'll recreate the separate male and female dataframes.
 
 ```{r recreate male and female dfs}
 #Now that B.df is cleaned and bill metric ~ age residuals are added, recreate male and female dfs
@@ -155,45 +169,199 @@ M.df <- subset(B.df, AllSex=="M")
 ```
 
 
+## Female Models
 
-```{r female Bill Depth models}
+
+### Female Bill Depth Models
+
+
+Response = bill depth/age residuals
+Independent = Main effects of Max temp 1, precipitation 1, and Weight
+              Interactions between Max temp * precip and Weight : bill depth
+              
+The colon (:) tells R to only include the interaction between Weight and Bill Depth since we don't want to consider the main effects of bill depth on bill depth residuals.
+
+```{r female Bill Depth time period 1 models}
 F.BDMax1.mdl <- lm(data = F.df, BDAgeResids ~ MaxTempMean1_11*PrecipSum1_11 + Weight + Weight:BillDepth, na.action = "na.fail")
+
+#Full model summary
 summary(F.BDMax1.mdl)
+
+#dredge function applied to determine the best combination of variables
 F.BDMax1.dredge <- dredge(F.BDMax1.mdl, rank = "AICc")
+
+#model.avg function averages all top models within 2 delta values of each other, as recommended in Burnham and Anderson (2002) Model Selection and Multimodel Inference: A Practical Information-Theoretic Approach
 F.BDMax1.avg <- model.avg(F.BDMax1.dredge, subset = F.BDMax1.dredge$delta < 2, revised.var = TRUE, fit = TRUE)
+
+#Summary of averaged model (See the second set of Conditionally Averaged Coefficients)
 summary(F.BDMax1.avg)
 ```
 
+There's a negative relationship between bill depth age residuals and weight???
+Let's look at that plot.
 
+```{r BDAgeResids and Weight plot}
+F.df %>% ggplot(aes(x=Weight,y=BDAgeResids))+
+  geom_point()
+```
+Yeah, definitely not negative. The negative main effect must result from the interaction term, but I'm confused by this.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-?aictab()
-F.set1 <- list(F.UBillSurface1.mdl,F.UBillSurface2.mdl, F.UBillSurface3.mdl)
-F.mdlnames1 <- c("WeightByAge", "WeightPlusAge","WeightAgeResiduals")
-#Weight plus Age is the best fit because those two main effects are explaining way more variation than climate metrics, but this is expected and uninteresting, so I wouldn't consider that as a best-fit-model.
-aictab(cand.set = F.set1, modnames = F.mdlnames1)
+```{r Temp 1 and Precip 1 plot}
+F.df %>% ggplot(aes(x=MaxTempMean1_11,y=PrecipSum1_11))+
+  geom_point()
 ```
 
+Second bill metric model:
+Same as the first, but with second period max temp and precip
+
+```{r female Bill Depth time period 2 models}
+F.BDMax2.mdl <- lm(data = F.df, BDAgeResids ~ MaxTempMean12_22*PrecipSum12_22 + Weight + Weight:BillDepth, na.action = "na.fail")
+
+#Full model summary
+summary(F.BDMax2.mdl)
+#Dredge to find top models
+F.BDMax2.dredge <- dredge(F.BDMax2.mdl, rank = "AICc")
+F.BDMax2.dredge#Top model is 2.99 delta AICc above next model, so no averaging necessary
+#No averaging necessary, so reprint the original summary
+summary(F.BDMax2.mdl)
+
+```
+
+### Female Tarsus Models
+
+As a point of comparison, let's model tarsus~age residuals to decide whether climate is affecting bill shape more than a less plastic (?) trait.
+
+```{r female tarsus time period 1 models}
+F.TarsusMax1.mdl <- lm(data = F.df, TarsusAgeResids ~ MaxTempMean1_11*PrecipSum1_11 + Weight + Weight:Tarsus, na.action = "na.fail")
+
+#Full model summary
+summary(F.TarsusMax1.mdl)
+
+#dredge function applied to determine the best combination of variables
+F.TarsusMax1.dredge <- dredge(F.TarsusMax1.mdl, rank = "AICc")
+
+#model.avg function averages all top models within 2 delta values of each other
+F.TarsusMax1.avg <- model.avg(F.TarsusMax1.dredge, subset = F.TarsusMax1.dredge$delta < 2, revised.var = TRUE, fit = TRUE)
+
+#Summary of averaged model (See the second set of Conditionally Averaged Coefficients)
+summary(F.TarsusMax1.avg)
+```
+VERY COOL!! Max temp and precip 1 have no effect on Tarsus, but they do on Bill depth
+
+```{r female tarsus time period 2 models}
+F.TarsusMax2.mdl <- lm(data = F.df, TarsusAgeResids ~ MaxTempMean12_22*PrecipSum12_22 + Weight + Weight:Tarsus, na.action = "na.fail")
+
+#Full model summary
+summary(F.TarsusMax2.mdl)
+
+#dredge function applied to determine the best combination of variables
+F.TarsusMax2.dredge <- dredge(F.TarsusMax2.mdl, rank = "AICc")
+
+#model.avg function averages all top models within 2 delta values of each other
+F.TarsusMax2.avg <- model.avg(F.TarsusMax2.dredge, subset = F.TarsusMax1.dredge$delta < 2, revised.var = TRUE, fit = TRUE)
+
+#Summary of averaged model (See the second set of Conditionally Averaged Coefficients)
+summary(F.TarsusMax2.avg)
+```
+In the time period two model, Max Temp is non-significant, but Precip is positively associated with tarsus~age residuals. Still an interesting departure from the bill metric model results.
 
 
+### Female Skull Models
+
+```{r female skull time period 1 models}
+F.SkullMax1.mdl <- lm(data = F.df, SkullAgeResids ~ MaxTempMean1_11*PrecipSum1_11 + Weight + Weight:Skull, na.action = "na.fail")
+
+#Full model summary
+summary(F.SkullMax1.mdl)
+
+#dredge function applied to determine the best combination of variables
+F.SkullMax1.dredge <- dredge(F.SkullMax1.mdl, rank = "AICc")
+
+#model.avg function averages all top models within 2 delta values of each other
+F.SkullMax1.avg <- model.avg(F.SkullMax1.dredge, subset = F.SkullMax1.dredge$delta < 2, revised.var = TRUE, fit = TRUE)
+
+#Summary of averaged model (See the second set of Conditionally Averaged Coefficients)
+summary(F.SkullMax1.avg)
+```
+Like tarsus, there is no effect of climate variables on skull in time period 1
 
 
+```{r female skull time period 2 models}
+F.SkullMax2.mdl <- lm(data = F.df, SkullAgeResids ~ MaxTempMean12_22*PrecipSum12_22 + Weight + Weight:Skull, na.action = "na.fail")
+
+#Full model summary
+summary(F.SkullMax2.mdl)
+
+#dredge function applied to determine the best combination of variables
+F.SkullMax2.dredge <- dredge(F.SkullMax2.mdl, rank = "AICc")
+F.SkullMax2.dredge
+
+#Top model is over two delta AICc values away from next top model, so no averaging necessary
+
+#Reprint full model summary
+summary(F.SkullMax2.mdl)
+```
+
+In time period two, Max Temp and Precip are positively associated with skull~age residuals.
 
 
+### Female Upper Bill Surface Area Models
+
+```{r female UBS time period 1 models}
+F.UBSMax1.mdl <- lm(data = F.df, UBSAgeResids ~ MaxTempMean1_11*PrecipSum1_11 + Weight + Weight:UBS, na.action = "na.fail")
+
+#Full model summary
+summary(F.UBSMax1.mdl)
+
+#dredge function applied to determine the best combination of variables
+F.UBSMax1.dredge <- dredge(F.UBSMax1.mdl, rank = "AICc")
+
+#model.avg function averages all top models within 2 delta values of each other
+F.UBSMax1.avg <- model.avg(F.UBSMax1.dredge, subset = F.UBSMax1.dredge$delta < 2, revised.var = TRUE, fit = TRUE)
+
+#Summary of averaged model (See the second set of Conditionally Averaged Coefficients)
+summary(F.UBSMax1.avg)
+```
+Dredge drops UBS from the model because it's not explaining enough variance.
+
+Let's check out time period 2
+```{r female UBS time period 2 models}
+F.UBSMax2.mdl <- lm(data = F.df, UBSAgeResids ~ MaxTempMean12_22*PrecipSum12_22 + Weight + Weight:UBS, na.action = "na.fail")
+
+#Full model summary
+summary(F.UBSMax2.mdl)
+
+#dredge function applied to determine the best combination of variables
+F.UBSMax2.dredge <- dredge(F.UBSMax2.mdl, rank = "AICc")
+
+#model.avg function averages all top models within 2 delta values of each other
+F.UBSMax2.avg <- model.avg(F.UBSMax2.dredge, subset = F.UBSMax2.dredge$delta < 2, revised.var = TRUE, fit = TRUE)
+
+#Summary of averaged model (See the second set of Conditionally Averaged Coefficients)
+summary(F.UBSMax2.avg)
+```
+
+Temp and Precip affect UBS in time period 2
 
 
+### Female Total Bill Surface Area Models
+Does upper bill respond more?
 
+Start with just time period 2 for now
+```{r female TBS time period 2 models}
+F.TBSMax2.mdl <- lm(data = F.df, TBSAgeResids ~ MaxTempMean12_22*PrecipSum12_22 + Weight + Weight:TBS, na.action = "na.fail")
 
+#Full model summary
+summary(F.TBSMax2.mdl)
+
+#dredge function applied to determine the best combination of variables
+F.TBSMax2.dredge <- dredge(F.TBSMax2.mdl, rank = "AICc")
+
+#model.avg function averages all top models within 2 delta values of each other
+F.TBSMax2.avg <- model.avg(F.TBSMax2.dredge, subset = F.TBSMax2.dredge$delta < 2, revised.var = TRUE, fit = TRUE)
+
+#Summary of averaged model (See the second set of Conditionally Averaged Coefficients)
+summary(F.TBSMax2.avg)
+```
+
+Max Temp 2 is positively associated with TBS age residuals
