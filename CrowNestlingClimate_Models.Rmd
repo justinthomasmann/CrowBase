@@ -30,83 +30,153 @@ theme_set(theme_classic())
 
 
 ```{r dataframes}
-#Male dataframe
+#Males
 M.df <- read.csv("MaleNestlingClimateJoined.csv",h=TRUE)
-#Female dataframe
+
+#Females 
 F.df <- read.csv("FemaleNestlingClimateJoined.csv",h=TRUE)
-F.df <- F.df[-503,]
-#Join them so that all hatch dates have climate metrics represented in the PCA
-BothSexes.df <- rbind(F.df,M.df)
+
+#Both sexes
+B.df <- rbind(F.df,M.df)
 ```
 
 
 ```{r}
-#can we control for weight and age in one metric?
-#ensure variables are numeric
-F.df$CalcAge <- as.numeric(F.df$CalcAge)
-F.df$Weight <- as.numeric(F.df$Weight)
-
-#Column for weight divided by age
-F.df$WeightByAge <- F.df$Weight/F.df$CalcAge
-
-#Regress weight and age
-WeightControl.mdl <- lm(data = F.df, Weight ~ CalcAge)
-#Column for residuals
-F.df$WeightAgeResiduals <- WeightControl.mdl$residuals
-#Wide range so let's scale it
-range(F.df$WeightAgeResiduals)
-#Residuals rescaled
-F.df$WeightAgeResiduals <- scale(F.df$WeightAgeResiduals)
-
-#Regress UBS by age
-AgeControl.mdl <- lm(data = F.df, UBillSurface ~ CalcAge)
-F.df$UBSAgeResiduals <- AgeControl.mdl$residuals
-summary(lm(data = F.df, UBSAgeResiduals ~ Weight))
-```
-
-
-```{r}
-F.df %>% 
-  ggplot(aes(x=WeightAgeResiduals,y=UBillSurface))+
-  geom_point(shape = 1)+
-  geom_abline(intercept = 160.675, slope = 6.4)
-```
-
-
-```{r}
-F.df %>% 
-  ggplot(aes(x=Weight,y=UBSAgeResiduals))+
-  geom_point(shape = 1)+
-  geom_abline(intercept = -50.79, slope = 0.14)
-```
-
-
-```{r}
-F.UBSAgeResiduals1.mdl <- lm(data = F.df, UBSAgeResiduals ~ MaxTempMean1_11 + Weight)
-summary(F.UBSAgeResiduals1.mdl)
+summary(B.df)
 ```
 
 
 
-```{r}
-F.UBillSurface1.mdl <- lm(data = F.df, UBillSurface ~ MaxTempMean1_11 + WeightByAge)
-summary(F.UBillSurface1.mdl)
+```{r prepare variables}
+#some metrics aren't recognized as numeric, so we'll coerce them as numeric 
+is.numeric(B.df$TEC)
+B.df$TEC <- as.numeric(B.df$TEC)
+B.df$Skull <- as.numeric(B.df$Skull)
+
+#Also renaming some variables in the process
+
+#UB = upper bill
+B.df$UB <- as.numeric(B.df$UpperBill)
+#UBS = upper bill surface area
+B.df$UBS <- as.numeric(B.df$UBillSurface)
+#TBS = total bill surface area
+B.df$TBS <- as.numeric(B.df$TotBillSurface)
+
+#Make Month a factor for plotting
+B.df$Month <- as.factor(B.df$Month)
+
+#Simplify the df
+B.df <- B.df %>% 
+  select(Month,ID,CalcAge,HatchDateJulYear,AllSex,BillDepth,BillWidth,BillNT,TEC,UB,UBS,TBS,
+         Skull,Tarsus,Weight,
+         MaxTempMean1_11,MaxTempMean12_22,MeanMaxTempIncubation,
+         MinTempMean1_11,MinTempMean12_22,MeanMinTempIncubation,
+         GDDSum1_11,GDDSum12_22,GDDSumIncubation,
+         PrecipSum1_11,PrecipSum12_22,PrecipSumIncubation)
+
+summary(B.df)
 ```
 
 
-```{r}
-#Remove row 378, which has a doa bird with NA for weight
-F.df <- F.df[-378,]
-
-F.UBillSurface2.mdl <- lm(data = F.df, UBillSurface ~ MaxTempMean1_11 + Weight + CalcAge)
-summary(F.UBillSurface2.mdl)
+```{r fix NAs in months}
+#6 individuals with HatchDateJulYear 2002099 are showing NAs, should be 4 (April)
+B.df$Month <- B.df$Month %>% replace_na("4")
+#There is one lower case f instead of upper case F for one female
+B.df$AllSex <- gsub('f', 'F', B.df$AllSex)
+B.df$AllSex <- as.factor(B.df$AllSex)
+summary(B.df)
 ```
 
 
-```{r}
-F.UBillSurface3.mdl <- lm(data = F.df, UBillSurface ~ MaxTempMean1_11 + WeightAgeResiduals)
-summary(F.UBillSurface3.mdl)
+```{r remaining NAs in morphometrics}
+#7 more rows have NAs in morphometrics
+sum(!complete.cases(B.df[-1]))
+
+#Can remove them by uncommenting and running the following line
+B.df <- na.omit(B.df)
+summary(B.df)
 ```
+
+
+```{r create bill metric ~ CalcAge residuals}
+#Bill Depth
+BDAge.mdl <- lm(data = B.df, BillDepth ~ CalcAge)
+B.df$BDAgeResids <- BDAge.mdl$residuals  
+hist(B.df$BDAgeResids)
+
+#Bill Width
+BWAge.mdl <- lm(data = B.df, BillWidth ~ CalcAge)
+B.df$BWAgeResids <- BWAge.mdl$residuals
+hist(B.df$BWAgeResids)
+
+#BillNT
+BNTAge.mdl <- lm(data = B.df, BillNT ~ CalcAge)
+B.df$BNTAgeResids <- BNTAge.mdl$residuals
+hist(B.df$BNTAgeResids)
+
+#TEC
+TECAge.mdl <- lm(data = B.df, TEC ~ CalcAge)
+B.df$TECAgeResids <- TECAge.mdl$residuals
+hist(B.df$TECAgeResids)
+
+#UpperBill
+UBAge.mdl <- lm(data = B.df, UB ~ CalcAge)
+B.df$UBAgeResids <- UBAge.mdl$residuals
+hist(B.df$UBAgeResids)
+
+#Upper Bill Surface Area
+UBSAge.mdl <- lm(data = B.df, UBS ~ CalcAge)
+B.df$UBSAgeResids <- UBSAge.mdl$residuals
+hist(B.df$UBSAgeResids)
+
+#Total Bill Surface Area
+TBSAge.mdl <- lm(data = B.df, TBS ~ CalcAge)
+B.df$TBSAgeResids <- TBSAge.mdl$residuals
+hist(B.df$TBSAgeResids)
+
+#Skull
+SkullAge.mdl <- lm(data = B.df, Skull ~ CalcAge)
+B.df$SkullAgeResids <- SkullAge.mdl$residuals
+hist(B.df$SkullAgeResids)
+
+#Tarsus
+TarsusAge.mdl <- lm(data = B.df, Tarsus ~ CalcAge)
+B.df$TarsusAgeResids <- TarsusAge.mdl$residuals
+hist(B.df$TarsusAgeResids)
+```
+
+
+
+
+```{r recreate male and female dfs}
+#Now that B.df is cleaned and bill metric ~ age residuals are added, recreate male and female dfs
+F.df <- subset(B.df, AllSex=="F")
+M.df <- subset(B.df, AllSex=="M")
+```
+
+
+
+```{r female Bill Depth models}
+F.BDMax1.mdl <- lm(data = F.df, BDAgeResids ~ MaxTempMean1_11*PrecipSum1_11 + Weight + Weight:BillDepth, na.action = "na.fail")
+summary(F.BDMax1.mdl)
+F.BDMax1.dredge <- dredge(F.BDMax1.mdl, rank = "AICc")
+F.BDMax1.avg <- model.avg(F.BDMax1.dredge, subset = F.BDMax1.dredge$delta < 2, revised.var = TRUE, fit = TRUE)
+summary(F.BDMax1.avg)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ```{r}
@@ -118,21 +188,7 @@ aictab(cand.set = F.set1, modnames = F.mdlnames1)
 ```
 
 
-```{r}
-F.UBS.Precip1.mdl <- lm(data = F.df, UBillSurface ~ PrecipSum1_11 + WeightAgeResiduals)
-summary(F.UBS.Precip1.mdl)
-```
 
-
-```{r}
-F.UBS.Max2.mdl <- lm(data = F.df, UBillSurface ~ MaxTempMean1_11*PrecipSum1_11 + WeightAgeResiduals)
-summary(F.UBS.Max2.mdl)
-```
-
-
-```{r}
-hist(F.UBS.Max2.mdl$residuals)
-```
 
 
 
