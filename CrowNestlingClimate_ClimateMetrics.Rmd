@@ -52,8 +52,30 @@ df$PrecipCM <- mapply(in2cm, df$Precip)
 df <- df %>% 
   select(Date,Obs,Year,Month,Day,Julian,MaxTempC,MinTempC,AtObsTemp,
          PrecipCM,Snowfall,SnowDepth,HDD,CDD,GDD)
-
 ```
+
+
+```{r climate data for plotting}
+NestingMonths.df <- subset(df, Month >2 & Month <6 & Year < 2019)
+```
+
+
+```{r}
+NestingMonths.df$Year <- as.factor(NestingMonths.df$Year)
+mean(NestingMonths.df$MaxTempC, na.rm=TRUE)
+
+TempsByYear.plot <- ggplot(data = NestingMonths.df)+
+  geom_boxplot(aes(x=Year,y=MaxTempC))+
+  geom_hline(yintercept = 12.64, color = "red", linetype = "dashed", size = 1)+
+  ylab("Maximum temperature (C)")+
+  xlab("")+
+  ggtitle("Mean maximum daily temperature across March, April and May")+
+  theme(axis.text.x = element_text(angle = 90))
+
+TempsByYear.plot
+ggsave("TempsByYear.png", width = 6, height = 4)
+```
+
 
 ## Climate Metrics
 
@@ -351,3 +373,11 @@ ClimateMetrics.df <- df %>%
 # write.csv(ClimateMetrics.df, "ClimateMetrics.csv",
 #            row.names = FALSE)
 ```
+
+## PLOTS!
+
+```{r}
+CL.df <- read.csv("ClimateMetrics.csv", h=TRUE)
+
+```
+
