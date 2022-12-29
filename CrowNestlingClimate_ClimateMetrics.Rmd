@@ -60,21 +60,25 @@ NestingMonths.df <- subset(df, Month >2 & Month <6 & Year < 2019)
 ```
 
 
-```{r}
+```{r TempsByYear plot}
 NestingMonths.df$Year <- as.factor(NestingMonths.df$Year)
 mean(NestingMonths.df$MaxTempC, na.rm=TRUE)
 
 TempsByYear.plot <- ggplot(data = NestingMonths.df)+
-  geom_boxplot(aes(x=Year,y=MaxTempC))+
+  geom_boxplot(aes(x=Year,y=MaxTempC, fill=as.factor(Month)))+
   geom_hline(yintercept = 12.64, color = "red", linetype = "dashed", size = 1)+
   ylab("Maximum temperature (C)")+
   xlab("")+
   ggtitle("Mean maximum daily temperature across March, April and May")+
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90))+
+  scale_fill_brewer(name = "Month", labels = c("March", "April", "May"), palette = "Greens")+
+  geom_rect(aes(xmin=2,xmax=2.5,ymin=Inf, ymax=Inf, alpha=0.2))+
+  theme_bw()
 
 TempsByYear.plot
-ggsave("TempsByYear.png", width = 6, height = 4)
+ggsave("TempsByYear.png", width = 9, height = 5)
 ```
+
 
 
 ## Climate Metrics

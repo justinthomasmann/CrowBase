@@ -87,7 +87,7 @@ B.df <- rbind(F.df,M.df)
 ### Deal with NAs and make sure variables are the correct class (numeric or factor)
 
 ```{r raw summary}
-summary(B.df)
+#summary(B.df)
 ```
 
 
@@ -122,7 +122,7 @@ B.df <- B.df %>%
          GDDSum1_11,GDDSum12_22,GDDSumIncubation,
          PrecipSum1_11,PrecipSum12_22,PrecipSumIncubation)
 
-summary(B.df)
+#summary(B.df)
 ```
 
 
@@ -130,7 +130,7 @@ summary(B.df)
 #6 individuals with HatchDateJulYear 2002099 and 2012099 are showing NAs, should be 4 (April)
 B.df$Month <- B.df$Month %>% replace_na("4")
 
-summary(B.df)
+#summary(B.df)
 ```
 We could leave NAs in the dataframe, but the dredge function (for top model selection) will not work with NAs in the dataframe.
 
@@ -140,10 +140,22 @@ sum(!complete.cases(B.df[-1]))
 
 #Omit the remaining rows with NAs
 B.df <- na.omit(B.df)
+```
+
+
+```{r Remove an outlier (ML LOWL91) that Anne found}
+B.df <- B.df[-3,]#remove row 3 containing ML LOWL91's record
 
 #One final summary to make sure everything is clean and correct
 summary(B.df)
 ```
+
+```{r filter out age 23} 
+B.df <- subset(B.df, CalcAge > 23.9)
+range(B.df$CalcAge)
+```
+
+
 <br> 
 
 ## No more missing data. Ready for modelling!
@@ -220,6 +232,39 @@ M.scaled.df <- subset(B.scaled.df, AllSex=="M")
 ```
 <br> 
 
+
+## Sandbox
+<br>
+
+
+```{r CalcAge By BillDepth plot}
+B.df %>% ggplot(aes(x=CalcAge,y=BillDepth, color=AllSex))+
+  geom_point()+
+  scale_color_brewer(palette = "Dark2")
+
+summary(lm(data = B.scaled.df, BillDepth~CalcAge))
+```
+```{r Weight By BillDepth plot}
+B.df %>% ggplot(aes(x=Weight,y=BillDepth, color=AllSex))+
+  geom_point()+
+  geom_smooth()+
+  scale_color_brewer(palette = "Dark2")
+
+summary(lm(data = B.df, BillDepth~Weight))
+```
+### A one gram increase in weight will result in a 0.01 mm increase in Bill Depth 
+
+
+
+
+
+
+
+
+
+
+
+
 ## Female Models
 
 
@@ -243,7 +288,7 @@ summary(F.BDMax1.scaled.mdl)
 plot_model(F.BDMax1.scaled.mdl, type = "int", terms = c("MaxTempMean1_11", "PrecipSum1_11"))
 
 #Same model with unscaled data
-F.BDMax1.mdl <- lm(data = F.df, BDAgeResids ~ MaxTempMean1_11*PrecipSum1_11 + Weight, na.action = "na.fail")
+F.BDMax1.mdl <- lm(data = F.df, BDAgeResids ~ GDDSum1_11*PrecipSum1_11 + Weight, na.action = "na.fail")
 car::vif(F.BDMax1.mdl) #VIF is uncomfortably high for some vars
 summary(F.BDMax1.mdl)
 plot_model(F.BDMax1.mdl, type = "int", terms = c("MaxTempMean1_11", "PrecipSum1_11"))
@@ -266,6 +311,50 @@ mdl.tbl(F.BDMax1.mdl)
 ```
 
 
+```{r}
+F.UB2.mdl <- lm(UB ~GDDSum12_22*PrecipSum12_22 + Weight, data = F.df)
+summary(F.UB2.mdl)
+vif(F.UB2.mdl)
+plot_model(F.UB2.mdl, type = "int", terms = c("GDDSum12_22", "PrecipSum!2_22"))
+```
+
+```{r}
+F.BNT2.mdl <- lm(BillNT ~GDDSum12_22*PrecipSum12_22 + Weight, data = F.df)
+summary(F.BNT2.mdl)
+vif(F.BNT2.mdl)
+plot_model(F.BNT2.mdl, type = "int", terms = c("GDDSum12_22", "PrecipSum!2_22"))
+```
+
+```{r}
+F.BD2.mdl <- lm(BillDepth ~GDDSum12_22*PrecipSum12_22 + Weight, data = F.df)
+summary(F.BD2.mdl)
+vif(F.BD2.mdl)
+plot_model(F.BD2.mdl, type = "int", terms = c("GDDSum12_22", "PrecipSum!2_22"))
+```
+
+
+```{r}
+F.TBS2.mdl <- lm(TBS ~GDDSum12_22*PrecipSum12_22 + Weight, data = F.df)
+summary(F.TBS2.mdl)
+vif(F.TBS2.mdl)
+plot_model(F.TBS2.mdl, type = "int", terms = c("GDDSum12_22", "PrecipSum!2_22"))
+```
+
+
+```{r}
+F.UBS2.mdl <- lm(UBS ~GDDSum12_22*PrecipSum12_22 + Weight, data = F.df)
+summary(F.UBS2.mdl)
+vif(F.UBS2.mdl)
+plot_model(F.UBS2.mdl, type = "int", terms = c("GDDSum12_22", "PrecipSum!2_22"))
+```
+
+
+```{r}
+F.Tarsus2.mdl <- lm(Tarsus ~GDDSum12_22*PrecipSum12_22 + Weight, data = F.df)
+summary(F.Tarsus2.mdl)
+vif(F.Tarsus2.mdl)
+plot_model(F.Tarsus2.mdl, type = "int", terms = c("GDDSum12_22", "PrecipSum!2_22"))
+```
 
 ```{r model.avg function}
 #model.avg function averages all top models within 2 delta values of each other, as recommended in Burnham and Anderson (2002) Model Selection and Multimodel Inference: A Practical Information-Theoretic Approach
@@ -279,10 +368,12 @@ mdl.tbl(F.BDMax1.mdl)
 
 
 ```{r BDAgeResids and Weight plot}
-F.df %>% ggplot(aes(x=PrecipSum1_11,y=BDAgeResids))+
+F.BDByPrecip.plot <- F.df %>% ggplot(aes(x=PrecipSum1_11,y=BDAgeResids, labels=ID))+
   geom_point()
+ggplotly(F.BDByPrecip.plot)
 ```
-Yeah, definitely not negative. The negative main effect must result from the interaction term, but I'm confused by this.
+
+
 
 ```{r Temp 1 and Precip 1 plot}
 F.df %>% ggplot(aes(x=MaxTempMean1_11,y=PrecipSum1_11))+
