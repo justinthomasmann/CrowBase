@@ -1,0 +1,150 @@
+---
+title: "Nestlings and Climate"
+author: "Justin Mann"
+date: "2022-09-27"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(zoo)
+```
+
+## CLIMOD2 Dataset for Cornell University Station
+
+```{r data frame}
+df <- read.csv("IthacaWeatherData1990_2022.csv", h=TRUE)
+range(df$MaxTemp)
+#coerce climate variables to class numeric
+#will introduce NAs where missing data are coded as characters
+df$MaxTemp <- as.numeric(df$MaxTemp)
+df$MinTemp <- as.numeric(df$MinTemp)
+df$Precip <- as.numeric(df$Precip)
+df$HDD <- as.numeric(df$HDD)
+df$CDD <- as.numeric(df$CDD)
+df$GDD <- as.numeric(df$GDD)
+range(df$Year)
+```
+
+
+## Climate Metrics
+  *Objective: to match data on climate conditions during:
+    +Incubation (conditions for 19 days prior to hatch date)
+    +Post-hatch (conditions for 1-11, 12-22, 23-33, and 34-44 days after hatch date)
+ 
+```{r MaxTempMean1_11}
+?zoo::rollapply()
+
+#An 11-day rolling window calculates the mean of MaxTemp for the next 11 days
+df$MaxTempMean1_11 <- zoo::rollapply(df$MaxTemp, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(mean(df$MaxTemp[1:11]), df[1,16]) #mean() calculation should match MaxTempMean1_11
+```
+
+
+```{r MaxTempMean12_22}
+#MaxTempMean for days 12-22
+df$MaxTempMean12_22 <- dplyr::lead(df$MaxTempMean1_11, n = 11)
+
+#Code check
+c(mean(df$MaxTemp[12:22]), df[1,17]) #mean() calculation should match MaxTempMean12_22
+
+```
+
+
+
+```{r MaxTempMean23_33}
+#MaxTempMean for days 23-33
+df$MaxTempMean23_33 <- dplyr::lead(df$MaxTempMean12_22, n = 11)
+
+#Code check
+c(mean(df$MaxTemp[23:33]), df[1,18]) #mean() calculation should match MaxTempMean23_33
+```
+
+
+```{r MaxTempMeanIncubation}
+#MaxTemp mean for 19 days prior to hatch date
+df$MeanMaxTempIncubation <- zoo::rollapply(df$MaxTemp, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(mean(df[1:19,7]), df[19,19]) #mean() calculation should match MaxTempMeanIncubation
+```
+
+
+```{r PrecipSum1_11}
+df$PrecipSum1_11 <- zoo::rollapply(df$Precip, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check 
+c(sum(df[1:11,10], na.rm = TRUE), df[1,20]) #mean() calculation should match PrecipSum1_11
+```
+
+
+```{r PrecipSum12_22}
+#PrecipSum column that is 11 days ahead
+df$PrecipSum12_22 <- dplyr::lead(df$PrecipSum1_11, n = 11)
+
+#Code check
+c(sum(df[12:22,10], na.rm = TRUE), df[1,21]) #sum() calculation should match PrecipSum12_22
+```
+
+
+```{r PrecipSum23_33}
+#PrecipSum column that is 22 days ahead
+df$PrecipSum23_33 <- dplyr::lead(df$PrecipSum12_22, n = 11)
+
+#Code check
+c(sum(df[23:33,10], na.rm = TRUE), df[1,22]) #sum() calculation should match PrecipSum23_33
+```
+
+
+```{r PrecipSum34_44}
+#PrecipSum column that is 33 days ahead
+df$PrecipSum34_44 <- dplyr::lead(df$PrecipSum23_33, n = 11)
+
+#Code check: Is PrecipSum33_43 calculating the mean Max temp for the fourth window of 11 days.
+c(sum(df[34:44,10]), df[1,24]) #sum() calculation should match PrecipSum33_43
+```
+
+
+```{r PrecipSumIncubation}
+df$PrecipSumIncubation <- zoo::rollapply(df$Precip, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(sum(df[11:29,10], na.rm = TRUE), df[29,25]) #sum() calculation should match PrecipSumIncubation
+```
+
+
+```{r TotHDD11}
+df$TotHDD11 <- zoo::rollapply(df$HDD, width=11, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+```
+
+```{r}
+#verify that TotHDD11 is accurately calculating the summed HDD for the previous 11 days.
+c(sum(df[111:121,13], na.rm = TRUE), df[121,24]) #manually calculated sum should match TotHDD11
+```
+
+
+```{r TotHDD19}
+df$TotHDD19 <- zoo::rollapply(df$HDD, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+```
+
+```{r}
+#verify that TotHDD19 is accurately calculating the summed HDD for the previous 19 days.
+c(sum(df[111:129,13], na.rm = TRUE), df[129,25]) #manually calculated sum should match TotHDD19
+```
+
+
+```{r new dataframe}
+#New dataframe with the derived climate metrics
+climMetrics.df <- as.data.frame(df[60:11514,c(1:6, 18, 21:25)])
+```
+
+
+```{r}
+# write.csv(climMetrics.df, "C:\\Users\\Justin Mann\\Documents\\RProjects\\CrowBase\\ClimateMetrics.csv",
+#           row.names = FALSE)
+```
+
+

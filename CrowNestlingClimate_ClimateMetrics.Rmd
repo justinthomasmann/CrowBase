@@ -1,0 +1,387 @@
+---
+title: "Nestlings and Climate"
+author: "Justin Mann"
+date: "2022-09-27"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(zoo)
+```
+
+## CLIMOD2 Data for Cornell University Weather Station
+
+<http://www.nrcc.cornell.edu/>
+
+<http://climod2.nrcc.cornell.edu/>
+
+```{r data frame}
+df <- read.csv("IthacaWeatherData1990_2022.csv", h=TRUE)
+
+#coerce climate variables to class numeric, NAs introduced where missing data were coded as characters 
+df$MaxTemp <- as.numeric(df$MaxTemp)
+df$MinTemp <- as.numeric(df$MinTemp)
+df$Precip <- as.numeric(df$Precip)
+df$HDD <- as.numeric(df$HDD)
+df$CDD <- as.numeric(df$CDD)
+df$GDD <- as.numeric(df$GDD)
+```
+
+```{r metric and celcius conversions}
+f2c <- function(x){
+  x <- (5/9) * (x-32)
+  return(x)
+}
+f2c(42)#first MaxTemp = 5.555C
+
+df$MaxTempC <- mapply(f2c, df$MaxTemp)
+df$MinTempC <- mapply(f2c, df$MinTemp)
+
+in2cm <- function(x){
+  x <- x * 2.54
+  return(x)
+}
+in2cm(0.07)#first precip amount = 0.1778 cm
+df$PrecipCM <- mapply(in2cm, df$Precip)
+```
+
+
+```{r reorder df to include C and cm}
+df <- df %>% 
+  select(Date,Obs,Year,Month,Day,Julian,MaxTempC,MinTempC,AtObsTemp,
+         PrecipCM,Snowfall,SnowDepth,HDD,CDD,GDD)
+```
+
+
+```{r climate data for plotting}
+NestingMonths.df <- subset(df, Month >2 & Month <6 & Year < 2019)
+```
+
+
+```{r TempsByYear plot}
+NestingMonths.df$Year <- as.factor(NestingMonths.df$Year)
+mean(NestingMonths.df$MaxTempC, na.rm=TRUE)
+
+TempsByYear.plot <- ggplot(data = NestingMonths.df)+
+  geom_boxplot(aes(x=Year,y=MaxTempC, fill=as.factor(Month)))+
+  geom_hline(yintercept = 12.64, color = "red", linetype = "dashed", size = 1)+
+  ylab("Maximum temperature (C)")+
+  xlab("")+
+  ggtitle("Mean maximum daily temperature across March, April and May")+
+  theme(axis.text.x = element_text(angle = 90))+
+  scale_fill_brewer(name = "Month", labels = c("March", "April", "May"), palette = "Greens")+
+  geom_rect(aes(xmin=2,xmax=2.5,ymin=Inf, ymax=Inf, alpha=0.2))+
+  theme_bw()
+
+TempsByYear.plot
+ggsave("TempsByYear.png", width = 9, height = 5)
+```
+
+
+
+## Climate Metrics
+
+Objective: to match data on climate conditions during:
+
+-   Incubation (conditions for 19 days prior to hatch date)
+
+-   Post-hatch (conditions for 1-11, 12-22, 23-33, and 34-44 days after hatch date)
+
+### Metric 1: Post-hatch Max Temp
+
+```{r MaxTempMean1_11}
+#zoo::rollapply(): align = 'left' applies to the succeeding days, while align = 'right' applies to the preceding days  
+?zoo::rollapply()
+
+#An 11-day rolling window calculates the mean of MaxTemp for the next 11 days
+df$MaxTempMean1_11 <- zoo::rollapply(df$MaxTempC, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(mean=mean(df[1:11,7]),metric=df[1,16])
+#mean() calculation should match metric
+```
+
+```{r}
+print(df[1:11,7])
+```
+
+```{r MaxTempMean12_22}
+#MaxTempMean for days 12-22
+df$MaxTempMean12_22 <- dplyr::lead(df$MaxTempMean1_11, n = 11)
+
+#Code check
+c(mean=mean(df[12:22,7]), metric=df[1,17])#mean() calculation should match metric
+```
+
+```{r}
+print(df[12:22,7])#11 values
+```
+
+```{r MaxTempMean23_33}
+#MaxTempMean for days 23-33
+df$MaxTempMean23_33 <- dplyr::lead(df$MaxTempMean12_22, n = 11)
+
+#Code check
+c(mean=mean(df[23:33,7]), metric=df[1,18])#mean() calculation should match metric
+```
+
+```{r}
+print(df[23:33,7])#11 values
+```
+
+```{r MaxTempMean34_44}
+#MaxTempMean for days 34-44
+df$leadMax34_44 <- dplyr::lead(df$MaxTempMean23_33, n = 11)
+
+#Code check
+c(mean=mean(df[34:44,7]), metric=df[1,19])#mean() calculation should match metric
+```
+
+```{r}
+print(df[34:44,7])#11 values
+```
+
+### Metric 2: Incubation Max Temp
+
+```{r MaxTempMeanIncubation}
+#MaxTemp mean for 19 days prior to hatch date
+df$MeanMaxTempIncubation <- zoo::rollapply(df$MaxTempC, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(mean=mean(df[1:19,7]), metric=df[19,20]) #mean() calculation should match metric
+```
+
+```{r}
+print(df[1:19,7])#19 values
+```
+
+### Metric 3: Post-hatch Precipitation
+
+```{r PrecipSum1_11}
+df$PrecipSum1_11 <- zoo::rollapply(df$PrecipCM, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check 
+c(sum=sum(df[1:11,10], na.rm = TRUE), metric=df[1,21]) #sum() calculation should match metric
+```
+
+```{r}
+print(df[1:11,10])#11 values)
+```
+
+```{r PrecipSum12_22}
+#PrecipSum column that is 11 days ahead
+df$PrecipSum12_22 <- dplyr::lead(df$PrecipSum1_11, n = 11)
+
+#Code check
+c(sum=sum(df[12:22,10], na.rm = TRUE), metric=df[1,22]) #sum() calculation should match metric
+```
+
+```{r}
+print(df[12:22,10])
+```
+
+```{r PrecipSum23_33}
+#PrecipSum column that is 22 days ahead
+df$PrecipSum23_33 <- dplyr::lead(df$PrecipSum12_22, n = 11)
+
+#Code check
+c(sum=sum(df[23:33,10], na.rm = TRUE), metric=df[1,23]) #sum() calculation should match metric
+```
+
+```{r}
+print(df[23:33,10])#11 values
+```
+
+```{r PrecipSum34_44}
+#PrecipSum column that is 33 days ahead
+df$PrecipSum34_44 <- dplyr::lead(df$PrecipSum23_33, n = 11)
+
+#Code check
+c(sum=sum(df[34:44,10]), metric=df[1,24]) #sum() calculation should match metric
+```
+
+```{r}
+print(df[34:44,10])#11 values
+```
+
+### Metric 4: Incubation Precipitation
+
+```{r PrecipSumIncubation}
+#PrecipSum column that looks back 19 days from hatch date
+df$PrecipSumIncubation <- zoo::rollapply(df$PrecipCM, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(sum=sum(df[1:19,10], na.rm = TRUE), metric=df[19,25]) #sum() calculation should match metric
+```
+
+```{r}
+print(df[1:19,10])#19 values
+```
+
+### Metric 5: Post-hatch Growing Degree Days
+
+```{r GDDSum1_11}
+#GDDSum column the first 11 days 
+df$GDDSum1_11 <- zoo::rollapply(df$GDD, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(sum=sum(df[112:122,15], na.rm = TRUE), metric=df[112,26]) #sum() calculation should match metric
+```
+```{r}
+print(df[112:122,15])
+```
+
+
+```{r GDDSum12_22}
+#GDDSum column that is 11 days ahead
+df$GDDSum12_22 <- dplyr::lead(df$GDDSum1_11, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,15], na.rm = TRUE), metric=df[55,27]) #sum() calculation should match metric
+```
+```{r}
+print(df[66:76,15])
+```
+
+
+```{r GDDSum23_33}
+#GDDSum column that is 22 days ahead
+df$GDDSum23_33 <- dplyr::lead(df$GDDSum12_22, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,15], na.rm = TRUE), metric=df[44,28]) #sum() calculation should match metric
+```
+
+
+```{r GDDSum34_44}
+#GDDSum column that is 33 days ahead
+df$GDDSum34_44 <- dplyr::lead(df$GDDSum23_33, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,15], na.rm = TRUE), metric=df[33,29]) #sum() should match metric
+```
+
+
+### Metric 6: Incubation Growing Degree Days
+
+```{r GDDSumIncubation}
+#GDDSum for the 19 days preceding hatch date
+df$GDDSumIncubation <- zoo::rollapply(df$GDD, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#code check
+c(sum=sum(df[111:129,15], na.rm = TRUE), metric=df[129,30]) #sum() should match metric
+```
+```{r}
+print(df[111:129,15])#19 values
+```
+
+
+### Metric 7: Post-hatch Cooling Degree Days
+
+```{r CDDSum1_11}
+#CDDSum column the first 11 days 
+df$CDDSum1_11 <- zoo::rollapply(df$CDD, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(sum=sum(df[112:122,14], na.rm = TRUE), metric=df[112,31]) #sum() calculation should match metric
+```
+```{r}
+print(df[112:122,14])#11 values
+```
+
+
+```{r CDDSum12_22}
+#CDDSum column that is 11 days ahead
+df$CDDSum12_22 <- dplyr::lead(df$CDDSum1_11, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,14], na.rm = TRUE), metric=df[55,32]) #sum() calculation should match metric
+```
+```{r}
+print(df[66:76,14])
+```
+
+
+```{r CDDSum23_33}
+#CDDSum column that is 22 days ahead
+df$CDDSum23_33 <- dplyr::lead(df$CDDSum12_22, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,14], na.rm = TRUE), metric=df[44,33]) #sum() calculation should match metric
+```
+
+
+```{r CDDSum34_44}
+#CDDSum column that is 33 days ahead
+df$CDDSum34_44 <- dplyr::lead(df$CDDSum23_33, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,14], na.rm = TRUE), metric=df[33,34]) #sum() should match metric
+```
+
+
+### Metric 8: Incubation Cooling Degree Days
+
+```{r CDDSumIncubation}
+#CDDSum for the 19 days preceding hatch date
+df$CDDSumIncubation <- zoo::rollapply(df$CDD, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#code check
+c(sum=sum(df[111:129,14], na.rm = TRUE), metric=df[129,35]) #sum() should match metric
+```
+```{r}
+print(df[111:129,14])#19 values
+```
+
+```{r MinTempMean1_11}
+#An 11-day rolling window calculates the mean of MinTemp for the next 11 days
+df$MinTempMean1_11 <- zoo::rollapply(df$MinTempC, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(mean=mean(df[1:11,8]),metric=df[1,36])
+#mean() calculation should match metric
+```
+
+```{r MinTempMean12_22}
+#MaxTempMean for days 12-22
+df$MinTempMean12_22 <- dplyr::lead(df$MinTempMean1_11, n = 11)
+
+#Code check
+c(mean=mean(df[12:22,8]), metric=df[1,37])#mean() calculation should match metric
+```
+
+
+```{r MinTempMeanIncubation}
+#MaxTemp mean for 19 days prior to hatch date
+df$MeanMinTempIncubation <- zoo::rollapply(df$MinTempC, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(mean=mean(df[1:19,8]), metric=df[19,38]) #mean() calculation should match metric
+```
+
+
+```{r new dataframe}
+#New dataframe with the derived climate metrics
+ClimateMetrics.df <- df %>% 
+  select(Date,Month,Day,Julian,
+         MaxTempMean1_11,MaxTempMean12_22,MeanMaxTempIncubation,
+         MinTempMean1_11,MinTempMean12_22,MeanMinTempIncubation,
+         PrecipSum1_11,PrecipSum12_22,PrecipSumIncubation,
+         GDDSum1_11,GDDSum12_22,GDDSumIncubation,
+         CDDSum1_11,CDDSum12_22,CDDSumIncubation)
+```
+
+```{r}
+# write.csv(ClimateMetrics.df, "ClimateMetrics.csv",
+#            row.names = FALSE)
+```
+
+## PLOTS!
+
+```{r}
+CL.df <- read.csv("ClimateMetrics.csv", h=TRUE)
+
+```
+
