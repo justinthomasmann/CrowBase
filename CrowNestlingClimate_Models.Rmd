@@ -437,6 +437,14 @@ UBSByWeightGDD.plot
 cowplot::save_plot("UBSByWeightGDD.plot.png", UBSByWeightGDD.plot)
 ```
 
+```{r sex difference after weight control question}
+# Create USB Weight Ratio 
+B.df$USBbyWeight <- B.df$UBS/B.df$Weight
+t.test(B.df$USBbyWeight[B.df$AllSex=="M"], B.df$USBbyWeight[B.df$AllSex=="F"])
+```
+
+
+
 ```{r F UB interplot}
 F.UB.inter.plot <- F.UB.inter.plot +
   scale_color_discrete(name="Precip Levels", labels=c("Low", "High"))+
