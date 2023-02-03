@@ -7,9 +7,12 @@ library(climate)
 theme_set(theme_classic())
 
 #1990-2020
-
+?meteo_noaa_hourly()
 noaa <- meteo_noaa_hourly(station = "725155-94761", year = 1990:2022, fm12 = FALSE)
 noaa
+
+noaa2 <- meteo_noaa_hourly(station = "725155-99999", year = 1990:2022, fm12 = FALSE)
+noaa2
 
 write.table(noaa, file = "noaaData_2007-2022.txt", sep = "\t",
             col.names = TRUE, row.names = FALSE )
