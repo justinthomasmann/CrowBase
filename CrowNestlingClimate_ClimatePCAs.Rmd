@@ -1,0 +1,80 @@
+---
+title: "Climate PCA"
+author: "Justin Mann"
+date: "2022-12-11"
+output: html_document
+---
+
+```{r libraries}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(dplyr)
+library(ggfortify)
+theme_set(theme_classic())
+```
+
+## Climate Metric PCAs
+
+```{r dataframes}
+#Male dataframe
+M.df <- read.csv("MaleNestlingClimateJoined.csv",h=TRUE)
+#Female dataframe
+F.df <- read.csv("FemaleNestlingClimateJoined.csv",h=TRUE)
+#Join them so that all hatch dates have climate metrics represented in the PCA
+df <- rbind(F.df,M.df)
+```
+
+```{r matrix, echo=TRUE, results='hide'}
+#Create a matrix of climate metrics for PCA
+df.mat <- df %>% 
+  select(MaxTempMean1_11,MaxTempMean12_22,MeanMaxTempIncubation,
+         MinTempMean1_11,MinTempMean12_22,MeanMinTempIncubation,
+         PrecipSum1_11,PrecipSum12_22,PrecipSumIncubation,
+         GDDSum1_11,GDDSum12_22,GDDSumIncubation)
+df.mat <- as.matrix(df.mat)
+#Scale metrics so that mean = 0 and SD = 1
+scale(df.mat)
+```
+
+
+```{r PCA}
+#Run PCA
+climate.pca <- prcomp(df.mat)
+```
+
+
+```{r scree plot}
+#Scree plot to show which PCAs explain the most variance
+screeplot(climate.pca, npcs = 11, main = "", type = "lines", cex.lab = 1.5)
+```
+
+
+```{r PCA rotation}
+#First 3 principle components explain the variation
+print(climate.pca$rotation[,1:3])
+```
+
+
+```{r PCA plotting}
+#Make Year a factor for plotting
+df$Year <- as.factor(df$Year)
+#Ordination plot
+autoplot(climate.pca, data = df, colour = "Year",
+         loadings = TRUE, loadings.label = TRUE)
+```
+
+
+```{r no GDD PCA}
+noGDD.mat <- df.mat[,1:9]
+noGDD.pca <- prcomp(noGDD.mat)
+#Ordination plot
+autoplot(noGDD.pca, data = df, colour = "Year",
+         loadings = TRUE, loadings.label = TRUE)
+```
+
+
+```{r no GDD rotation}
+screeplot(noGDD.pca, npcs = 11, main = "", type = "lines", cex.lab = 1.5)
+print(noGDD.pca$rotation[,1:4])
+```
+

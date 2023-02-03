@@ -1,0 +1,463 @@
+---
+title: "CrowNestlingClimateModels"
+author: "Justin Mann"
+date: "2022-12-03"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(broom) #tidy() to create tibbles from model summaries
+library(car) #vif
+library(cowplot)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange
+library(glmmTMB) #zi & overdispersed models
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+#PACKAGES FOR BAYESIAN MODELS
+# library(rstanarm) #stan models
+# library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+# library(loo) #use loo() to compare fits between bayesian models
+library(plotly)
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa)
+theme_set(theme_classic())
+```
+
+
+```{r forest.plot function}
+forest.plot <- function(df){
+  mdl.df <- tidy(mdl, quick = FALSE)
+  ci <- as_tibble(confint(mdl))
+  mdl.df$ci.lower <- ci$`2.5 %`
+  mdl.df$ci.upper <- ci$`97.5 %`
+  mdl.df <- mdl.df[-1,]
+  
+  ggplot(data = mdl.df)+
+    geom_pointrange(aes(x=term, y=estimate, ymin=ci.lower, ymax=ci.upper), size=1, shape=20)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1)+
+    ggtitle("Parameter estimates")+
+    theme(plot.title = element_text(size = 22),
+        axis.text.x = element_text(size = 18),
+        axis.title.x = element_blank(),
+        axis.text.y = element_text(size = 18),
+        axis.title.y = element_blank(),
+        plot.margin = margin(15,15,15,15))
+  
+}
+```
+
+```{r mdl.tbl function}
+mdl.tbl <- function(mdl){
+  mdl.df <- tidy(mdl, quick = FALSE)
+  ci <- as_tibble(confint(mdl))
+  mdl.df$ci.lower <- ci$`2.5 %`
+  mdl.df$ci.upper <- ci$`97.5 %`
+  mdl.df <- mdl.df[-1,]
+  print(mdl.df)
+}
+```
+
+
+```{r addline_format function}
+# addline_format <- function(x,...){
+#   gsub('\\s','\n',x)
+# }
+```
+
+<br> 
+
+
+## Crow Nestling Climate Models 
+
+
+### Read in data
+
+```{r dataframes}
+#Both sexes
+B.df <- read.csv("CrowNestlingClimate_BothSexesClean.csv",h=TRUE)
+B.df$AllSex <- as.factor(B.df$AllSex)
+summary(B.df)
+
+B.factors.df <- B.df[,1:5]
+B.scaled.df <- scale(B.df[,6:27])
+B.scaled.df <- cbind(B.factors.df,B.scaled.df)
+
+#Males
+M.df <- subset(B.df, AllSex=="M")
+M.scaled.df <- subset(B.scaled.df, AllSex=="M")
+
+#Females 
+F.df <- subset(B.df, AllSex=="F")
+F.scaled.df <- subset(B.scaled.df, AllSex=="F")
+```
+<br>
+
+
+## Bio Symposium Poster Models 
+<br>
+
+### Female Models
+
+```{r F upper bill GDD2 model}
+# Upper bill GDD model
+F.UB2.mdl <- lm(UB ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.df)
+summary(F.UB2.mdl)
+# Precipitation has a negative effect, mainly when it's cold
+
+F.scaled.UB2.mdl <- lm(UB ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.scaled.df)
+summary(F.scaled.UB2.mdl)
+F.UB.inter.plot <- plot_model(F.UB2.mdl, type = "int")
+F.UB.inter.plot +
+  scale_fill_discrete()
+
+vif(F.UB2.mdl)
+vif(F.scaled.UB2.mdl)
+```
+<br>
+
+```{r F upper bill GDD2 plotting}
+F.UB.df <- tidy(F.scaled.UB2.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.scaled.UB2.mdl))
+  F.UB.df$ci.lower <- ci$`2.5 %`
+  F.UB.df$ci.upper <- ci$`97.5 %`
+  F.UB.df <- F.UB.df[-c(1,2,4),]
+  F.UB.df$Sex <- "F"
+  F.UB.df$Metric <- "Upper Bill"
+```
+
+```{r F bill nares to tip GDD2 model}
+# Bill nares to tip model
+F.scaled.BNT2.mdl <- lm(BillNT ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.scaled.df)
+summary(F.scaled.BNT2.mdl)
+# Precipitation has a negative effect, mainly when it's cold
+```
+<br>
+
+```{r F bill nares to tip GDD2 plotting}
+F.BNT.df <- tidy(F.scaled.BNT2.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.scaled.BNT2.mdl))
+  F.BNT.df$ci.lower <- ci$`2.5 %`
+  F.BNT.df$ci.upper <- ci$`97.5 %`
+  F.BNT.df <- F.BNT.df[5,]
+  F.BNT.df$Sex <- "F"
+  F.BNT.df$Metric <- "Bill nares to tip"
+```
+
+
+```{r F upper bill surface area GDD2 model}
+# Upper bill surface area model
+F.scaled.UBS2.mdl <- lm(UBS ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.scaled.df)
+summary(F.scaled.UBS2.mdl)
+# Precipitation has a negative effect, mainly when it's cold
+```
+<br>
+
+```{r F UBS GDD2 plotting}
+F.UBS.df <- tidy(F.scaled.UBS2.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.scaled.UBS2.mdl))
+  F.UBS.df$ci.lower <- ci$`2.5 %`
+  F.UBS.df$ci.upper <- ci$`97.5 %`
+  F.UBS.df <- F.UBS.df[c(2,3,5),]
+  F.UBS.df$Sex <- "F"
+  F.UBS.df$Metric <- "Upper Bill Surface Area"
+```
+
+
+```{r F bill depth GDD2 model}
+# Bill depth model
+F.scaled.BD2.mdl <- lm(BillDepth ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.scaled.df)
+summary(F.scaled.BD2.mdl)
+# Temperature is the only important climate variable
+```
+<br>
+
+```{r F bill depth GDD2 plotting}
+F.BD.df <- tidy(F.scaled.BD2.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.scaled.BD2.mdl))
+  F.BD.df$ci.lower <- ci$`2.5 %`
+  F.BD.df$ci.upper <- ci$`97.5 %`
+  F.BD.df <- F.BD.df[2,]
+  F.BD.df$Sex <- "F"
+  F.BD.df$Metric <- "Bill Depth"
+```
+
+```{r F tarsus GDD2 model}
+# Tarsus GDD2 model
+F.scaled.Tarsus2.mdl <- lm(Tarsus ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.scaled.df)
+summary(F.scaled.Tarsus2.mdl)
+# Climate variables have no effect
+```
+<br>
+
+```{r F tarsus GDD2 plotting}
+F.Tarsus.df <- tidy(F.scaled.Tarsus2.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.scaled.Tarsus2.mdl))
+  F.Tarsus.df$ci.lower <- ci$`2.5 %`
+  F.Tarsus.df$ci.upper <- ci$`97.5 %`
+  F.Tarsus.df <- F.Tarsus.df[c(2:4),]
+  F.Tarsus.df$Sex <- "F"
+  F.Tarsus.df$Metric <- "Tarsus"
+```
+
+
+### Male Models
+
+```{r M upper bill GDD2 model}
+# Upper bill model
+M.scaled.UB2.mdl <- lm(UB ~ GDDSum12_22*PrecipSum12_22 + Weight, data = M.scaled.df)
+summary(M.scaled.UB2.mdl)
+# Weight is the only important predictor
+```
+<br>
+
+```{r M upper bill GDD2 plotting}
+M.UB.df <- tidy(M.scaled.UB2.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.scaled.UB2.mdl))
+  M.UB.df$ci.lower <- ci$`2.5 %`
+  M.UB.df$ci.upper <- ci$`97.5 %`
+  M.UB.df <- M.UB.df[3,]
+  M.UB.df$Sex <- "M"
+  M.UB.df$Metric <- "Upper Bill"
+```
+
+```{r M bill nares to tip GDD2 model}
+# Bill nares to tip model
+M.scaled.BNT2.mdl <- lm(BillNT ~ GDDSum12_22*PrecipSum12_22 + Weight, data = M.scaled.df)
+summary(M.scaled.BNT2.mdl)
+# Weight is the only important predictor
+```
+<br>
+
+```{r M bill nares to tip GDD2 plotting}
+M.BNT.df <- tidy(M.scaled.BNT2.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.scaled.BNT2.mdl))
+  M.BNT.df$ci.lower <- ci$`2.5 %`
+  M.BNT.df$ci.upper <- ci$`97.5 %`
+  M.BNT.df <- M.BNT.df[2,]
+  M.BNT.df$Sex <- "M"
+  M.BNT.df$Metric <- "Bill nares to tip"
+```
+
+```{r M upper bill surface area GDD2 model}
+# Upper bill surface area model
+M.scaled.UBS2.mdl <- lm(UBS ~ GDDSum12_22*PrecipSum12_22 + Weight, data = M.scaled.df)
+summary(M.scaled.UBS2.mdl)
+```
+<br>
+
+```{r M UBS GDD2 plotting}
+M.UBS.df <- tidy(M.scaled.UBS2.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.scaled.UBS2.mdl))
+  M.UBS.df$ci.lower <- ci$`2.5 %`
+  M.UBS.df$ci.upper <- ci$`97.5 %`
+  M.UBS.df <- M.UBS.df[2,]
+  M.UBS.df$Sex <- "M"
+  M.UBS.df$Metric <- "Upper Bill Surface Area"
+```
+
+```{r M bill depth GDD2 model}
+# Bill depth model
+M.scaled.BD2.mdl <- lm(BillDepth ~ GDDSum12_22*PrecipSum12_22 + Weight, data = M.scaled.df)
+summary(M.scaled.BD2.mdl)
+# Temperature and the interaction between temp and precip are both important
+```
+<br>
+
+```{r M bill depth GDD2 plotting}
+M.BD.df <- tidy(M.scaled.BD2.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.scaled.BD2.mdl))
+  M.BD.df$ci.lower <- ci$`2.5 %`
+  M.BD.df$ci.upper <- ci$`97.5 %`
+  M.BD.df <- M.BD.df[c(2,5),]
+  M.BD.df$Sex <- "M"
+  M.BD.df$Metric <- "Bill Depth"
+```
+
+```{r M tarsus GDD2 model}
+# Tarsus model
+M.scaled.Tarsus2.mdl <- lm(Tarsus ~ GDDSum12_22*PrecipSum12_22 + Weight, data = M.scaled.df)
+summary(M.scaled.Tarsus2.mdl)
+# Climate variables have no effect
+```
+<br>
+
+```{r M Tarsus GDD2 plotting}
+M.Tarsus.df <- tidy(M.scaled.Tarsus2.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.scaled.Tarsus2.mdl))
+  M.Tarsus.df$ci.lower <- ci$`2.5 %`
+  M.Tarsus.df$ci.upper <- ci$`97.5 %`
+  M.Tarsus.df <- M.Tarsus.df[c(2:4),]
+  M.Tarsus.df$Sex <- "M"
+  M.Tarsus.df$Metric <- "Tarsus"
+```
+
+
+```{r UBS GDD2 both sexes model}
+B.scaled.UBS2.mdl <- lm(UBS ~ GDDSum12_22 + PrecipSum12_22*AllSex + Weight, data = B.scaled.df)
+summary(B.scaled.UBS2.mdl)
+```
+
+```{r poster forest plot df}
+PosterForestPlot.df <- rbind(F.Tarsus.df,M.Tarsus.df,F.BNT.df,M.BNT.df,F.UB.df,M.UB.df,F.BD.df,M.BD.df,F.UBS.df,M.UBS.df)
+TarsusForestPlot.df <- subset(PosterForestPlot.df, Metric=="Tarsus")
+BNTForestPlot.df <- subset(PosterForestPlot.df, Metric=="Bill nares to tip")
+UBForestPlot.df <- subset(PosterForestPlot.df, Metric=="Upper Bill")
+BDForestPlot.df <- subset(PosterForestPlot.df, Metric=="Bill Depth")
+UBSForestPlot.df <- subset(PosterForestPlot.df, Metric=="Upper Bill Surface Area")
+```
+
+
+```{r tarsus.fplot}
+tarsus.fplot <- ggplot(data = TarsusForestPlot.df)+
+    geom_pointrange(aes(x=term, y=estimate, ymin=ci.lower, ymax=ci.upper, color=Sex), 
+                    position=position_dodge(width=0.3), shape=20, size=1.3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="black",size=1, linetype="dotted")+
+    scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+    scale_x_discrete(labels=c("GDD", "Precip", "Weight"))+
+    ylab("Parameter Estimate")+
+    theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 14),
+          axis.title.x = element_text(size = 16),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+tarsus.fplot
+cowplot::save_plot("tarsus.fplot.png", tarsus.fplot, base_height = 4, base_width = 5)
+```
+
+```{r BNT.fplot}
+BNT.fplot <- ggplot(data = BNTForestPlot.df)+
+    geom_pointrange(aes(x=term, y=estimate, ymin=ci.lower, ymax=ci.upper, color=Sex), 
+                    position=position_dodge(width=0.3), shape=20, size=1.3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="black",size=1, linetype="dotted")+
+    scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+    scale_x_discrete(labels=c("GDD", "GDD * Precip"))+
+    scale_y_continuous(limits = c(-.3,.3), breaks = seq(-.2,.2,.1))+
+    theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 14),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(15,15,15,15))
+BNT.fplot
+```
+
+
+```{r UB.fplot}
+UB.fplot <- ggplot(data = UBForestPlot.df)+
+    geom_pointrange(aes(x=term, y=estimate, ymin=ci.lower, ymax=ci.upper, color=Sex), 
+                    position=position_dodge(width=0.3), shape=20, size=1.3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="black",size=1, linetype="dotted")+
+    scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+    scale_x_discrete(labels=c("GDD * Precip", "Precip"))+
+    scale_y_continuous(limits = c(-.3,.3), breaks = seq(-.2,.2,.1))+
+    theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 14),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(15,15,15,15))
+UB.fplot
+```
+
+```{r BD.fplot}
+BD.fplot <- ggplot(data = BDForestPlot.df)+
+    geom_pointrange(aes(x=term, y=estimate, ymin=ci.lower, ymax=ci.upper, color=Sex), 
+                    position=position_dodge(width=0.3), shape=20, size=1.3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="black",size=1, linetype="dotted")+
+    scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+    scale_x_discrete(labels=c("GDD", "GDD * Precip"))+
+    scale_y_continuous(limits = c(-.3,.3), breaks = seq(-.2,.2,.1))+
+    theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 14),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(15,15,15,15))
+BD.fplot
+```
+
+```{r UBS.fplot}
+UBS.fplot <- ggplot(data = UBSForestPlot.df)+
+    geom_pointrange(aes(x=term, y=estimate, ymin=ci.lower, ymax=ci.upper, color=Sex), 
+                    position=position_dodge(width=0.3), shape=20, size=1.3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="black",size=1, linetype="dotted")+
+    scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+    scale_x_discrete(labels=c("GDD", "GDD * Precip", "Precip"))+
+    scale_y_continuous(limits = c(-.3,.3), breaks = seq(-.2,.2,.1))+
+    theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 14),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(15,15,15,15))
+UBS.fplot
+```
+
+
+```{r forest plot wrap}
+billMetrics.wrap <- ggarrange(BNT.fplot,UB.fplot,BD.fplot,UBS.fplot, ncol = 1, common.legend = TRUE)
+annotate_figure(billMetrics.wrap, bottom = text_grob("Parameter Estimate", hjust = .1, size = 20))
+cowplot::save_plot("billMetrics.wrap.png", billMetrics.wrap, base_height = 8, base_width = 5)
+```
+
+```{r UBS Weight GDD scatter plot}
+UBSByWeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=UBS/Weight, color=AllSex))+
+  geom_point(size = 1.2)+
+  geom_smooth()+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  labs(color = "Sex")+
+  ylab("UBS/Weight Ratio")+
+  xlab("GDD")+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+UBSByWeightGDD.plot
+cowplot::save_plot("UBSByWeightGDD.plot.png", UBSByWeightGDD.plot)
+```
+
+```{r sex difference after weight control question}
+# Create USB Weight Ratio 
+B.df$USBbyWeight <- B.df$UBS/B.df$Weight
+t.test(B.df$USBbyWeight[B.df$AllSex=="M"], B.df$USBbyWeight[B.df$AllSex=="F"])
+```
+
+
+
+```{r F UB interplot}
+F.UB.inter.plot <- F.UB.inter.plot +
+  scale_color_discrete(name="Precip Levels", labels=c("Low", "High"))+
+  ylab("Upper Bill")+
+  xlab("GDD")+
+  theme(plot.title = element_blank(),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+F.UB.inter.plot
+cowplot::save_plot("F.UB.inter.plot.png", F.UB.inter.plot)
+```
+
