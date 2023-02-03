@@ -1,0 +1,126 @@
+---
+title: "Rescuing Unsexed Nestlings"
+author: "Justin Mann"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(broom) #tidy() to create tibbles from model summaries
+library(car) #vif
+library(cowplot)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange
+library(glmmTMB) #zi & overdispersed models
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+#PACKAGES FOR BAYESIAN MODELS
+# library(rstanarm) #stan models
+# library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+# library(loo) #use loo() to compare fits between bayesian models
+library(plotly)
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa)
+theme_set(theme_classic())
+```
+
+### Read in data
+
+```{r dataframes}
+#Both sexes
+B.df <- read.csv("CrowNestlingClimate_BothSexesClean.csv",h=TRUE)
+B.df$AllSex <- as.factor(B.df$AllSex)
+summary(B.df)
+
+B.df$BDbyWeight <- B.df$BillDepth/B.df$Weight
+B.df$UBbyWeight <- B.df$UB/B.df$Weight
+B.df$UBSbyWeight <- B.df$UBS/B.df$Weight
+B.df$TBSbyWeight <- B.df$TBS/B.df$Weight
+B.df$TarsusbyWeight <- B.df$Tarsus/B.df$Weight
+
+?scale()
+
+B.factors.df <- B.df[,1:5]
+B.scaled.df <- scale(B.df[,6:32])
+B.scaled.df <- cbind(B.factors.df,B.scaled.df)
+
+#Males
+M.df <- subset(B.df, AllSex=="M")
+M.scaled.df <- subset(B.scaled.df, AllSex=="M")
+
+#Females 
+F.df <- subset(B.df, AllSex=="F")
+F.scaled.df <- subset(B.scaled.df, AllSex=="F")
+```
+
+
+```{r UBSbyWeight unscaled}
+t.test(B.df$UBSbyWeight[B.df$AllSex=="M"],B.df$UBSbyWeight[B.df$AllSex=="F"])
+```
+```{r UBSbyWeight scaled}
+t.test(B.scaled.df$UBSbyWeight[B.scaled.df$AllSex=="M"],B.scaled.df$UBSbyWeight[B.scaled.df$AllSex=="F"])
+```
+
+```{r BDbyWeight scaled}
+t.test(B.scaled.df$BDbyWeight[B.scaled.df$AllSex=="M"],B.scaled.df$BDbyWeight[B.scaled.df$AllSex=="F"])
+```
+
+```{r BDbyWeight unscaled}
+t.test(B.df$BDbyWeight[B.df$AllSex=="M"],B.df$BDbyWeight[B.df$AllSex=="F"])
+```
+
+```{r BDbyWeight unscaled}
+t.test(B.df$BillDepth[B.df$AllSex=="M"],B.df$BillDepth[B.df$AllSex=="F"])
+```
+
+
+```{r}
+t.test(B.df$Tarsus[B.df$AllSex=="M"], B.df$Tarsus[B.df$AllSex=="F"])
+```
+
+```{r}
+t.test(B.df$Weight[B.df$AllSex=="M"], B.df$Weight[B.df$AllSex=="F"])
+```
+
+```{r BD Weight GDD scatter plot}
+BDByWeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=BDbyWeight, color=AllSex))+
+  geom_point(size = 1.2)+
+  geom_smooth()+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  labs(color = "Sex")+
+  ylab("BD/Weight Ratio")+
+  xlab("GDD")+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+BDByWeightGDD.plot
+#cowplot::save_plot("UBSByWeightGDD.plot.png", UBSByWeightGDD.plot)
+```
+
+```{r BD GDD scatter plot}
+BDGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=BillDepth, color=AllSex))+
+  geom_point(size = 1.2)+
+  geom_smooth()+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  labs(color = "Sex")+
+  ylab("BD")+
+  xlab("GDD")+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+BDGDD.plot
+#cowplot::save_plot("UBSByWeightGDD.plot.png", UBSByWeightGDD.plot)
+```
