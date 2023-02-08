@@ -58,6 +58,9 @@ F.df <- subset(B.df, AllSex=="F")
 F.scaled.df <- subset(B.scaled.df, AllSex=="F")
 ```
 
+```{r unscaled sex difference in weight}
+t.test(B.df$Weight[B.df$AllSex=="M"], B.df$Weight[B.df$AllSex=="F"])
+```
 
 ```{r UBSbyWeight unscaled}
 t.test(B.df$UBSbyWeight[B.df$AllSex=="M"],B.df$UBSbyWeight[B.df$AllSex=="F"])
@@ -66,26 +69,49 @@ t.test(B.df$UBSbyWeight[B.df$AllSex=="M"],B.df$UBSbyWeight[B.df$AllSex=="F"])
 t.test(B.scaled.df$UBSbyWeight[B.scaled.df$AllSex=="M"],B.scaled.df$UBSbyWeight[B.scaled.df$AllSex=="F"])
 ```
 
-```{r BDbyWeight scaled}
-t.test(B.scaled.df$BDbyWeight[B.scaled.df$AllSex=="M"],B.scaled.df$BDbyWeight[B.scaled.df$AllSex=="F"])
-```
 
 ```{r BDbyWeight unscaled}
 t.test(B.df$BDbyWeight[B.df$AllSex=="M"],B.df$BDbyWeight[B.df$AllSex=="F"])
 ```
 
-```{r BDbyWeight unscaled}
-t.test(B.df$BillDepth[B.df$AllSex=="M"],B.df$BillDepth[B.df$AllSex=="F"])
+```{r BDbyWeight scaled}
+t.test(B.scaled.df$BillDepth[B.scaled.df$AllSex=="M"],B.scaled.df$BillDepth[B.scaled.df$AllSex=="F"])
+```
+
+```{r UBbyWeight unscaled}
+t.test(B.df$UBbyWeight[B.df$AllSex=="M"],B.df$UBbyWeight[B.df$AllSex=="F"])
 ```
 
 
-```{r}
+```{r TBSbyWeight unscaled}
+t.test(B.df$TBSbyWeight[B.df$AllSex=="M"],B.df$TBSbyWeight[B.df$AllSex=="F"])
+```
+
+
+```{r TarsusbyWeight unscaled}
 t.test(B.df$Tarsus[B.df$AllSex=="M"], B.df$Tarsus[B.df$AllSex=="F"])
 ```
 
-```{r}
-t.test(B.df$Weight[B.df$AllSex=="M"], B.df$Weight[B.df$AllSex=="F"])
+
+```{r UBS Weight GDD scatter plot}
+UBSByWeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=UBSbyWeight, color=AllSex))+
+  geom_point(size = 1.2)+
+  geom_smooth()+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  labs(color = "Sex")+
+  ylab("UBS/Weight Ratio")+
+  xlab("GDD")+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+UBSByWeightGDD.plot
+#cowplot::save_plot("UBSByWeightGDD.plot.png", UBSByWeightGDD.plot)
 ```
+
 
 ```{r BD Weight GDD scatter plot}
 BDByWeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=BDbyWeight, color=AllSex))+
@@ -103,7 +129,7 @@ BDByWeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=BDbyWeight, color
           legend.position = "top",
           plot.margin = margin(15,15,15,15))
 BDByWeightGDD.plot
-#cowplot::save_plot("UBSByWeightGDD.plot.png", UBSByWeightGDD.plot)
+cowplot::save_plot("BDByWeightGDD.plot.png", BDByWeightGDD.plot)
 ```
 
 ```{r BD GDD scatter plot}
@@ -112,7 +138,7 @@ BDGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=BillDepth, color=AllSex))
   geom_smooth()+
   scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
   labs(color = "Sex")+
-  ylab("BD")+
+  ylab("Bill Depth")+
   xlab("GDD")+
   theme(plot.title = element_text(size = 22),
           axis.text.x = element_text(size = 12),
@@ -123,4 +149,44 @@ BDGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=BillDepth, color=AllSex))
           plot.margin = margin(15,15,15,15))
 BDGDD.plot
 #cowplot::save_plot("UBSByWeightGDD.plot.png", UBSByWeightGDD.plot)
+```
+
+
+```{r Weight GDD scatter plot}
+WeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=Weight, color=AllSex))+
+  geom_point(size = 1.2)+
+  geom_smooth()+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  labs(color = "Sex")+
+  ylab("Weight")+
+  xlab("GDD")+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+WeightGDD.plot
+#cowplot::save_plot("WeightGDD.plot.png", WeightGDD.plot)
+```
+
+
+```{r Weight Precip scatter plot}
+WeightPrecip.plot <- ggplot(data = B.df, aes(x=PrecipSum12_22, y=Weight, color=AllSex))+
+  geom_point(size = 1.2)+
+  geom_smooth()+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  labs(color = "Sex")+
+  ylab("Weight")+
+  xlab("Precip")+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+WeightPrecip.plot
+#cowplot::save_plot("WeightPrecip.plot.png", WeightPrecip.plot)
 ```
