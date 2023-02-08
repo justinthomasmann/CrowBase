@@ -91,7 +91,9 @@ t.test(B.df$TBSbyWeight[B.df$AllSex=="M"],B.df$TBSbyWeight[B.df$AllSex=="F"])
 ```{r TarsusbyWeight unscaled}
 t.test(B.df$Tarsus[B.df$AllSex=="M"], B.df$Tarsus[B.df$AllSex=="F"])
 ```
-
+```{r BD unscaled}
+t.test(B.df$BillDepth[B.df$AllSex=="M"], B.df$BillDepth[B.df$AllSex=="F"])
+```
 
 ```{r UBS Weight GDD scatter plot}
 UBSByWeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=UBSbyWeight, color=AllSex))+
@@ -114,7 +116,7 @@ UBSByWeightGDD.plot
 
 
 ```{r BD Weight GDD scatter plot}
-BDByWeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=BDbyWeight, color=AllSex))+
+BDByWeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=BDbyWeight, color=AllSex, label = ID))+
   geom_point(size = 1.2)+
   geom_smooth()+
   scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
@@ -128,18 +130,19 @@ BDByWeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=BDbyWeight, color
           axis.title.y = element_text(size = 14),
           legend.position = "top",
           plot.margin = margin(15,15,15,15))
-BDByWeightGDD.plot
+?ggplotly()
+ggplotly(BDByWeightGDD.plot)
 cowplot::save_plot("BDByWeightGDD.plot.png", BDByWeightGDD.plot)
 ```
 
 ```{r BD GDD scatter plot}
 BDGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=BillDepth, color=AllSex))+
-  geom_point(size = 1.2)+
-  geom_smooth()+
+  geom_boxplot()+
+  #geom_smooth()+
   scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
   labs(color = "Sex")+
   ylab("Bill Depth")+
-  xlab("GDD")+
+  xlab("")+
   theme(plot.title = element_text(size = 22),
           axis.text.x = element_text(size = 12),
           axis.title.x = element_text(size = 14),
@@ -153,7 +156,7 @@ BDGDD.plot
 
 
 ```{r Weight GDD scatter plot}
-WeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=Weight, color=AllSex))+
+WeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=Weight, color=AllSex, label=ID))+
   geom_point(size = 1.2)+
   geom_smooth()+
   scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
@@ -167,13 +170,31 @@ WeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=Weight, color=AllSex)
           axis.title.y = element_text(size = 14),
           legend.position = "top",
           plot.margin = margin(15,15,15,15))
-WeightGDD.plot
+ggplotly(WeightGDD.plot)
 #cowplot::save_plot("WeightGDD.plot.png", WeightGDD.plot)
 ```
 
 
+```{r GDD Julian scatter plot}
+JulianGDD.plot <- ggplot(data = B.df, aes(x=HatchDateJulYear, y=GDDSum12_22, color=AllSex, label=ID))+
+  geom_point(size = 1.2)+
+  geom_smooth()+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  labs(color = "Sex")+
+  ylab("GDD")+
+  xlab("Hatch Date")+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+ggplotly(JulianGDD.plot)
+#cowplot::save_plot("WeightGDD.plot.png", WeightGDD.plot)
+```
 ```{r Weight Precip scatter plot}
-WeightPrecip.plot <- ggplot(data = B.df, aes(x=PrecipSum12_22, y=Weight, color=AllSex))+
+WeightPrecip.plot <- ggplot(data = B.df, aes(x=PrecipSum12_22, y=Weight, color=AllSex, label=ID))+
   geom_point(size = 1.2)+
   geom_smooth()+
   scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
@@ -187,6 +208,52 @@ WeightPrecip.plot <- ggplot(data = B.df, aes(x=PrecipSum12_22, y=Weight, color=A
           axis.title.y = element_text(size = 14),
           legend.position = "top",
           plot.margin = margin(15,15,15,15))
-WeightPrecip.plot
+ggplotly(WeightPrecip.plot)
 #cowplot::save_plot("WeightPrecip.plot.png", WeightPrecip.plot)
+```
+
+```{r}
+BD.mdl <-summary(lm(data = B.scaled.df, BillDepth~Weight + AllSex + CalcAge))
+B.scaled.df$BDResids <- BD.mdl$residuals
+t.test(B.scaled.df$BDResids[B.scaled.df$AllSex=="M"],B.scaled.df$BDResids[B.scaled.df$AllSex=="F"])
+B.scaled.df$BDResids
+mean(B.scaled.df$BDResids[B.scaled.df$AllSex=="M"])
+range(B.scaled.df$BDResids[B.scaled.df$AllSex=="M"])
+```
+
+```{r}
+ggplot(data = B.scaled.df, aes(x=BDResids,fill=AllSex))+
+  geom_histogram()+
+  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+```
+
+
+```{r}
+Tarsus.mdl <-summary(lm(data = B.scaled.df, Tarsus~Weight + AllSex + CalcAge))
+B.scaled.df$TarsusResids <- Tarsus.mdl$residuals
+t.test(B.scaled.df$TarsusResids[B.scaled.df$AllSex=="M"],B.scaled.df$TarsusResids[B.scaled.df$AllSex=="F"])
+B.scaled.df$TarsusResids
+mean(B.scaled.df$BDResids[B.scaled.df$AllSex=="M"])
+range(B.scaled.df$BDResids[B.scaled.df$AllSex=="M"])
+```
+
+
+```{r}
+ggplot(data = B.scaled.df, aes(x=TarsusResids,fill=AllSex))+
+  geom_histogram()+
+  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
 ```
