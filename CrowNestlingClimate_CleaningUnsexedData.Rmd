@@ -1,0 +1,124 @@
+---
+title: "Cleaning Unsexed Nestling Data"
+author: "Justin Mann"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(broom) #tidy() to create tibbles from model summaries
+library(car) #vif
+library(cowplot)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange
+library(glmmTMB) #zi & overdispersed models
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+#PACKAGES FOR BAYESIAN MODELS
+# library(rstanarm) #stan models
+# library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+# library(loo) #use loo() to compare fits between bayesian models
+library(plotly)
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa)
+library(DescTools)
+theme_set(theme_classic())
+```
+<br>
+
+```{r dataframe}
+df <- read.csv("CrowNestlingClimate.csv", h=TRUE)
+```
+<br>
+
+
+```{r select and rename variables}
+#Select variables
+df <- df %>% 
+  select(Year,Name,NestName,ID,AgeField,CalcAge,HatchDateJul,HatchDateJulYear,AllSex,BillNT,BillWidth,BillDepth,TEC,Head,UpperBill,UBillSurface,TotBillSurface,Skull,Tarsus,Weight)
+
+#Rename variables
+df <- df %>% 
+  rename(FieldAge=AgeField,BNT=BillNT,BW=BillWidth,BD=BillDepth,UB=UpperBill,UBS=UBillSurface,TBS=TotBillSurface)
+```
+<br>
+
+```{r count NAs}
+#Count NAs
+countNAs <- sapply(df, function(x) sum(is.na(x)))
+countNAs
+```
+
+```{r remove NAs and double check}
+#Remove NAs
+df <- df %>% 
+  filter_at(vars(Weight,HatchDateJul,BD,Tarsus,Skull,BW), all_vars(!is.na(.)))
+
+#Recount NAs
+countNAs <- sapply(df, function(x) sum(is.na(x)))
+countNAs
+```
+<br> 
+
+```{r filters}
+#filter out names with 'doa' or 'dead'
+df <- df %>% filter(!grepl("doa|dead",Name))
+
+#filter out Weights < 160 
+df <- df %>% filter(Weight > 160)
+range(df$Weight)
+```
+
+
+```{r plot Weight by FieldAge}
+WeightByFieldAge.plot <- ggplot(data = df, aes(x=FieldAge,y=Weight,label=ID,color=HatchDateJul))+
+  geom_point()
+ggplotly(WeightByFieldAge.plot)
+```
+
+
+```{r CalcAge filter (24-30)}
+df <- df %>% filter(between(CalcAge, 24,30))
+range(df$CalcAge)
+```
+
+
+```{r plot Weight by CalcAge}
+WeightByCalcAge.plot <- ggplot(data = df, aes(x=CalcAge,y=Weight,label=ID))+
+  geom_point()
+ggplotly(WeightByCalcAge.plot)
+```
+
+
+```{r read in climate data}
+climate.df <- read.csv("ClimateMetrics.csv", h=TRUE)
+climate.df <- climate.df[,-c(1,3:4)]
+```
+
+
+```{r joining nestling and climate data}
+df <- left_join(df,climate.df, by = "HatchDateJulYear")
+
+#drop Julian from dataframe 
+df <- df[,-21]
+#write.csv(df, "AllNestlingsClimateJoined.csv")
+```
+
+```{r subset for scaling}
+NoScale.df <- df[,1:9]
+Scale.df <- df[,10:35]
+Scale.df <- scale(Scale.df)
+scaled.df <- cbind(NoScale.df,Scale.df)
+```
+
+
+```{r BD model}
+BD.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
+summary(BD.scaled.mdl)
+```
+

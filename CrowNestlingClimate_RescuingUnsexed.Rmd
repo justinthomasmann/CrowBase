@@ -190,3 +190,48 @@ WeightPrecip.plot <- ggplot(data = B.df, aes(x=PrecipSum12_22, y=Weight, color=A
 WeightPrecip.plot
 #cowplot::save_plot("WeightPrecip.plot.png", WeightPrecip.plot)
 ```
+
+
+```{r BDResids.mdl}
+BDResids.mdl <- lm(data = B.scaled.df, BillDepth ~ Weight + CalcAge)
+```
+
+```{r BDResids.mdl}
+BDResidsSex.mdl <- lm(data = B.scaled.df, BillDepth ~ Weight + CalcAge + AllSex)
+```
+
+```{r BDResids histogram}
+B.scaled.df$BDResids <- BDResids.mdl$residuals 
+ggplot(data = B.scaled.df, aes(x=BDResids, fill = AllSex))+
+  geom_histogram()+
+  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))
+```
+
+
+```{r BDResids histogram}
+B.scaled.df$BDResidsSex <- BDResidsSex.mdl$residuals 
+ggplot(data = B.scaled.df, aes(x=BDResidsSex, fill = AllSex))+
+  geom_histogram()+
+  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))
+```
+```{r BD Resids t test}
+t.test(B.scaled.df$BDResids[B.scaled.df$AllSex=="M"],B.scaled.df$BDResids[B.scaled.df$AllSex=="F"])
+```
+
+
+```{r UBSResids.mdl}
+UBSResids.mdl <- lm(data = B.scaled.df, UBS ~ Weight + CalcAge)
+```
+
+
+```{r UBSResids histogram}
+B.scaled.df$UBSResids <- UBSResids.mdl$residuals 
+ggplot(data = B.scaled.df, aes(x=UBSResids, fill = AllSex))+
+  geom_histogram()+
+  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))
+```
+
+
+```{r UBS Resids t test}
+t.test(B.scaled.df$UBSResids[B.scaled.df$AllSex=="M"],B.scaled.df$UBSResids[B.scaled.df$AllSex=="F"])
+```
