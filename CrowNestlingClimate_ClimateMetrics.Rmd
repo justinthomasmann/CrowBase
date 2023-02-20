@@ -24,6 +24,13 @@ ITHN6 (NWS LI)
 
 ```{r data frame}
 df <- read.csv("IthacaWeatherData1989-2020.csv", h=TRUE)
+<<<<<<< HEAD
+=======
+
+df <- df %>% 
+  rename(MaxTemp=MaxTemperature,MinTemp=MinTemperature,Precip=Precipitation) %>% 
+  select(Date,HatchDateJulYear,MaxTemp,MinTemp,Precip,HDD,CDD,GDD)
+>>>>>>> fcb1e7b78be935a078ec7e02aba222a5352dbe60
 
 #coerce climate variables to class numeric, NAs introduced where missing data were coded as characters 
 df$MaxTemp <- as.numeric(df$MaxTemp)
@@ -55,33 +62,33 @@ df$PrecipCM <- mapply(in2cm, df$Precip)
 
 ```{r reorder df to include C and cm}
 df <- df %>% 
-  select(Date,Obs,Year,Month,Day,Julian,MaxTempC,MinTempC,AtObsTemp,
-         PrecipCM,Snowfall,SnowDepth,HDD,CDD,GDD)
+  select(Date,HatchDateJulYear,MaxTempC,MinTempC,
+         PrecipCM,HDD,CDD,GDD)
 ```
 
 
 ```{r climate data for plotting}
-NestingMonths.df <- subset(df, Month >2 & Month <6 & Year < 2019)
+#NestingMonths.df <- subset(df, Month >2 & Month <6 & Year < 2019)
 ```
 
 
 ```{r TempsByYear plot}
-NestingMonths.df$Year <- as.factor(NestingMonths.df$Year)
-mean(NestingMonths.df$MaxTempC, na.rm=TRUE)
-
-TempsByYear.plot <- ggplot(data = NestingMonths.df)+
-  geom_boxplot(aes(x=Year,y=MaxTempC, fill=as.factor(Month)))+
-  geom_hline(yintercept = 12.64, color = "red", linetype = "dashed", size = 1)+
-  ylab("Maximum temperature (C)")+
-  xlab("")+
-  ggtitle("Mean maximum daily temperature across March, April and May")+
-  theme(axis.text.x = element_text(angle = 90))+
-  scale_fill_brewer(name = "Month", labels = c("March", "April", "May"), palette = "Greens")+
-  geom_rect(aes(xmin=2,xmax=2.5,ymin=Inf, ymax=Inf, alpha=0.2))+
-  theme_bw()
-
-TempsByYear.plot
-ggsave("TempsByYear.png", width = 9, height = 5)
+# NestingMonths.df$Year <- as.factor(NestingMonths.df$Year)
+# mean(NestingMonths.df$MaxTempC, na.rm=TRUE)
+# 
+# TempsByYear.plot <- ggplot(data = NestingMonths.df)+
+#   geom_boxplot(aes(x=Year,y=MaxTempC, fill=as.factor(Month)))+
+#   geom_hline(yintercept = 12.64, color = "red", linetype = "dashed", size = 1)+
+#   ylab("Maximum temperature (C)")+
+#   xlab("")+
+#   ggtitle("Mean maximum daily temperature across March, April and May")+
+#   theme(axis.text.x = element_text(angle = 90))+
+#   scale_fill_brewer(name = "Month", labels = c("March", "April", "May"), palette = "Greens")+
+#   geom_rect(aes(xmin=2,xmax=2.5,ymin=Inf, ymax=Inf, alpha=0.2))+
+#   theme_bw()
+# 
+# TempsByYear.plot
+# ggsave("TempsByYear.png", width = 9, height = 5)
 ```
 
 
@@ -104,49 +111,23 @@ Objective: to match data on climate conditions during:
 df$MaxTempMean1_11 <- zoo::rollapply(df$MaxTempC, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(df[1:11,7]),metric=df[1,16])
+c(mean=mean(df[1:11,3]),metric=df[1,9])
 #mean() calculation should match metric
 ```
 
-```{r}
-print(df[1:11,7])
-```
 
 ```{r MaxTempMean12_22}
 #MaxTempMean for days 12-22
 df$MaxTempMean12_22 <- dplyr::lead(df$MaxTempMean1_11, n = 11)
 
 #Code check
-c(mean=mean(df[12:22,7]), metric=df[1,17])#mean() calculation should match metric
+c(mean=mean(df[12:22,3]), metric=df[1,10])#mean() calculation should match metric
 ```
 
 ```{r}
-print(df[12:22,7])#11 values
+print(df[12:22,3])#11 values
 ```
 
-```{r MaxTempMean23_33}
-#MaxTempMean for days 23-33
-df$MaxTempMean23_33 <- dplyr::lead(df$MaxTempMean12_22, n = 11)
-
-#Code check
-c(mean=mean(df[23:33,7]), metric=df[1,18])#mean() calculation should match metric
-```
-
-```{r}
-print(df[23:33,7])#11 values
-```
-
-```{r MaxTempMean34_44}
-#MaxTempMean for days 34-44
-df$leadMax34_44 <- dplyr::lead(df$MaxTempMean23_33, n = 11)
-
-#Code check
-c(mean=mean(df[34:44,7]), metric=df[1,19])#mean() calculation should match metric
-```
-
-```{r}
-print(df[34:44,7])#11 values
-```
 
 ### Metric 2: Incubation Max Temp
 
@@ -155,24 +136,55 @@ print(df[34:44,7])#11 values
 df$MeanMaxTempIncubation <- zoo::rollapply(df$MaxTempC, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(df[1:19,7]), metric=df[19,20]) #mean() calculation should match metric
+c(mean=mean(df[1:19,3]), metric=df[19,11]) #mean() calculation should match metric
 ```
 
 ```{r}
-print(df[1:19,7])#19 values
+print(df[1:19,3])#19 values
+```
+<br>
+
+### Metric 3: Post-hatch Min Temp
+
+
+```{r MinTempMean1_11}
+#An 11-day rolling window calculates the mean of MinTemp for the next 11 days
+df$MinTempMean1_11 <- zoo::rollapply(df$MinTempC, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(mean=mean(df[1:11,4]),metric=df[1,12])
+#mean() calculation should match metric
 ```
 
-### Metric 3: Post-hatch Precipitation
+```{r MinTempMean12_22}
+#MaxTempMean for days 12-22
+df$MinTempMean12_22 <- dplyr::lead(df$MinTempMean1_11, n = 11)
+
+#Code check
+c(mean=mean(df[12:22,4]), metric=df[1,13])#mean() calculation should match metric
+```
+
+
+```{r MinTempMeanIncubation}
+#MaxTemp mean for 19 days prior to hatch date
+df$MeanMinTempIncubation <- zoo::rollapply(df$MinTempC, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(mean=mean(df[1:19,4]), metric=df[19,14]) #mean() calculation should match metric
+```
+
+
+### Metric 4: Post-hatch Precipitation
 
 ```{r PrecipSum1_11}
 df$PrecipSum1_11 <- zoo::rollapply(df$PrecipCM, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check 
-c(sum=sum(df[1:11,10], na.rm = TRUE), metric=df[1,21]) #sum() calculation should match metric
+c(sum=sum(df[1:11,5], na.rm = TRUE), metric=df[1,15]) #sum() calculation should match metric
 ```
 
 ```{r}
-print(df[1:11,10])#11 values)
+print(df[1:11,5])#11 values)
 ```
 
 ```{r PrecipSum12_22}
@@ -180,36 +192,14 @@ print(df[1:11,10])#11 values)
 df$PrecipSum12_22 <- dplyr::lead(df$PrecipSum1_11, n = 11)
 
 #Code check
-c(sum=sum(df[12:22,10], na.rm = TRUE), metric=df[1,22]) #sum() calculation should match metric
+c(sum=sum(df[12:22,5], na.rm = TRUE), metric=df[1,16]) #sum() calculation should match metric
 ```
 
 ```{r}
 print(df[12:22,10])
 ```
+<br>
 
-```{r PrecipSum23_33}
-#PrecipSum column that is 22 days ahead
-df$PrecipSum23_33 <- dplyr::lead(df$PrecipSum12_22, n = 11)
-
-#Code check
-c(sum=sum(df[23:33,10], na.rm = TRUE), metric=df[1,23]) #sum() calculation should match metric
-```
-
-```{r}
-print(df[23:33,10])#11 values
-```
-
-```{r PrecipSum34_44}
-#PrecipSum column that is 33 days ahead
-df$PrecipSum34_44 <- dplyr::lead(df$PrecipSum23_33, n = 11)
-
-#Code check
-c(sum=sum(df[34:44,10]), metric=df[1,24]) #sum() calculation should match metric
-```
-
-```{r}
-print(df[34:44,10])#11 values
-```
 
 ### Metric 4: Incubation Precipitation
 
@@ -338,32 +328,6 @@ c(sum=sum(df[111:129,14], na.rm = TRUE), metric=df[129,35]) #sum() should match 
 ```
 ```{r}
 print(df[111:129,14])#19 values
-```
-
-```{r MinTempMean1_11}
-#An 11-day rolling window calculates the mean of MinTemp for the next 11 days
-df$MinTempMean1_11 <- zoo::rollapply(df$MinTempC, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
-
-#Code check
-c(mean=mean(df[1:11,8]),metric=df[1,36])
-#mean() calculation should match metric
-```
-
-```{r MinTempMean12_22}
-#MaxTempMean for days 12-22
-df$MinTempMean12_22 <- dplyr::lead(df$MinTempMean1_11, n = 11)
-
-#Code check
-c(mean=mean(df[12:22,8]), metric=df[1,37])#mean() calculation should match metric
-```
-
-
-```{r MinTempMeanIncubation}
-#MaxTemp mean for 19 days prior to hatch date
-df$MeanMinTempIncubation <- zoo::rollapply(df$MinTempC, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
-
-#Code check
-c(mean=mean(df[1:19,8]), metric=df[19,38]) #mean() calculation should match metric
 ```
 
 
