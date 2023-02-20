@@ -24,13 +24,12 @@ ITHN6 (NWS LI)
 
 ```{r data frame}
 df <- read.csv("IthacaWeatherData1989-2020.csv", h=TRUE)
-<<<<<<< HEAD
-=======
+
 
 df <- df %>% 
   rename(MaxTemp=MaxTemperature,MinTemp=MinTemperature,Precip=Precipitation) %>% 
   select(Date,HatchDateJulYear,MaxTemp,MinTemp,Precip,HDD,CDD,GDD)
->>>>>>> fcb1e7b78be935a078ec7e02aba222a5352dbe60
+
 
 #coerce climate variables to class numeric, NAs introduced where missing data were coded as characters 
 df$MaxTemp <- as.numeric(df$MaxTemp)
