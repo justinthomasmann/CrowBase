@@ -12,13 +12,18 @@ library(zoo)
 ```
 
 ## CLIMOD2 Data for Cornell University Weather Station
+8 Game Farm Rd, Ithaca, NY 14850
+Station IDs:
+304174 (Coop)
+USC00304174 (GHCN)
+ITHN6 (NWS LI)
 
 <http://www.nrcc.cornell.edu/>
 
 <http://climod2.nrcc.cornell.edu/>
 
 ```{r data frame}
-df <- read.csv("IthacaWeatherData1990_2022.csv", h=TRUE)
+df <- read.csv("IthacaWeatherData1989_2022.csv", h=TRUE)
 
 #coerce climate variables to class numeric, NAs introduced where missing data were coded as characters 
 df$MaxTemp <- as.numeric(df$MaxTemp)
