@@ -102,8 +102,8 @@ climate.df <- read.csv("ClimateMetrics.csv", h=TRUE)
 
 ```{r joining nestling and climate data}
 df <- left_join(df,climate.df, by = "HatchDateJulYear")
-
-#write.csv(df, "AllNestlingsClimateJoined.csv")
+df <- df %>% relocate(Date, .before = AllSex)
+write.csv(df, "AllNestlingsClimateJoined.csv")
 ```
 
 ```{r scaling}
