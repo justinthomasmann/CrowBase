@@ -23,7 +23,7 @@ ITHN6 (NWS LI)
 <http://climod2.nrcc.cornell.edu/>
 
 ```{r data frame}
-df <- read.csv("IthacaWeatherData1989_2022.csv", h=TRUE)
+df <- read.csv("IthacaWeatherData1989-2020.csv", h=TRUE)
 
 #coerce climate variables to class numeric, NAs introduced where missing data were coded as characters 
 df$MaxTemp <- as.numeric(df$MaxTemp)
