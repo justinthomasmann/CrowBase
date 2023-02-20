@@ -103,15 +103,15 @@ climate.df <- read.csv("ClimateMetrics.csv", h=TRUE)
 ```{r joining nestling and climate data}
 df <- left_join(df,climate.df, by = "HatchDateJulYear")
 df <- df %>% relocate(Date, .before = AllSex)
-write.csv(df, "AllNestlingsClimateJoined.csv")
+#write.csv(df, "AllNestlingsClimateJoined.csv")
 ```
 
 ```{r scaling}
 #variables that don't get scaled 
-DataNotScaled.df <- df[,1:9]
+DataNotScaled.df <- df[,1:10]
 
 #Numerical data that do get scaled
-DataToScale.df <- df[,10:39]
+DataToScale.df <- df[,11:39]
 
 #Scale those data
 Scaled.df <- scale(DataToScale.df)
