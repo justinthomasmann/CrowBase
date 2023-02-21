@@ -25,9 +25,11 @@ ITHN6 (NWS LI)
 ```{r data frame}
 df <- read.csv("IthacaWeatherData1989-2020.csv", h=TRUE)
 
+
 df <- df %>% 
   rename(MaxTemp=MaxTemperature,MinTemp=MinTemperature,Precip=Precipitation) %>% 
   select(Date,HatchDateJulYear,MaxTemp,MinTemp,Precip,HDD,CDD,GDD)
+
 
 #coerce climate variables to class numeric, NAs introduced where missing data were coded as characters 
 df$MaxTemp <- as.numeric(df$MaxTemp)
@@ -205,11 +207,11 @@ print(df[12:22,10])
 df$PrecipSumIncubation <- zoo::rollapply(df$PrecipCM, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum=sum(df[1:19,10], na.rm = TRUE), metric=df[19,25]) #sum() calculation should match metric
+c(sum=sum(df[1:19,5], na.rm = TRUE), metric=df[19,17]) #sum() calculation should match metric
 ```
 
 ```{r}
-print(df[1:19,10])#19 values
+print(df[1:19,5])#19 values
 ```
 
 ### Metric 5: Post-hatch Growing Degree Days
@@ -219,10 +221,10 @@ print(df[1:19,10])#19 values
 df$GDDSum1_11 <- zoo::rollapply(df$GDD, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum=sum(df[112:122,15], na.rm = TRUE), metric=df[112,26]) #sum() calculation should match metric
+c(sum=sum(df[112:122,8], na.rm = TRUE), metric=df[112,18]) #sum() calculation should match metric
 ```
 ```{r}
-print(df[112:122,15])
+print(df[112:122,8])
 ```
 
 
@@ -231,28 +233,10 @@ print(df[112:122,15])
 df$GDDSum12_22 <- dplyr::lead(df$GDDSum1_11, n = 11)
 
 #Code check
-c(sum=sum(df[66:76,15], na.rm = TRUE), metric=df[55,27]) #sum() calculation should match metric
+c(sum=sum(df[66:76,8], na.rm = TRUE), metric=df[55,19]) #sum() calculation should match metric
 ```
 ```{r}
-print(df[66:76,15])
-```
-
-
-```{r GDDSum23_33}
-#GDDSum column that is 22 days ahead
-df$GDDSum23_33 <- dplyr::lead(df$GDDSum12_22, n = 11)
-
-#Code check
-c(sum=sum(df[66:76,15], na.rm = TRUE), metric=df[44,28]) #sum() calculation should match metric
-```
-
-
-```{r GDDSum34_44}
-#GDDSum column that is 33 days ahead
-df$GDDSum34_44 <- dplyr::lead(df$GDDSum23_33, n = 11)
-
-#Code check
-c(sum=sum(df[66:76,15], na.rm = TRUE), metric=df[33,29]) #sum() should match metric
+print(df[66:76,8])
 ```
 
 
@@ -263,10 +247,10 @@ c(sum=sum(df[66:76,15], na.rm = TRUE), metric=df[33,29]) #sum() should match met
 df$GDDSumIncubation <- zoo::rollapply(df$GDD, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #code check
-c(sum=sum(df[111:129,15], na.rm = TRUE), metric=df[129,30]) #sum() should match metric
+c(sum=sum(df[111:129,8], na.rm = TRUE), metric=df[129,20]) #sum() should match metric
 ```
 ```{r}
-print(df[111:129,15])#19 values
+print(df[111:129,8])#19 values
 ```
 
 
@@ -277,10 +261,10 @@ print(df[111:129,15])#19 values
 df$CDDSum1_11 <- zoo::rollapply(df$CDD, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum=sum(df[112:122,14], na.rm = TRUE), metric=df[112,31]) #sum() calculation should match metric
+c(sum=sum(df[112:122,7], na.rm = TRUE), metric=df[112,21]) #sum() calculation should match metric
 ```
 ```{r}
-print(df[112:122,14])#11 values
+print(df[112:122,7])#11 values
 ```
 
 
@@ -289,28 +273,10 @@ print(df[112:122,14])#11 values
 df$CDDSum12_22 <- dplyr::lead(df$CDDSum1_11, n = 11)
 
 #Code check
-c(sum=sum(df[66:76,14], na.rm = TRUE), metric=df[55,32]) #sum() calculation should match metric
+c(sum=sum(df[66:76,7], na.rm = TRUE), metric=df[55,22]) #sum() calculation should match metric
 ```
 ```{r}
-print(df[66:76,14])
-```
-
-
-```{r CDDSum23_33}
-#CDDSum column that is 22 days ahead
-df$CDDSum23_33 <- dplyr::lead(df$CDDSum12_22, n = 11)
-
-#Code check
-c(sum=sum(df[66:76,14], na.rm = TRUE), metric=df[44,33]) #sum() calculation should match metric
-```
-
-
-```{r CDDSum34_44}
-#CDDSum column that is 33 days ahead
-df$CDDSum34_44 <- dplyr::lead(df$CDDSum23_33, n = 11)
-
-#Code check
-c(sum=sum(df[66:76,14], na.rm = TRUE), metric=df[33,34]) #sum() should match metric
+print(df[66:76,7])
 ```
 
 
@@ -321,33 +287,69 @@ c(sum=sum(df[66:76,14], na.rm = TRUE), metric=df[33,34]) #sum() should match met
 df$CDDSumIncubation <- zoo::rollapply(df$CDD, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #code check
-c(sum=sum(df[111:129,14], na.rm = TRUE), metric=df[129,35]) #sum() should match metric
+c(sum=sum(df[111:129,7], na.rm = TRUE), metric=df[129,23]) #sum() should match metric
 ```
 ```{r}
-print(df[111:129,14])#19 values
+print(df[111:129,7])#19 values
+```
+
+### Metric 9: Post-hatch Heating Degree Days
+
+```{r HDDSum1_11}
+#HDDSum column the first 11 days 
+df$HDDSum1_11 <- zoo::rollapply(df$HDD, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(sum=sum(df[112:122,6], na.rm = TRUE), metric=df[112,24]) #sum() calculation should match metric
+```
+```{r}
+print(df[112:122,6])
 ```
 
 
-```{r new dataframe}
+```{r HDDSum12_22}
+#HDDSum column that is 11 days ahead
+df$HDDSum12_22 <- dplyr::lead(df$HDDSum1_11, n = 11)
+
+#Code check
+c(sum=sum(df[66:76,6], na.rm = TRUE), metric=df[55,25]) #sum() calculation should match metric
+```
+```{r}
+print(df[66:76,6])
+```
+
+
+### Metric 10: Incubation Heating Degree Days
+
+```{r HDDSumIncubation}
+#HDDSum for the 19 days preceding hatch date
+df$HDDSumIncubation <- zoo::rollapply(df$HDD, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#code check
+c(sum=sum(df[111:129,6], na.rm = TRUE), metric=df[129,26]) #sum() should match metric
+```
+
+```{r full climate metrics csv}
+#write.csv(df, "ClimateMetricsFull.csv", row.names = FALSE)
+```
+
+
+```{r simplified df for analysis}
 #New dataframe with the derived climate metrics
 ClimateMetrics.df <- df %>% 
-  select(Date,Month,Day,Julian,
+  select(Date,HatchDateJulYear,
          MaxTempMean1_11,MaxTempMean12_22,MeanMaxTempIncubation,
          MinTempMean1_11,MinTempMean12_22,MeanMinTempIncubation,
          PrecipSum1_11,PrecipSum12_22,PrecipSumIncubation,
          GDDSum1_11,GDDSum12_22,GDDSumIncubation,
-         CDDSum1_11,CDDSum12_22,CDDSumIncubation)
+         CDDSum1_11,CDDSum12_22,CDDSumIncubation,
+         HDDSum1_11,HDDSum12_22,HDDSumIncubation)
 ```
 
 ```{r}
-# write.csv(ClimateMetrics.df, "ClimateMetrics.csv",
-#            row.names = FALSE)
+write.csv(ClimateMetrics.df, "ClimateMetrics.csv",
+            row.names = FALSE)
 ```
 
-## PLOTS!
 
-```{r}
-CL.df <- read.csv("ClimateMetrics.csv", h=TRUE)
-
-```
 
