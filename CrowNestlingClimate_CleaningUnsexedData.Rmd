@@ -67,7 +67,7 @@ countNAs
 
 ```{r filters}
 #filter out names with 'doa' or 'dead'
-df <- df %>% filter(!grepl("doa|dead",Name))
+#df <- df %>% filter(!grepl("doa|dead",Name))
 
 #filter out Weights < 160 
 df <- df %>% filter(Weight > 160)
