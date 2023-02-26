@@ -18,10 +18,10 @@ library(glmmTMB) #zi & overdispersed models
 library(lmerTest) #lmerTest::step
 library(ggeffects) #ggpredict
 #PACKAGES FOR BAYESIAN MODELS
-# library(rstanarm) #stan models
-# library(shinystan) #stan model evaluation
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation
 #launch_shinystan_demo()
-# library(loo) #use loo() to compare fits between bayesian models
+library(loo) #use loo() to compare fits between bayesian models
 library(plotly)
 library(MuMIn) #dredge() for unsupervised model selection
 library(AICcmodavg) #aictab() for AICc model comparisons
@@ -35,6 +35,21 @@ theme_set(theme_classic())
 df <- read.csv("CrowNestlingClimate.csv", h=TRUE)
 ```
 <br>
+
+```{r Anne's laundry list}
+#Find duplicate IDs 
+duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)
+
+#list of duplicates sent to Anne
+#write.csv(duplicates.df, "DuplicateNestlings.csv")
+
+#Sort duplicates.df by year and CalcAge and only retain the first (youngest) observation
+duplicates.df <- duplicates.df %>%  arrange(Year, CalcAge) %>% dplyr::distinct(Name, .keep_all = TRUE)
+
+#Remove nestlings identified by Anne (runts/or suspect measurements)
+df$ID[df$ID=="FFW-S DRIN02"]
+df <- df %>% filter(!ID=="FFW-S DRIN02")
+```
 
 
 ```{r select and rename variables}
@@ -67,7 +82,7 @@ countNAs
 
 ```{r filters}
 #filter out names with 'doa' or 'dead'
-df <- df %>% filter(!grepl("doa|dead",Name))
+#df <- df %>% filter(!grepl("doa|dead",Name))
 
 #filter out Weights < 160 
 df <- df %>% filter(Weight > 160)
