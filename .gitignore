@@ -1,7 +1,17 @@
+*.Rhistory
 .Rproj.user
 *.Rhistory
 .RData
 .Ruserdata
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+.Rhistory
+>>>>>>> 746cf944c1645d9a6082d8e3a3b7470ab10ef657
 fuckingDates.csv
 NestlingDataRawDownload2.csv
 NestlingDataRawDownload.csv
