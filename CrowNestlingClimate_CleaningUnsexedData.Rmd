@@ -158,6 +158,7 @@ range(df$CalcAge)
 
 #resort df 
 df <- df %>% arrange(Year,NestName,ID)
+#write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned.csv")
 ```
 
 
