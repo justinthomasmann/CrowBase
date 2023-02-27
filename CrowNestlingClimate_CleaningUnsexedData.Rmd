@@ -32,20 +32,14 @@ theme_set(theme_classic())
 <br>
 
 ```{r dataframe}
-df <- read.csv("CrowNestlingClimate.csv", h=TRUE)
+df <- read.csv("CrowNestlingClimate.csv", h=TRUE)#n=2394 nestlings
 ```
 <br>
 
-```{r Anne's laundry list}
-#Find duplicate IDs 
-duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)
+Anne went through CrowNestlingClimate.csv and identified runts and nestlings with untrustworthy measurements, which are outline by her in "SoCalledRuntNestlingsByYear.xlsx" Below, I checked for the presence of those nestlings and removed them from the df.
+<br>
 
-#list of duplicates sent to Anne
-#write.csv(duplicates.df, "DuplicateNestlings.csv")
-
-#Sort duplicates.df by year and CalcAge and only retain the first (youngest) observation
-duplicates.df <- duplicates.df %>%  arrange(Year, CalcAge) %>% dplyr::distinct(Name, .keep_all = TRUE)
-
+```{r Annes cleaning list}
 #Remove nestlings identified by Anne (runts/or suspect measurements)
 #file name: Runt Nestlings so-called by year
 df$ID[df$ID=="FFW-S DRIN02"]#in, remove below
@@ -84,13 +78,40 @@ df$ID[df$ID=="doa2 NMUR07"]#in, remove below
 df$ID[df$ID=="doa3 NMUR07"]#in, remove below
 df$ID[df$ID=="doa4 NMUR07"]#in, remove below
 df$ID[df$ID=="doa5 NMUR07"]#in, remove below
+df$ID[df$ID=="X0 YFER00"]#identified in DuplicateNestlings file, remove below (*2 obs)
 
-#Remove individuals listed above
-df <- df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17",
-                           "L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00",
-                           "doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06",
-                           "doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07",
-                           "doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07"))
+#Remove 29 individuals listed above 
+df <- df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17","L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00","doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06","doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07","doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07","FE WCRI18","DOA RGBY00","X0 YFER00"))#new n=2365
+```
+<br>
+
+Below, I identified nestlings that happened to be measured twice (for a variety of reasons). I sent that list to Anne, and she specified which observations to keep in "DuplicateNestlings-ABCAnnotate.xlsx"
+<br>
+
+```{r dealing with duplicates}
+#Find duplicate IDs 
+duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)
+
+#list of duplicates sent to Anne
+#write.csv(duplicates.df, "DuplicateNestlings.csv")
+
+#Deleting SPEG04 per Anne's request
+df <- df %>% filter(!NestName=="SEPG04")#4 nestlings (new n=2361)
+
+#Keeping second measurement for GYMN08 per Anne's request
+df <- subset(df, NestName!="GYMN08" | BandDateJul!="126")#new n=2359
+
+#Update duplicate IDs (new n=38)
+duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)
+
+
+#Code check on duplicates.df: Sort remaining duplicates.df by year and CalcAge and only retain the first (youngest) observation
+duplicates.df <- duplicates.df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=19
+
+#Sort remaining duplicates.df by year and CalcAge and only retain the first (youngest) observation
+df <- df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=2340 (19 fewer than above, so code works)
+
+summary(duplicated(df$ID))#no more duplicates
 ```
 
 
@@ -114,21 +135,29 @@ countNAs
 ```{r remove NAs and double check}
 #Remove NAs
 df <- df %>% 
-  filter_at(vars(Weight,HatchDateJul,BD,Tarsus,Skull,BW), all_vars(!is.na(.)))
+  filter_at(vars(Weight,HatchDateJul,BD,Tarsus,Skull,BW), all_vars(!is.na(.)))#new n=2323
 
 #Recount NAs
 countNAs <- sapply(df, function(x) sum(is.na(x)))
-countNAs
+countNAs#still 3 NAs in name for nestlings named "NA"
+
+#Change "NA" name to "N_A" so R doesn't cause problems
+df <- df %>% 
+  mutate(Name = coalesce(Name, "N_A"))
 ```
 <br> 
 
-```{r filters}
-#filter out names with 'doa' or 'dead'
-#df <- df %>% filter(!grepl("doa|dead",Name))
-
+```{r age filter}
 #filter out Weights < 160 
-df <- df %>% filter(Weight > 160)
+df <- df %>% filter(Weight > 160)#new n=2313
 range(df$Weight)
+
+#filter between 24 and 30 days CalcAges
+df <- df %>% filter(between(CalcAge, 24,30))#new n=2035
+range(df$CalcAge)
+
+#resort df 
+df <- df %>% arrange(Year,NestName,ID)
 ```
 
 
