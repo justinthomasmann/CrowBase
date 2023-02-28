@@ -18,10 +18,10 @@ library(glmmTMB) #zi & overdispersed models
 library(lmerTest) #lmerTest::step
 library(ggeffects) #ggpredict
 #PACKAGES FOR BAYESIAN MODELS
-# library(rstanarm) #stan models
-# library(shinystan) #stan model evaluation
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation
 #launch_shinystan_demo()
-# library(loo) #use loo() to compare fits between bayesian models
+library(loo) #use loo() to compare fits between bayesian models
 library(plotly)
 library(MuMIn) #dredge() for unsupervised model selection
 library(AICcmodavg) #aictab() for AICc model comparisons
@@ -32,9 +32,87 @@ theme_set(theme_classic())
 <br>
 
 ```{r dataframe}
-df <- read.csv("CrowNestlingClimate.csv", h=TRUE)
+df <- read.csv("CrowNestlingClimate.csv", h=TRUE)#n=2394 nestlings
 ```
 <br>
+
+Anne went through CrowNestlingClimate.csv and identified runts and nestlings with untrustworthy measurements, which are outline by her in "SoCalledRuntNestlingsByYear.xlsx" Below, I checked for the presence of those nestlings and removed them from the df.
+<br>
+
+```{r Annes cleaning list}
+#Remove nestlings identified by Anne (runts/or suspect measurements)
+#file name: Runt Nestlings so-called by year
+df$ID[df$ID=="FFW-S DRIN02"]#in, remove below
+df$ID[df$ID=="RFA-S	ALOT02"]#not in
+df$ID[df$ID=="5	STAD96"]#not in
+df$ID[df$ID=="Y-5 ROTA98"]#not in
+df$ID[df$ID=="B3 WINK98"]#in, remove below
+df$ID[df$ID=="B-1	WINK98"]#not in
+df$ID[df$ID=="GL JSUP05"]#in, remove below
+df$ID[df$ID=="CV WKAY05"]#not in 
+df$ID[df$ID=="YB-OSW HORC10"]#not in 
+df$ID[df$ID=="FE WCRI18"]#in, remove below
+df$ID[df$ID=="Q4 CARE11"]#in, remove below
+df$ID[df$ID=="OD CCPL02"]#not in
+df$ID[df$ID=="*00 WCRI14"]#not in
+df$ID[df$ID=="JC NDYC17"]#in, remove below
+df$ID[df$ID=="Dead under nest	MIPA14"]#not in
+df$ID[df$ID=="L-2 KRUM93"]#in, remove below
+df$ID[df$ID=="orange SWEG91"]#in, remove below
+df$ID[df$ID=="SWB-W BURP03"]#in, remove below
+df$ID[df$ID=="3 PINW00"]#in, remove below
+df$ID[df$ID=="4 PINW00"]#in, remove below
+df$ID[df$ID=="DOA RGBY00"]#in, remove below
+df$ID[df$ID=="doa SEPG04"]#in, remove below
+df$ID[df$ID=="2-r HORC04"]#in, remove below
+df$ID[df$ID=="doa CLAR05"]#in, remove below
+df$ID[df$ID=="doa HOMC05"]#in, remove below
+df$ID[df$ID=="doa JUDD06"]#in, remove below
+df$ID[df$ID=="doa1 KAYS06"]#in, remove below
+df$ID[df$ID=="doa2 KAYS06"]#in, remove below
+df$ID[df$ID=="doa3 KAYS06"]#in, remove below
+df$ID[df$ID=="doa1 BROT07"]#in, remove below
+df$ID[df$ID=="doa2 BROT07"]#in, remove below
+df$ID[df$ID=="doa1 NMUR07"]#in, remove below
+df$ID[df$ID=="doa2 NMUR07"]#in, remove below
+df$ID[df$ID=="doa3 NMUR07"]#in, remove below
+df$ID[df$ID=="doa4 NMUR07"]#in, remove below
+df$ID[df$ID=="doa5 NMUR07"]#in, remove below
+df$ID[df$ID=="X0 YFER00"]#identified in DuplicateNestlings file, remove below (*2 obs)
+
+#Remove 29 individuals listed above 
+df <- df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17","L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00","doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06","doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07","doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07","FE WCRI18","DOA RGBY00","X0 YFER00"))#new n=2365
+```
+<br>
+
+Below, I identified nestlings that happened to be measured twice (for a variety of reasons). I sent that list to Anne, and she specified which observations to keep in "DuplicateNestlings-ABCAnnotate.xlsx"
+<br>
+
+```{r dealing with duplicates}
+#Find duplicate IDs 
+duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)
+
+#list of duplicates sent to Anne
+#write.csv(duplicates.df, "DuplicateNestlings.csv")
+
+#Deleting SPEG04 per Anne's request
+df <- df %>% filter(!NestName=="SEPG04")#4 nestlings (new n=2361)
+
+#Keeping second measurement for GYMN08 per Anne's request
+df <- subset(df, NestName!="GYMN08" | BandDateJul!="126")#new n=2359
+
+#Update duplicate IDs (new n=38)
+duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)
+
+
+#Code check on duplicates.df: Sort remaining duplicates.df by year and CalcAge and only retain the first (youngest) observation
+duplicates.df <- duplicates.df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=19
+
+#Sort remaining duplicates.df by year and CalcAge and only retain the first (youngest) observation
+df <- df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=2340 (19 fewer than above, so code works)
+
+summary(duplicated(df$ID))#no more duplicates
+```
 
 
 ```{r select and rename variables}
@@ -57,21 +135,29 @@ countNAs
 ```{r remove NAs and double check}
 #Remove NAs
 df <- df %>% 
-  filter_at(vars(Weight,HatchDateJul,BD,Tarsus,Skull,BW), all_vars(!is.na(.)))
+  filter_at(vars(Weight,HatchDateJul,BD,Tarsus,Skull,BW), all_vars(!is.na(.)))#new n=2323
 
 #Recount NAs
 countNAs <- sapply(df, function(x) sum(is.na(x)))
-countNAs
+countNAs#still 3 NAs in name for nestlings named "NA"
+
+#Change "NA" name to "N_A" so R doesn't cause problems
+df <- df %>% 
+  mutate(Name = coalesce(Name, "N_A"))
 ```
 <br> 
 
-```{r filters}
-#filter out names with 'doa' or 'dead'
-#df <- df %>% filter(!grepl("doa|dead",Name))
-
+```{r age filter}
 #filter out Weights < 160 
-df <- df %>% filter(Weight > 160)
+df <- df %>% filter(Weight > 160)#new n=2313
 range(df$Weight)
+
+#filter between 24 and 30 days CalcAges
+df <- df %>% filter(between(CalcAge, 24,30))#new n=2035
+range(df$CalcAge)
+
+#resort df 
+df <- df %>% arrange(Year,NestName,ID)
 ```
 
 
