@@ -1,0 +1,141 @@
+---
+title: "Unsexed Nestling Analysis"
+author: "Justin Mann"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(broom) #tidy() to create tibbles from model summaries
+library(car) #vif
+library(cowplot)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange
+library(glmmTMB) #zi & overdispersed models
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+#PACKAGES FOR BAYESIAN MODELS
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+library(loo) #use loo() to compare fits between bayesian models
+library(plotly)
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa)
+library(DescTools)
+library(umap)
+library(tsne)
+theme_set(theme_classic())
+```
+<br>
+
+```{r dataframe}
+df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv", h=TRUE)
+df <- df[,-1]
+#n=2035 nestlings, 39 variables
+```
+<br>
+
+```{r summarize df}
+summary(df)
+```
+<br>
+
+
+## Scale all numerical variables
+```{r scaling}
+#variables that don't get scaled 
+DataNotScaled.df <- df[,1:10]
+
+#Numerical data that do get scaled
+DataToScale.df <- df[,11:39]
+
+#Scale those data
+scale.df <- scale(DataToScale.df)
+
+scaledWeather.df <- scale.df[,12:29]
+
+scaledMaxTPrecip.df <- scale.df[,c(12:14,18:20)]
+
+#Rejoin with variables that don't get scaled
+scaled.df <- cbind(DataNotScaled.df,scale.df)
+```
+<br>
+
+Identifying similar years based on weather
+```{r}
+weather.tsne <- tsne(scaledMaxTPrecip.df)
+weather.tsne.plot <- data.frame(x=weather.tsne[,1],y=weather.tsne[,2])
+
+ggplot(weather.tsne.plot, aes(x=x,y=y,color=as.factor(df$Year)))+
+  geom_point()
+#weather.umap$layout
+
+
+```
+
+
+## Modeling
+```{r BD Time 1 model}
+BDTime1.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
+summary(BDTime1.scaled.mdl)
+```
+
+```{r BD Time 1 bayes model}
+BDTime1.bmdl <- stan_glm( BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(BDTime1.bmdl), digits = 3)
+plot(BDTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
+launch_shinystan(BDTime1.bmdl)
+```
+
+
+```{r BD Time 2 model}
+BDTime2.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
+summary(BDTime2.scaled.mdl)
+```
+
+```{r BD Time 1 bayes model}
+BDTime2.bmdl <- stan_glm( BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(BDTime2.bmdl), digits = 3)
+plot(BDTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
+launch_shinystan(BDTime1.bmdl)
+```
+
+
+
+```{r BD Incub model}
+BDIncub.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge)
+summary(BDIncub.scaled.mdl)
+```
+
+
+```{r Tarsus Time 1 model}
+TarsusTime1.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
+summary(TarsusTime1.scaled.mdl)
+```
+
+```{r Tarsus Time 2 model}
+TarsusTime2.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
+summary(TarsusTime2.scaled.mdl)
+```
+
+```{r Tarsus Incub model}
+TarsusIncub.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge)
+summary(TarsusIncub.scaled.mdl)
+```
