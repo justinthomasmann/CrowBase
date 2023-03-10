@@ -45,14 +45,19 @@ summary(df)
 ```
 <br>
 
+```{r creating year bins}
+df$YearBins <- cut(df$Year, breaks = c(1988,1995,2000,2005,2010,2015), labels = c("89-95","96-00","01-05","06-10","11-18"))
+df <- df %>% relocate(YearBins, .before = Year)
+```
+
 
 ## Scale all numerical variables
 ```{r scaling}
 #variables that don't get scaled 
-DataNotScaled.df <- df[,1:10]
+DataNotScaled.df <- df[,1:11]
 
 #Numerical data that do get scaled
-DataToScale.df <- df[,11:39]
+DataToScale.df <- df[,12:40]
 
 #Scale those data
 scale.df <- scale(DataToScale.df)
