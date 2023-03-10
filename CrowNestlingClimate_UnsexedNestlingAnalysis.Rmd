@@ -60,6 +60,7 @@ DataNotScaled.df <- df[,1:11]
 DataToScale.df <- df[,12:40]
 
 #Scale those data
+?scale()
 scale.df <- scale(DataToScale.df)
 
 scaledWeather.df <- scale.df[,12:29]

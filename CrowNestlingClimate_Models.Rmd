@@ -113,7 +113,9 @@ summary(F.UB2.mdl)
 
 F.scaled.UB2.mdl <- lm(UB ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.scaled.df)
 summary(F.scaled.UB2.mdl)
-F.UB.inter.plot <- plot_model(F.UB2.mdl, type = "int")
+
+?plot_model()
+F.UB.inter.plot <- plot_model(F.UB2.mdl, type = "int", mdrt.values = "quart")
 F.UB.inter.plot +
   scale_fill_discrete()
 
@@ -121,6 +123,11 @@ vif(F.UB2.mdl)
 vif(F.scaled.UB2.mdl)
 ```
 <br>
+
+```{r}
+min(df$PrecipSum12_22)
+```
+
 
 ```{r F upper bill GDD2 plotting}
 F.UB.df <- tidy(F.scaled.UB2.mdl, quick = FALSE)
@@ -446,10 +453,12 @@ t.test(B.df$USBbyWeight[B.df$AllSex=="M"], B.df$USBbyWeight[B.df$AllSex=="F"])
 
 
 ```{r F UB interplot}
+meanUB <- mean(df$UB)
 F.UB.inter.plot <- F.UB.inter.plot +
-  scale_color_discrete(name="Precip Levels", labels=c("Low", "High"))+
+  scale_color_discrete(name="Precip Levels", labels=c("25th Quartile","Median", "75th Quartile"))+
   ylab("Upper Bill")+
   xlab("GDD")+
+  geom_hline(yintercept = meanUB, linetype ="dotted", size = 1)+
   theme(plot.title = element_blank(),
           axis.text.x = element_text(size = 12),
           axis.title.x = element_text(size = 14),
@@ -458,6 +467,6 @@ F.UB.inter.plot <- F.UB.inter.plot +
           legend.position = "top",
           plot.margin = margin(15,15,15,15))
 F.UB.inter.plot
-cowplot::save_plot("F.UB.inter.plot.png", F.UB.inter.plot)
+#cowplot::save_plot("F.UB.inter.plot.png", F.UB.inter.plot)
 ```
 
