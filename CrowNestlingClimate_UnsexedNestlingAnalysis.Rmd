@@ -46,8 +46,8 @@ summary(df)
 <br>
 
 ```{r creating year bins}
-df$YearBins <- cut(df$Year, breaks = c(1988,1995,2000,2005,2010,2015), labels = c("89-95","96-00","01-05","06-10","11-18"))
-df <- df %>% relocate(YearBins, .before = Year)
+df$Decades <- cut(df$Year, breaks = c(1988,1999,2010,2018), labels = c("89-99","00-10","11-18"))
+df <- df %>% relocate(Decades, .before = Year)
 ```
 
 
@@ -72,20 +72,10 @@ scaled.df <- cbind(DataNotScaled.df,scale.df)
 ```
 <br>
 
-Identifying similar years based on weather
-```{r}
-weather.tsne <- tsne(scaledMaxTPrecip.df)
-weather.tsne.plot <- data.frame(x=weather.tsne[,1],y=weather.tsne[,2])
 
-ggplot(weather.tsne.plot, aes(x=x,y=y,color=as.factor(df$Year)))+
-  geom_point()
-#weather.umap$layout
-
-
-```
-
-
-## Modeling
+### Frequentist Models vs. Bayesian Models
+<br> 
+Frequentist Bill Depth ~ Time 1
 ```{r BD Time 1 model}
 BDTime1.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
 summary(BDTime1.scaled.mdl)
@@ -100,9 +90,13 @@ BDTime1.bmdl <- stan_glm( BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
                               prior_intercept = student_t(df = 7, 0, 5),
                               cores = 2, seed = 666)
 print(summary(BDTime1.bmdl), digits = 3)
-plot(BDTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
-launch_shinystan(BDTime1.bmdl)
+#launch_shinystan(BDTime1.bmdl)
 ```
+
+```{r plot BD time 1}
+plot(BDTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
+```
+<br>
 
 
 ```{r BD Time 2 model}
