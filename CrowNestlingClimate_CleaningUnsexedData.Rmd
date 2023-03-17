@@ -158,6 +158,7 @@ range(df$CalcAge)
 
 #resort df 
 df <- df %>% arrange(Year,NestName,ID)
+#write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned.csv")
 ```
 
 
@@ -189,7 +190,7 @@ climate.df <- read.csv("ClimateMetrics.csv", h=TRUE)
 ```{r joining nestling and climate data}
 df <- left_join(df,climate.df, by = "HatchDateJulYear")
 df <- df %>% relocate(Date, .before = AllSex)
-#write.csv(df, "AllNestlingsClimateJoined.csv")
+#write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv")
 ```
 
 ```{r scaling}
@@ -206,9 +207,34 @@ Scaled.df <- scale(DataToScale.df)
 scaled.df <- cbind(DataNotScaled.df,Scaled.df)
 ```
 
-
-```{r BD model}
-BD.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
-summary(BD.scaled.mdl)
+```{r BD Time 1 model}
+BDTime1.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
+summary(BDTime1.scaled.mdl)
 ```
 
+```{r BD Time 2 model}
+BDTime2.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
+summary(BDTime2.scaled.mdl)
+```
+
+
+```{r BD Incub model}
+BDIncub.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge)
+summary(BDIncub.scaled.mdl)
+```
+
+
+```{r Tarsus Time 1 model}
+TarsusTime1.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
+summary(TarsusTime1.scaled.mdl)
+```
+
+```{r Tarsus Time 2 model}
+TarsusTime2.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
+summary(TarsusTime2.scaled.mdl)
+```
+
+```{r Tarsus Incub model}
+TarsusIncub.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge)
+summary(TarsusIncub.scaled.mdl)
+```
