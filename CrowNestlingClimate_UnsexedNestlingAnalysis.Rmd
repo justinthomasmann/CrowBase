@@ -22,6 +22,7 @@ library(rstanarm) #stan models
 library(shinystan) #stan model evaluation
 #launch_shinystan_demo()
 library(loo) #use loo() to compare fits between bayesian models
+library(ggeffects)
 library(plotly)
 library(MuMIn) #dredge() for unsupervised model selection
 library(AICcmodavg) #aictab() for AICc model comparisons
@@ -45,7 +46,8 @@ summary(df)
 ```
 <br>
 
-```{r creating year bins}
+
+```{r creating decade bins}
 df$Decades <- cut(df$Year, breaks = c(1988,1999,2010,2018), labels = c("89-99","00-10","11-18"))
 df <- df %>% relocate(Decades, .before = Year)
 ```
@@ -73,14 +75,16 @@ scaled.df <- cbind(DataNotScaled.df,scale.df)
 <br>
 
 
-### Frequentist Models vs. Bayesian Models
+## Frequentist Models vs. Bayesian Models
 <br> 
-Frequentist Bill Depth ~ Time 1
+Frequentist Bill Depth ~ GDD Time 1
 ```{r BD Time 1 model}
 BDTime1.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
 summary(BDTime1.scaled.mdl)
 ```
+<br> 
 
+Bayesian Bill Depth ~ GDD Time 1
 ```{r BD Time 1 bayes model}
 BDTime1.bmdl <- stan_glm( BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
                               data = scaled.df,
@@ -94,17 +98,21 @@ print(summary(BDTime1.bmdl), digits = 3)
 ```
 
 ```{r plot BD time 1}
-plot(BDTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
+BDGDDTime1.plot <- plot(BDTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
+BDGDDTime1.plot
 ```
 <br>
 
 
+Frequentist Bill Depth ~ GDD Time 2
 ```{r BD Time 2 model}
 BDTime2.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
 summary(BDTime2.scaled.mdl)
 ```
+<br> 
 
-```{r BD Time 1 bayes model}
+Bayesian Bill Depth ~ GDD Time 2 
+```{r BD Time 2 bayes model}
 BDTime2.bmdl <- stan_glm( BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
                               data = scaled.df,
                               family = gaussian(),
@@ -113,18 +121,83 @@ BDTime2.bmdl <- stan_glm( BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
                               prior_intercept = student_t(df = 7, 0, 5),
                               cores = 2, seed = 666)
 print(summary(BDTime2.bmdl), digits = 3)
-plot(BDTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
-launch_shinystan(BDTime1.bmdl)
+#launch_shinystan(BDTime1.bmdl)
+```
+
+```{r plot BD Time 2 model}
+BDGDDTime2.plot <- plot(BDTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
+BDGDDTime2.plot
+```
+<br> 
+
+Bayesian Bill Depth ~ GDD Incubation 
+```{r BD Incubation bayes model}
+BDIncub.bmdl <- stan_glm( BD ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(BDIncub.bmdl), digits = 3)
+#launch_shinystan(BDTime1.bmdl)
+```
+
+```{r plot BD ~ GDD Incubation model}
+BDGDDIncub.plot <- plot(BDIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIncubation","Weight","CalcAge","GDDSumIncubation:PrecipSumIncubation"))
+BDGDDIncub.plot
+```
+
+```{r ggarrange BD ~ GDD plots}
+ggarrange(BDGDDIncub.plot,BDGDDTime1.plot,BDGDDTime2.plot, ncol = 1)
+```
+
+```{r BD GDD Incubation Inter plot}
+BDGDDIncubInter.plot <- plot_model(BDIncub.bmdl, type = "int", mdrt.values = "quart")
+
+BDGDDIncubInter.plot <- BDGDDIncubInter.plot +
+  scale_color_discrete(name="Precip Levels", labels=c("25th Quartile","Median", "75th Quartile"))+
+  ylab("Upper Bill")+
+  xlab("GDD Incubation")+
+  theme(plot.title = element_blank(),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+BDGDDIncubInter.plot
+```
+
+
+```{r BD GDD Time 2 Inter plot}
+BDGDDTime2Inter.plot <- plot_model(BDTime2.bmdl, type = "int", mdrt.values = "quart")
+
+BDGDDTime2Inter.plot <- BDGDDTime2Inter.plot +
+  scale_color_discrete(name="Precip Levels", labels=c("25th Quartile","Median", "75th Quartile"))+
+  ylab("Upper Bill")+
+  xlab("GDD Time 2")+
+  theme(plot.title = element_blank(),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+BDGDDTime2Inter.plot
+```
+
+```{r BD arrange inter plots}
+ggarrange(BDGDDIncubInter.plot,BDGDDTime2Inter.plot, ncol = 2)
 ```
 
 
 
-```{r BD Incub model}
-BDIncub.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge)
-summary(BDIncub.scaled.mdl)
-```
 
 
+
+
+Tarsus models
 ```{r Tarsus Time 1 model}
 TarsusTime1.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
 summary(TarsusTime1.scaled.mdl)
