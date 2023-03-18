@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r libraries, include=FALSE}
+```{r libraries}
 library(tidyverse)
 library(dplyr)
 library(broom) #tidy() to create tibbles from model summaries
@@ -32,36 +32,27 @@ library(umap)
 library(tsne)
 theme_set(theme_classic())
 ```
-
 <br>
 
 ## Data
-
-<br>
 
 ```{r dataframe}
 df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv", h=TRUE)
 df <- df[,-1]
 #n=2035 nestlings, 39 variables
 ```
-
 <br>
 
 A column to hold decade bins for plotting
-
 ```{r creating decade bins}
 df$Decades <- cut(df$Year, breaks = c(1988,1999,2010,2018), labels = c("89-99","00-10","11-18"))
 df <- df %>% relocate(Decades, .before = Year)
 ```
-
 <br>
 
-## Normalize continuous data
-
-<br>
+## Normalize Continuous Data
 
 Subtract each value from the mean (center) and divide it by the standard deviation
-
 ```{r scaling}
 #categorical data  
 unScaled.df <- df[,1:11]
@@ -78,76 +69,23 @@ scaled.df <- cbind(unScaled.df,scaled.mat)
 ```
 <br>
 
-Summarize unscaled data
+Summarize the unscaled data
 ```{r data summary }
 summary(df)
 ```
 <br> 
 
-Summarize scaled data
+Summarize the scaled data
 ```{r scaled data summary}
 summary(scaled.df)
 ```
-
-
-## Comparing Frequentist Models and Bayesian Models
 <br>
 
-Frequentist Bill Depth GDD Time 1
-```{r BD Time 1 model}
-BDTime1.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
-summary(BDTime1.scaled.mdl)
-```
-<br>
+## Bill Depth Models
 
-Bayesian Bill Depth GDD Time 1
-```{r BD Time 1 bayes model}
-BDTime1.bmdl <- stan_glm( BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
-                              data = scaled.df,
-                              family = gaussian(),
-                              algorithm = "sampling",
-                              prior = student_t(df = 7, 0, 5), 
-                              prior_intercept = student_t(df = 7, 0, 5),
-                              cores = 2, seed = 666)
-print(summary(BDTime1.bmdl), digits = 3)
-#launch_shinystan(BDTime1.bmdl)
-```
-
-```{r plot BD time 1}
-BDGDDTime1.plot <- plot(BDTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
-BDGDDTime1.plot
-```
-<br>
-
-Frequentist Bill Depth GDD Time 2
-```{r BD Time 2 model}
-BDTime2.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
-summary(BDTime2.scaled.mdl)
-```
-<br>
-
-Bayesian Bill Depth GDD Time 2
-```{r BD Time 2 bayes model}
-BDTime2.bmdl <- stan_glm( BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
-                              data = scaled.df,
-                              family = gaussian(),
-                              algorithm = "sampling",
-                              prior = student_t(df = 7, 0, 5), 
-                              prior_intercept = student_t(df = 7, 0, 5),
-                              cores = 2, seed = 666)
-print(summary(BDTime2.bmdl), digits = 3)
-#launch_shinystan(BDTime1.bmdl)
-```
-
-```{r plot BD Time 2 model}
-BDGDDTime2.plot <- plot(BDTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
-BDGDDTime2.plot
-```
-<br>
-
-Bayesian Bill Depth GDD Incubation
+Bayesian Bill Depth GDD Incubation model
 ```{r BD Incubation bayes model}
-BDIncub.bmdl <- stan_glm( BD ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge,
+BDIncub.bmdl <- stan_glm(BD ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge,
                               data = scaled.df,
                               family = gaussian(),
                               algorithm = "sampling",
@@ -160,19 +98,69 @@ print(summary(BDIncub.bmdl), digits = 3)
 
 ```{r plot BD ~ GDD Incubation model}
 BDGDDIncub.plot <- plot(BDIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIncubation","Weight","CalcAge","GDDSumIncubation:PrecipSumIncubation"))
-BDGDDIncub.plot
+#BDGDDIncub.plot
+```
+<br>
+
+A Frequentist Bill Depth GDD Time 1 model to compare with the Bayesian version
+```{r BD Time 1 model}
+BDTime1.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
+summary(BDTime1.scaled.mdl)
+```
+<br>
+
+Bayesian Bill Depth GDD Time 1 model
+```{r BD Time 1 bayes model}
+BDTime1.bmdl <- stan_glm(BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(BDTime1.bmdl), digits = 3)
+#launch_shinystan(BDTime1.bmdl)
 ```
 
+```{r plot BD time 1}
+BDGDDTime1.plot <- plot(BDTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
+#BDGDDTime1.plot
+```
+<br>
+
+Bayesian Bill Depth GDD Time 2
+```{r BD Time 2 bayes model}
+BDTime2.bmdl <- stan_glm(BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(BDTime2.bmdl), digits = 3)
+#launch_shinystan(BDTime1.bmdl)
+```
+
+```{r plot BD Time 2 model}
+BDGDDTime2.plot <- plot(BDTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
+#BDGDDTime2.plot
+```
+<br>
+
+Arrange the Bill Depth model plots
 ```{r ggarrange BD ~ GDD plots}
-ggarrange(BDGDDIncub.plot,BDGDDTime1.plot,BDGDDTime2.plot, ncol = 1)
+BDModelPlots.wrap <- ggarrange(BDGDDIncub.plot,BDGDDTime1.plot,BDGDDTime2.plot, ncol = 1)
+annotate_figure(BDModelPlots.wrap, top = "Bill Depth Models")
 ```
+<br>
 
+Plot the interaction between GDD and Precip during incubation
 ```{r BD GDD Incubation Inter plot}
 BDGDDIncubInter.plot <- plot_model(BDIncub.bmdl, type = "int", mdrt.values = "quart")
 
 BDGDDIncubInter.plot <- BDGDDIncubInter.plot +
   scale_color_discrete(name="Precip Levels", labels=c("25th Quartile","Median", "75th Quartile"))+
-  ylab("Upper Bill")+
+  ylab("Bill Depth")+
   xlab("GDD Incubation")+
   theme(plot.title = element_blank(),
           axis.text.x = element_text(size = 12),
@@ -181,15 +169,17 @@ BDGDDIncubInter.plot <- BDGDDIncubInter.plot +
           axis.title.y = element_text(size = 14),
           legend.position = "top",
           plot.margin = margin(15,15,15,15))
-BDGDDIncubInter.plot
+#BDGDDIncubInter.plot
 ```
+<br>
 
+Plot the interaction between GDD and Precip during Time 2
 ```{r BD GDD Time 2 Inter plot}
 BDGDDTime2Inter.plot <- plot_model(BDTime2.bmdl, type = "int", mdrt.values = "quart")
 
 BDGDDTime2Inter.plot <- BDGDDTime2Inter.plot +
   scale_color_discrete(name="Precip Levels", labels=c("25th Quartile","Median", "75th Quartile"))+
-  ylab("Depth Bill")+
+  ylab("Bill Depth")+
   xlab("GDD Time 2")+
   theme(plot.title = element_blank(),
           axis.text.x = element_text(size = 12),
@@ -198,26 +188,212 @@ BDGDDTime2Inter.plot <- BDGDDTime2Inter.plot +
           axis.title.y = element_text(size = 14),
           legend.position = "top",
           plot.margin = margin(15,15,15,15))
-BDGDDTime2Inter.plot
+#BDGDDTime2Inter.plot
 ```
+<br>
 
+Arrange interaction plots
 ```{r BD arrange inter plots}
-ggarrange(BDGDDIncubInter.plot,BDGDDTime2Inter.plot, ncol = 2)
+BDInterPlots.wrap <- ggarrange(BDGDDIncubInter.plot,BDGDDTime2Inter.plot, ncol = 2)
+annotate_figure(BDInterPlots.wrap, top = "Bill Depth Interaction Models")
+```
+<br> 
+
+## Upper Bill Models
+
+Bayesian Upper Bill Incubation model
+```{r UB Incubation bayes model}
+UBIncub.bmdl <- stan_glm(UB ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(UBIncub.bmdl), digits = 3)
+#launch_shinystan(UBTime1.bmdl)
 ```
 
-Tarsus models
+```{r plot UB ~ GDD Incubation model}
+UBGDDIncub.plot <- plot(UBIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIncubation","Weight","CalcAge","GDDSumIncubation:PrecipSumIncubation"))
+#UBGDDIncub.plot
+```
+<br>
 
-```{r Tarsus Time 1 model}
-TarsusTime1.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
-summary(TarsusTime1.scaled.mdl)
+Bayesian Upper Bill GDD Time 1 model
+```{r UB Time 1 bayes model}
+UBTime1.bmdl <- stan_glm(UB ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(UBTime1.bmdl), digits = 3)
+#launch_shinystan(UBTime1.bmdl)
 ```
 
-```{r Tarsus Time 2 model}
-TarsusTime2.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
-summary(TarsusTime2.scaled.mdl)
+```{r plot UB time 1}
+UBGDDTime1.plot <- plot(UBTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
+#UBGDDTime1.plot
+```
+<br>
+
+Bayesian Upper Bill GDD Time 2
+```{r UB Time 2 bayes model}
+UBTime2.bmdl <- stan_glm(UB ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(UBTime2.bmdl), digits = 3)
+#launch_shinystan(UBTime1.bmdl)
 ```
 
-```{r Tarsus Incub model}
-TarsusIncub.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge)
-summary(TarsusIncub.scaled.mdl)
+```{r plot UB Time 2 model}
+UBGDDTime2.plot <- plot(UBTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
+#UBGDDTime2.plot
 ```
+<br>
+
+Arrange the Upper Bill model plots
+```{r ggarrange UB ~ GDD plots}
+UBModelPlots.wrap <- ggarrange(UBGDDIncub.plot,UBGDDTime1.plot,UBGDDTime2.plot, ncol = 1)
+annotate_figure(UBModelPlots.wrap, top = "Upper Bill Models")
+```
+<br>
+
+## Upper Bill Surface Area Models
+
+Bayesian Upper Bill Surface Area Incubation model
+```{r UBS Incubation bayes model}
+UBSIncub.bmdl <- stan_glm(UBS ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(UBSIncub.bmdl), digits = 3)
+#launch_shinystan(UBSTime1.bmdl)
+```
+
+```{r plot UBS ~ GDD Incubation model}
+UBSGDDIncub.plot <- plot(UBSIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIncubation","Weight","CalcAge","GDDSumIncubation:PrecipSumIncubation"))
+#UBSGDDIncub.plot
+```
+<br>
+
+Bayesian Upper Bill Surface Area GDD Time 1 model
+```{r UBS Time 1 bayes model}
+UBSTime1.bmdl <- stan_glm(UBS ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(UBSTime1.bmdl), digits = 3)
+#launch_shinystan(UBSTime1.bmdl)
+```
+
+```{r plot UBS time 1}
+UBSGDDTime1.plot <- plot(UBSTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
+#UBSGDDTime1.plot
+```
+<br>
+
+Bayesian Upper Bill Surface Area GDD Time 2
+```{r UBS Time 2 bayes model}
+UBSTime2.bmdl <- stan_glm(UBS ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(UBSTime2.bmdl), digits = 3)
+#launch_shinystan(UBSTime1.bmdl)
+```
+
+```{r plot UBS Time 2 model}
+UBSGDDTime2.plot <- plot(UBSTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
+#UBSGDDTime2.plot
+```
+<br>
+
+Arrange the Upper Bill Surface Area model plots
+```{r ggarrange UBS GDD plots}
+UBSModelPlots.wrap <- ggarrange(UBSGDDIncub.plot,UBSGDDTime1.plot,UBSGDDTime2.plot, ncol = 1)
+annotate_figure(UBSModelPlots.wrap, top = "Upper Bill Surface Area Models")
+```
+<br>
+
+## Tarsus Models
+
+Bayesian Tarsus Incubation model
+```{r Tarsus Incubation bayes model}
+TarsusIncub.bmdl <- stan_glm(Tarsus ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(TarsusIncub.bmdl), digits = 3)
+#launch_shinystan(TarsusIncub.bmdl)
+```
+
+```{r plot Tarsus GDD Incubation model}
+TarsusGDDIncub.plot <- plot(TarsusIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIncubation","Weight","CalcAge","GDDSumIncubation:PrecipSumIncubation"))
+#TarsusGDDIncub.plot
+```
+<br>
+
+Bayesian Tarsus GDD Time 1 model
+```{r Tarsus Time 1 bayes model}
+TarsusTime1.bmdl <- stan_glm(Tarsus ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(TarsusTime1.bmdl), digits = 3)
+#launch_shinystan(TarsusTime1.bmdl)
+```
+
+```{r plot Tarsus time 1}
+TarsusGDDTime1.plot <- plot(TarsusTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
+#TarsusGDDTime1.plot
+```
+<br>
+
+Bayesian Tarsus GDD Time 2
+```{r Tarsus Time 2 bayes model}
+TarsusTime2.bmdl <- stan_glm(Tarsus ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
+                              data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              cores = 2, seed = 666)
+print(summary(TarsusTime2.bmdl), digits = 3)
+#launch_shinystan(TarsusTime1.bmdl)
+```
+
+```{r plot Tarsus Time 2 model}
+TarsusGDDTime2.plot <- plot(TarsusTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
+#TarsusGDDTime2.plot
+```
+<br>
+
+Arrange the Tarsus model plots
+```{r ggarrange Tarsus GDD plots}
+TarsusModelPlots.wrap <-ggarrange(TarsusGDDIncub.plot,TarsusGDDTime1.plot,TarsusGDDTime2.plot, ncol = 1)
+annotate_figure(TarsusModelPlots.wrap, top = "Tarsus Models")
+```
+<br>
+
