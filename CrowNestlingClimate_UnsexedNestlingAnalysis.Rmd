@@ -32,6 +32,11 @@ library(umap)
 library(tsne)
 theme_set(theme_classic())
 ```
+
+<br>
+
+## Data
+
 <br>
 
 ```{r dataframe}
@@ -39,52 +44,63 @@ df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv", h=TR
 df <- df[,-1]
 #n=2035 nestlings, 39 variables
 ```
+
 <br>
 
-```{r summarize df}
-summary(df)
-```
-<br>
-
+A column to hold decade bins for plotting
 
 ```{r creating decade bins}
 df$Decades <- cut(df$Year, breaks = c(1988,1999,2010,2018), labels = c("89-99","00-10","11-18"))
 df <- df %>% relocate(Decades, .before = Year)
 ```
 
+<br>
 
-## Scale all numerical variables
+## Normalize continuous data
+
+<br>
+
+Subtract each value from the mean (center) and divide it by the standard deviation
+
 ```{r scaling}
-#variables that don't get scaled 
-DataNotScaled.df <- df[,1:11]
+#categorical data  
+unScaled.df <- df[,1:11]
 
-#Numerical data that do get scaled
-DataToScale.df <- df[,12:40]
+#continuous data
+dataToScale.df <- df[,12:40]
 
-#Scale those data
-?scale()
-scale.df <- scale(DataToScale.df)
+#scale continuous data
+#?scale()
+scaled.mat <- scale(dataToScale.df, center = TRUE, scale = TRUE)
 
-scaledWeather.df <- scale.df[,12:29]
-
-scaledMaxTPrecip.df <- scale.df[,c(12:14,18:20)]
-
-#Rejoin with variables that don't get scaled
-scaled.df <- cbind(DataNotScaled.df,scale.df)
+#join unscaled and scaled data
+scaled.df <- cbind(unScaled.df,scaled.mat)
 ```
 <br>
 
-
-## Frequentist Models vs. Bayesian Models
+Summarize unscaled data
+```{r data summary }
+summary(df)
+```
 <br> 
-Frequentist Bill Depth ~ GDD Time 1
+
+Summarize scaled data
+```{r scaled data summary}
+summary(scaled.df)
+```
+
+
+## Comparing Frequentist Models and Bayesian Models
+<br>
+
+Frequentist Bill Depth GDD Time 1
 ```{r BD Time 1 model}
 BDTime1.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
 summary(BDTime1.scaled.mdl)
 ```
-<br> 
+<br>
 
-Bayesian Bill Depth ~ GDD Time 1
+Bayesian Bill Depth GDD Time 1
 ```{r BD Time 1 bayes model}
 BDTime1.bmdl <- stan_glm( BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
                               data = scaled.df,
@@ -103,15 +119,14 @@ BDGDDTime1.plot
 ```
 <br>
 
-
-Frequentist Bill Depth ~ GDD Time 2
+Frequentist Bill Depth GDD Time 2
 ```{r BD Time 2 model}
 BDTime2.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
 summary(BDTime2.scaled.mdl)
 ```
-<br> 
+<br>
 
-Bayesian Bill Depth ~ GDD Time 2 
+Bayesian Bill Depth GDD Time 2
 ```{r BD Time 2 bayes model}
 BDTime2.bmdl <- stan_glm( BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
                               data = scaled.df,
@@ -128,9 +143,9 @@ print(summary(BDTime2.bmdl), digits = 3)
 BDGDDTime2.plot <- plot(BDTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
 BDGDDTime2.plot
 ```
-<br> 
+<br>
 
-Bayesian Bill Depth ~ GDD Incubation 
+Bayesian Bill Depth GDD Incubation
 ```{r BD Incubation bayes model}
 BDIncub.bmdl <- stan_glm( BD ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge,
                               data = scaled.df,
@@ -169,13 +184,12 @@ BDGDDIncubInter.plot <- BDGDDIncubInter.plot +
 BDGDDIncubInter.plot
 ```
 
-
 ```{r BD GDD Time 2 Inter plot}
 BDGDDTime2Inter.plot <- plot_model(BDTime2.bmdl, type = "int", mdrt.values = "quart")
 
 BDGDDTime2Inter.plot <- BDGDDTime2Inter.plot +
   scale_color_discrete(name="Precip Levels", labels=c("25th Quartile","Median", "75th Quartile"))+
-  ylab("Upper Bill")+
+  ylab("Depth Bill")+
   xlab("GDD Time 2")+
   theme(plot.title = element_blank(),
           axis.text.x = element_text(size = 12),
@@ -191,13 +205,8 @@ BDGDDTime2Inter.plot
 ggarrange(BDGDDIncubInter.plot,BDGDDTime2Inter.plot, ncol = 2)
 ```
 
-
-
-
-
-
-
 Tarsus models
+
 ```{r Tarsus Time 1 model}
 TarsusTime1.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
 summary(TarsusTime1.scaled.mdl)
