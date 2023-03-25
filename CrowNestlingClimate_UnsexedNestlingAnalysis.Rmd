@@ -81,6 +81,128 @@ summary(scaled.df)
 ```
 <br>
 
+```{r sexes}
+#Males Scaled
+M.scaled.df <- subset(scaled.df, AllSex=="M")
+#Males Unscaled
+M.df <- subset(df, AllSex=="M")
+
+#Females Scaled
+F.scaled.df <- subset(scaled.df, AllSex=="F")
+#Females Unscaled
+F.df <- subset(df, AllSex=="F")
+
+#Both sexes scaled
+B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
+#Both sexes unscaled
+B.df <- rbind(F.df,M.df)
+```
+<br>
+
+
+## Bill Depth by sex
+```{r unscaled bill depth t test}
+t.test(B.df$BD[B.df$AllSex=="M"], B.df$BD[B.df$AllSex=="F"])
+```
+
+
+```{r unscaled bill depth by sex plot}
+ggplot(data = B.df, aes(x=BD, fill = AllSex))+
+  geom_histogram(colour = "black", bins = 50)+
+  geom_vline(xintercept = 12.55, color="#009E73", linetype="dashed", size=1)+
+  geom_vline(xintercept = 12.98, color="#E69F00", linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))
+```
+
+
+```{r scaled bill depth residuals by sex}
+#Scaled BD 
+BDNoSex.scaled.mdl <- lm(data = B.scaled.df, BD ~ Weight + CalcAge)
+BDNoSex.summ <- summary(BDNoSex.scaled.mdl)
+B.scaled.df$BDNoSex.resids <- BDNoSex.summ$residuals
+
+ggplot(data = B.scaled.df, aes(x=BDNoSex.resids,fill=AllSex))+
+  geom_histogram(colour = "black", bins = 100)+
+  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+```
+
+```{r bill depth by weight scaled}
+ggplot(data = B.scaled.df, aes(x=BD,y=BDNoSex.resids,color=AllSex))+
+  geom_point()+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+```
+```{r t test scaled bill depth residuals}
+mean(B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="M"])
+mean(B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="F"])
+t.test(B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="M"],B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="F"])
+```
+<br>
+
+## Tarsus comparisons by sex
+```{r unscaled tarsus t test}
+t.test(B.df$Tarsus[B.df$AllSex=="M"], B.df$Tarsus[B.df$AllSex=="F"])
+```
+
+
+```{r unscaled tarsus by sex plot}
+ggplot(data = B.df, aes(x=Tarsus, fill = AllSex))+
+  geom_histogram(colour = "black", bins = 100)+
+  geom_vline(xintercept = 58.006, color="#009E73", linetype="dashed", size=1)+
+  geom_vline(xintercept = 59.9, color="#E69F00", linetype="dashed", size=1)+
+  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))
+```
+
+
+```{r scaled tarsus residuals by sex}
+#Scaled tarsus 
+TarsusNoSex.scaled.mdl <- lm(data = B.scaled.df, Tarsus ~ Weight + CalcAge)
+TarsusNoSex.summ <- summary(TarsusNoSex.scaled.mdl)
+B.scaled.df$TarsusNoSex.resids <- TarsusNoSex.summ$residuals
+
+ggplot(data = B.scaled.df, aes(x=TarsusNoSex.resids,fill=AllSex))+
+  geom_histogram(colour = "black", bins = 100)+
+  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+```
+
+```{r tarsus by weight scaled}
+ggplot(data = B.scaled.df, aes(x=Tarsus,y=TarsusNoSex.resids,color=AllSex))+
+  geom_point()+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+```
+```{r t test scaled tarsus residuals}
+t.test(B.scaled.df$TarsusNoSex.resids[B.scaled.df$AllSex=="M"],B.scaled.df$TarsusNoSex.resids[B.scaled.df$AllSex=="F"])
+```
+
+
+
 ## Bill Depth Models
 
 Bayesian Bill Depth GDD Incubation model
