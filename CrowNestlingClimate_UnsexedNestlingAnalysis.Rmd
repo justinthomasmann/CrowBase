@@ -47,6 +47,8 @@ A column to hold decade bins for plotting
 ```{r creating decade bins}
 df$Decades <- cut(df$Year, breaks = c(1988,1999,2010,2018), labels = c("89-99","00-10","11-18"))
 df <- df %>% relocate(Decades, .before = Year)
+df$CLessH1_11 <- df$CDDSum1_11-df$HDDSum1_11
+df$CLessH12_22 <- df$CDDSum12_22-df$HDDSum12_22
 ```
 <br>
 
@@ -58,7 +60,7 @@ Subtract each value from the mean (center) and divide it by the standard deviati
 unScaled.df <- df[,1:11]
 
 #continuous data
-dataToScale.df <- df[,12:40]
+dataToScale.df <- df[,12:42]
 
 #scale continuous data
 #?scale()
@@ -81,7 +83,7 @@ summary(scaled.df)
 ```
 <br>
 
-```{r sexes}
+```{r data frame with only sexed nestlings}
 #Males Scaled
 M.scaled.df <- subset(scaled.df, AllSex=="M")
 #Males Unscaled
@@ -100,12 +102,36 @@ B.df <- rbind(F.df,M.df)
 <br>
 
 
-## Bill Depth by sex
-```{r unscaled bill depth t test}
-t.test(B.df$BD[B.df$AllSex=="M"], B.df$BD[B.df$AllSex=="F"])
+```{r BD Time 2 model}
+BDTime2.scaled.mdl <- lm(data = B.scaled.df, BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
+summary(BDTime2.scaled.mdl)
 ```
 
 
+```{r bill depth by CLessH scaled}
+ggplot(data = B.scaled.df, aes(x=CLessH12_22,y=BD,color=AllSex))+
+  geom_point()+
+  geom_smooth()+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+```
+
+
+## Bill Depth by sex
+
+What is the mean bill depth of males and females?
+```{r unscaled bill depth t test}
+t.test(B.df$BD[B.df$AllSex=="M"], B.df$BD[B.df$AllSex=="F"])
+```
+<br>
+
+Plot unscaled bill depth distributions for males and females with verticle lines showing the mean values.  
 ```{r unscaled bill depth by sex plot}
 ggplot(data = B.df, aes(x=BD, fill = AllSex))+
   geom_histogram(colour = "black", bins = 50)+
@@ -113,8 +139,9 @@ ggplot(data = B.df, aes(x=BD, fill = AllSex))+
   geom_vline(xintercept = 12.98, color="#E69F00", linetype="dashed", size=1)+
   scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))
 ```
+<br> 
 
-
+Plot the residuals of a scaled model showing how weight and age explain bill depth.
 ```{r scaled bill depth residuals by sex}
 #Scaled BD 
 BDNoSex.scaled.mdl <- lm(data = B.scaled.df, BD ~ Weight + CalcAge)
@@ -151,6 +178,31 @@ mean(B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="F"])
 t.test(B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="M"],B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="F"])
 ```
 <br>
+
+```{r truncated bill depth residuals}
+TruncBD.df <- B.scaled.df %>% filter(between(BD,-1,1))
+t.test(TruncBD.df$BDNoSex.resids[TruncBD.df$AllSex=="M"],TruncBD.df$BDNoSex.resids[TruncBD.df$AllSex=="F"])
+```
+
+
+```{r bill depth by weight scaled}
+ggplot(data = TruncBD.df, aes(x=BD,y=BDNoSex.resids,color=AllSex))+
+  geom_point()+
+  geom_jitter(width = 0.5)+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+```
+
+How to deal with the sex differences in the unsexed kids:
+1. Classify clusters of years that are climatically similar.
+2. 
+
 
 ## Tarsus comparisons by sex
 ```{r unscaled tarsus t test}
@@ -200,7 +252,7 @@ ggplot(data = B.scaled.df, aes(x=Tarsus,y=TarsusNoSex.resids,color=AllSex))+
 ```{r t test scaled tarsus residuals}
 t.test(B.scaled.df$TarsusNoSex.resids[B.scaled.df$AllSex=="M"],B.scaled.df$TarsusNoSex.resids[B.scaled.df$AllSex=="F"])
 ```
-
+<br>
 
 
 ## Bill Depth Models
