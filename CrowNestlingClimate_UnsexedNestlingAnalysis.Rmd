@@ -7,32 +7,32 @@ output: html_document
 
 ```{r libraries, echo=T, results="hide"}
 library(tidyverse)
-library(dplyr)
 library(broom) #tidy() to create tibbles from model summaries
-library(car) #vif
+library(car) #vif (variance inflation factor for measuring covariance)
 library(cowplot)
 library(lme4) #frequentist models  
 library(sjPlot) #plot_model & tab_model (blue = #377EB8)
-library(ggpubr) #ggarrange
-library(glmmTMB) #zi & overdispersed models
+library(ggpubr) #ggarrange for plot wraps
 library(lmerTest) #lmerTest::step
 library(ggeffects) #ggpredict
-#PACKAGES FOR BAYESIAN MODELS
+library(plotly) #ggplotly() to make interactive plots with scroll over ids
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa) #model validation functions
+library(DescTools) #Entropy() and MutInf()
+
+#Libraries for Bayesian Models
 library(rstanarm) #stan models
 library(shinystan) #stan model evaluation
 #launch_shinystan_demo()
 library(loo) #use loo() to compare fits between bayesian models
-library(ggeffects)
-library(plotly)
-library(MuMIn) #dredge() for unsupervised model selection
-library(AICcmodavg) #aictab() for AICc model comparisons
-library(DHARMa)
-library(DescTools)
+
+#Clustering libraries
 library(umap)
 library(tsne)
 library(ggfortify)#use autoplot() to visualize PCAs
 library(stpm)#stochastic process model
-theme_set(theme_classic())
+theme_set(theme_classic()) #default plots with no gridlines
 ```
 <br>
 
@@ -46,7 +46,7 @@ clim.df <- read.csv("ClimateVariables.csv", h=TRUE)
 median(clim.df$MaxTempC, na.rm=TRUE)
 max.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=MaxTempC))+
   geom_boxplot()+
-  geom_hline(yintercept = 16.67, color = "red", linetype = "dotted", size = 1)+
+  geom_hline(yintercept = 16.67, color = "red", linetype = "dotted", linewidth = 1)+
   #ggtitle("Daily Maximum Temperatures across March, April, May and June")+
   ylab("Maximum Temperature (C)")+
   xlab("")+
@@ -334,19 +334,57 @@ ggplot(data = B.scaled.df, aes(x=Tarsus,y=TarsusNoSex.resids,color=AllSex))+
 ```{r t test scaled tarsus residuals}
 t.test(B.scaled.df$TarsusNoSex.resids[B.scaled.df$AllSex=="M"],B.scaled.df$TarsusNoSex.resids[B.scaled.df$AllSex=="F"])
 ```
-
 <br>
 
+
 ## Unsupervised model selection
+
+### What climate metrics best explain variation in bill shape? 
+
+Since the strongest effects thus far have shown up in Time Period 2 (12-22 days post hatching), I'm going to use Time 2 for model selection tests.
+
 ```{r bill depth time 2 model selection}
+#Min
 MinTempBD.mdl <- lm(BD ~ MinTempMean12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
-summary(fullBD.mdl)
-```
-
-```{r GDD model selection}
+MaxTempBD.mdl <- lm(BD ~ MaxTempMean12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
 GDDBD.mdl <- lm(BD ~ GDDSum12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
+CDDBD.mdl <- lm(BD ~ CDDSum12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
+HDDBD.mdl <- lm(BD ~ HDDSum12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
 ```
 
+```{r bill depth time 2 model comparison}
+BDTime2Models <- list(MinTempBD.mdl,MaxTempBD.mdl,GDDBD.mdl,CDDBD.mdl,HDDBD.mdl)
+BDTime2ModelNames <- c('MinTempBD.mdl','MaxTempBD.mdl','GDDBD.mdl','CDDBD.mdl','HDDBD.mdl')
+aictab(cand.set = BDTime2Models, modnames = BDTime2ModelNames, sort = TRUE)
+```
+
+Minimum Temperature Model fits the data best. GDD is second best, but the delta AICc is 11.43 between the two.
+
+```{r MinTempBD.mdl summary}
+summary(MinTempBD.mdl)
+```
+```{r}
+MinTemp.pred <- ggpredict(MinTempBD.mdl, type = "fe", terms = ~ MinTempMean12_22)
+MinTemp.pred
+```
+```{r}
+ggplot(data = MinTemp.pred, aes(x,predicted))+
+  geom_point(data = scaled.df, aes(x=MinTempMean12_22, y=BD))+
+  geom_line(color = "red")+
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "red", alpha = 0.1)+
+  scale_y_continuous(limits = c(-4,4))
+```
+
+
+```{r GDDBD.mdl summary}
+summary(GDDBD.mdl)
+```
+
+```{r}
+ggplot(data = scaled.df, aes(x = MinTempMean12_22, y = BD))+
+  geom_point()+
+  geom_abline(mapping=aes(intercept = -4.32, slope = 0.154))
+```
 
 
 
