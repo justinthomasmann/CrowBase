@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r libraries}
+```{r libraries, echo=T, results="hide"}
 library(tidyverse)
 library(dplyr)
 library(broom) #tidy() to create tibbles from model summaries
@@ -31,29 +31,79 @@ library(DescTools)
 library(umap)
 library(tsne)
 library(ggfortify)#use autoplot() to visualize PCAs
+library(stpm)#stochastic process model
 theme_set(theme_classic())
 ```
 <br>
 
-## Data
+## Climate Data
+
+```{r climate variables df}
+clim.df <- read.csv("ClimateVariables.csv", h=TRUE)
+```
+
+```{r plot median max temp}
+median(clim.df$MaxTempC, na.rm=TRUE)
+max.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=MaxTempC))+
+  geom_boxplot()+
+  geom_hline(yintercept = 16.67, color = "red", linetype = "dotted", size = 1)+
+  #ggtitle("Daily Maximum Temperatures across March, April, May and June")+
+  ylab("Maximum Temperature (C)")+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r plot median min temp}
+median(clim.df$MinTempC, na.rm=TRUE)
+min.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=MinTempC))+
+  geom_boxplot()+
+  geom_hline(yintercept = 3.89, color = "red", linetype = "dotted", size = 1)+
+  #ggtitle("Daily Minimum Temperature across March, April, May and June")+
+  ylab("Minimum Temperature (C)")+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+
+```{r plot precip}
+median(clim.df$PrecipCM, na.rm=TRUE)
+precip.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=PrecipCM))+
+  geom_boxplot()+
+  geom_hline(yintercept = 0.025, color = "red", linetype = "dotted", size = 1)+
+  #ggtitle("Daily Minimum Temperature across March, April, May and June")+
+  ylab("Precipitation (cm)")+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r wrap climate plots}
+climate.wrap <- ggarrange(min.plot,max.plot,precip.plot, ncol = 1)
+annotate_figure(climate.wrap, top = "Climate Conditions across March, April, May and June")
+```
+
+## Nestling Data and Climate metrics
 
 ```{r dataframe}
 df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv", h=TRUE)
 df <- df[,-1]
 #n=2035 nestlings, 39 variables
 ```
+
 <br>
 
 A column to hold decade bins for plotting
+
 ```{r creating decade bins}
 df$Decades <- cut(df$Year, breaks = c(1988,1999,2010,2018), labels = c("89-99","00-10","11-18"))
 df <- df %>% relocate(Decades, .before = Year)
 ```
+
 <br>
 
 ## Normalize Continuous Data
 
 Subtract each value from the mean (center) and divide it by the standard deviation
+
 ```{r scaling}
 #categorical data  
 unScaled.df <- df[,1:11]
@@ -68,18 +118,23 @@ scaled.mat <- scale(dataToScale.df, center = TRUE, scale = TRUE)
 #join unscaled and scaled data
 scaled.df <- cbind(unScaled.df,scaled.mat)
 ```
+
 <br>
 
 Summarize the unscaled data
+
 ```{r data summary }
 summary(df)
 ```
-<br> 
+
+<br>
 
 Summarize the scaled data
+
 ```{r scaled data summary}
 summary(scaled.df)
 ```
+
 <br>
 
 ```{r data frame with only sexed nestlings}
@@ -98,6 +153,7 @@ B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
 #Both sexes unscaled
 B.df <- rbind(F.df,M.df)
 ```
+
 <br>
 
 ## Climate PCA
@@ -146,16 +202,18 @@ autoplot(precipPCA, colour=as.factor(climPCA.ids$Year),
 
 ```
 
-
 ## Bill Depth by sex
 
 What is the mean bill depth of males and females?
+
 ```{r unscaled bill depth t test}
 t.test(B.df$BD[B.df$AllSex=="M"], B.df$BD[B.df$AllSex=="F"])
 ```
+
 <br>
 
-Plot unscaled bill depth distributions for males and females with verticle lines showing the mean values.  
+Plot unscaled bill depth distributions for males and females with verticle lines showing the mean values.
+
 ```{r unscaled bill depth by sex plot}
 ggplot(data = B.df, aes(x=BD, fill = AllSex))+
   geom_histogram(colour = "black", bins = 50)+
@@ -163,9 +221,11 @@ ggplot(data = B.df, aes(x=BD, fill = AllSex))+
   geom_vline(xintercept = 12.98, color="#E69F00", linetype="dashed", size=1)+
   scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))
 ```
-<br> 
+
+<br>
 
 Plot the residuals of a scaled model showing how weight and age explain bill depth.
+
 ```{r scaled bill depth residuals by sex}
 #Scaled BD 
 BDNoSex.scaled.mdl <- lm(data = B.scaled.df, BD ~ Weight + CalcAge)
@@ -202,13 +262,13 @@ mean(B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="M"])
 mean(B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="F"])
 t.test(B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="M"],B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="F"])
 ```
+
 <br>
 
 ```{r truncated bill depth residuals}
 TruncBD.df <- B.scaled.df %>% filter(between(BD,-1,1))
 t.test(TruncBD.df$BDNoSex.resids[TruncBD.df$AllSex=="M"],TruncBD.df$BDNoSex.resids[TruncBD.df$AllSex=="F"])
 ```
-
 
 ```{r bill depth by bill depth residuals scaled}
 ggplot(data = TruncBD.df, aes(x=BD,y=BDNoSex.resids,color=AllSex))+
@@ -224,16 +284,13 @@ ggplot(data = TruncBD.df, aes(x=BD,y=BDNoSex.resids,color=AllSex))+
           plot.margin = margin(15,15,15,15))
 ```
 
-How to deal with the sex differences in the unsexed kids:
-1. Classify clusters of years that are climatically similar.
-2. 
-
+How to deal with the sex differences in the unsexed kids: 1. Classify clusters of years that are climatically similar. 2.
 
 ## Tarsus comparisons by sex
+
 ```{r unscaled tarsus t test}
 t.test(B.df$Tarsus[B.df$AllSex=="M"], B.df$Tarsus[B.df$AllSex=="F"])
 ```
-
 
 ```{r unscaled tarsus by sex plot}
 ggplot(data = B.df, aes(x=Tarsus, fill = AllSex))+
@@ -242,7 +299,6 @@ ggplot(data = B.df, aes(x=Tarsus, fill = AllSex))+
   geom_vline(xintercept = 59.9, color="#E69F00", linetype="dashed", size=1)+
   scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))
 ```
-
 
 ```{r scaled tarsus residuals by sex}
 #Scaled tarsus 
@@ -274,15 +330,34 @@ ggplot(data = B.scaled.df, aes(x=Tarsus,y=TarsusNoSex.resids,color=AllSex))+
           legend.position = "top",
           plot.margin = margin(15,15,15,15))
 ```
+
 ```{r t test scaled tarsus residuals}
 t.test(B.scaled.df$TarsusNoSex.resids[B.scaled.df$AllSex=="M"],B.scaled.df$TarsusNoSex.resids[B.scaled.df$AllSex=="F"])
 ```
+
 <br>
+
+## Unsupervised model selection
+```{r bill depth time 2 model selection}
+MinTempBD.mdl <- lm(BD ~ MinTempMean12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
+summary(fullBD.mdl)
+```
+
+```{r GDD model selection}
+GDDBD.mdl <- lm(BD ~ GDDSum12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
+```
+
+
+
+
+
+
 
 
 ## Bill Depth Models
 
 Bayesian Bill Depth GDD Incubation model
+
 ```{r BD Incubation bayes model}
 BDIncub.bmdl <- stan_glm(BD ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge,
                               data = scaled.df,
@@ -299,16 +374,20 @@ print(summary(BDIncub.bmdl), digits = 3)
 BDGDDIncub.plot <- plot(BDIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIncubation","Weight","CalcAge","GDDSumIncubation:PrecipSumIncubation"))
 #BDGDDIncub.plot
 ```
+
 <br>
 
 A Frequentist Bill Depth GDD Time 1 model to compare with the Bayesian version
+
 ```{r BD Time 1 model}
 BDTime1.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
 summary(BDTime1.scaled.mdl)
 ```
+
 <br>
 
 Bayesian Bill Depth GDD Time 1 model
+
 ```{r BD Time 1 bayes model}
 BDTime1.bmdl <- stan_glm(BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
                               data = scaled.df,
@@ -325,9 +404,11 @@ print(summary(BDTime1.bmdl), digits = 3)
 BDGDDTime1.plot <- plot(BDTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
 #BDGDDTime1.plot
 ```
+
 <br>
 
 Bayesian Bill Depth GDD Time 2
+
 ```{r BD Time 2 bayes model}
 BDTime2.bmdl <- stan_glm(BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
                               data = scaled.df,
@@ -344,16 +425,20 @@ print(summary(BDTime2.bmdl), digits = 3)
 BDGDDTime2.plot <- plot(BDTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
 #BDGDDTime2.plot
 ```
+
 <br>
 
 Arrange the Bill Depth model plots
+
 ```{r ggarrange BD ~ GDD plots}
 BDModelPlots.wrap <- ggarrange(BDGDDIncub.plot,BDGDDTime1.plot,BDGDDTime2.plot, ncol = 1)
 annotate_figure(BDModelPlots.wrap, top = "Bill Depth Models")
 ```
+
 <br>
 
 Plot the interaction between GDD and Precip during incubation
+
 ```{r BD GDD Incubation Inter plot}
 BDGDDIncubInter.plot <- plot_model(BDIncub.bmdl, type = "int", mdrt.values = "quart")
 
@@ -370,9 +455,11 @@ BDGDDIncubInter.plot <- BDGDDIncubInter.plot +
           plot.margin = margin(15,15,15,15))
 #BDGDDIncubInter.plot
 ```
+
 <br>
 
 Plot the interaction between GDD and Precip during Time 2
+
 ```{r BD GDD Time 2 Inter plot}
 BDGDDTime2Inter.plot <- plot_model(BDTime2.bmdl, type = "int", mdrt.values = "quart")
 
@@ -389,18 +476,22 @@ BDGDDTime2Inter.plot <- BDGDDTime2Inter.plot +
           plot.margin = margin(15,15,15,15))
 #BDGDDTime2Inter.plot
 ```
+
 <br>
 
 Arrange interaction plots
+
 ```{r BD arrange inter plots}
 BDInterPlots.wrap <- ggarrange(BDGDDIncubInter.plot,BDGDDTime2Inter.plot, ncol = 2)
 annotate_figure(BDInterPlots.wrap, top = "Bill Depth Interaction Models")
 ```
-<br> 
+
+<br>
 
 ## Upper Bill Models
 
 Bayesian Upper Bill Incubation model
+
 ```{r UB Incubation bayes model}
 UBIncub.bmdl <- stan_glm(UB ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge,
                               data = scaled.df,
@@ -417,9 +508,11 @@ print(summary(UBIncub.bmdl), digits = 3)
 UBGDDIncub.plot <- plot(UBIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIncubation","Weight","CalcAge","GDDSumIncubation:PrecipSumIncubation"))
 #UBGDDIncub.plot
 ```
+
 <br>
 
 Bayesian Upper Bill GDD Time 1 model
+
 ```{r UB Time 1 bayes model}
 UBTime1.bmdl <- stan_glm(UB ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
                               data = scaled.df,
@@ -436,9 +529,11 @@ print(summary(UBTime1.bmdl), digits = 3)
 UBGDDTime1.plot <- plot(UBTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
 #UBGDDTime1.plot
 ```
+
 <br>
 
 Bayesian Upper Bill GDD Time 2
+
 ```{r UB Time 2 bayes model}
 UBTime2.bmdl <- stan_glm(UB ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
                               data = scaled.df,
@@ -455,18 +550,22 @@ print(summary(UBTime2.bmdl), digits = 3)
 UBGDDTime2.plot <- plot(UBTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
 #UBGDDTime2.plot
 ```
+
 <br>
 
 Arrange the Upper Bill model plots
+
 ```{r ggarrange UB ~ GDD plots}
 UBModelPlots.wrap <- ggarrange(UBGDDIncub.plot,UBGDDTime1.plot,UBGDDTime2.plot, ncol = 1)
 annotate_figure(UBModelPlots.wrap, top = "Upper Bill Models")
 ```
+
 <br>
 
 ## Upper Bill Surface Area Models
 
 Bayesian Upper Bill Surface Area Incubation model
+
 ```{r UBS Incubation bayes model}
 UBSIncub.bmdl <- stan_glm(UBS ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge,
                               data = scaled.df,
@@ -483,9 +582,11 @@ print(summary(UBSIncub.bmdl), digits = 3)
 UBSGDDIncub.plot <- plot(UBSIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIncubation","Weight","CalcAge","GDDSumIncubation:PrecipSumIncubation"))
 #UBSGDDIncub.plot
 ```
+
 <br>
 
 Bayesian Upper Bill Surface Area GDD Time 1 model
+
 ```{r UBS Time 1 bayes model}
 UBSTime1.bmdl <- stan_glm(UBS ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
                               data = scaled.df,
@@ -502,9 +603,11 @@ print(summary(UBSTime1.bmdl), digits = 3)
 UBSGDDTime1.plot <- plot(UBSTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
 #UBSGDDTime1.plot
 ```
+
 <br>
 
 Bayesian Upper Bill Surface Area GDD Time 2
+
 ```{r UBS Time 2 bayes model}
 UBSTime2.bmdl <- stan_glm(UBS ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
                               data = scaled.df,
@@ -521,18 +624,22 @@ print(summary(UBSTime2.bmdl), digits = 3)
 UBSGDDTime2.plot <- plot(UBSTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
 #UBSGDDTime2.plot
 ```
+
 <br>
 
 Arrange the Upper Bill Surface Area model plots
+
 ```{r ggarrange UBS GDD plots}
 UBSModelPlots.wrap <- ggarrange(UBSGDDIncub.plot,UBSGDDTime1.plot,UBSGDDTime2.plot, ncol = 1)
 annotate_figure(UBSModelPlots.wrap, top = "Upper Bill Surface Area Models")
 ```
+
 <br>
 
 ## Tarsus Models
 
 Bayesian Tarsus Incubation model
+
 ```{r Tarsus Incubation bayes model}
 TarsusIncub.bmdl <- stan_glm(Tarsus ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge,
                               data = scaled.df,
@@ -549,9 +656,11 @@ print(summary(TarsusIncub.bmdl), digits = 3)
 TarsusGDDIncub.plot <- plot(TarsusIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIncubation","Weight","CalcAge","GDDSumIncubation:PrecipSumIncubation"))
 #TarsusGDDIncub.plot
 ```
+
 <br>
 
 Bayesian Tarsus GDD Time 1 model
+
 ```{r Tarsus Time 1 bayes model}
 TarsusTime1.bmdl <- stan_glm(Tarsus ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge,
                               data = scaled.df,
@@ -568,9 +677,11 @@ print(summary(TarsusTime1.bmdl), digits = 3)
 TarsusGDDTime1.plot <- plot(TarsusTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Weight","CalcAge","GDDSum1_11:PrecipSum1_11"))
 #TarsusGDDTime1.plot
 ```
+
 <br>
 
 Bayesian Tarsus GDD Time 2
+
 ```{r Tarsus Time 2 bayes model}
 TarsusTime2.bmdl <- stan_glm(Tarsus ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge,
                               data = scaled.df,
@@ -587,12 +698,14 @@ print(summary(TarsusTime2.bmdl), digits = 3)
 TarsusGDDTime2.plot <- plot(TarsusTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","Weight","CalcAge","GDDSum12_22:PrecipSum12_22"))
 #TarsusGDDTime2.plot
 ```
+
 <br>
 
 Arrange the Tarsus model plots
+
 ```{r ggarrange Tarsus GDD plots}
 TarsusModelPlots.wrap <-ggarrange(TarsusGDDIncub.plot,TarsusGDDTime1.plot,TarsusGDDTime2.plot, ncol = 1)
 annotate_figure(TarsusModelPlots.wrap, top = "Tarsus Models")
 ```
-<br>
 
+<br>
