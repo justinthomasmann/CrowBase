@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r libraries, echo=T, results="hide"}
+```{r libraries, include=FALSE}
 library(tidyverse)
 library(broom) #tidy() to create tibbles from model summaries
 library(car) #vif (variance inflation factor for measuring covariance)
@@ -36,7 +36,7 @@ theme_set(theme_classic()) #default plots with no gridlines
 ```
 <br>
 
-## Nestling Data and Climate metrics
+## Nestling data and climate metrics
 
 ```{r dataframe}
 df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv", h=TRUE)
@@ -55,7 +55,7 @@ df <- df %>% relocate(Decades, .before = Year)
 
 <br>
 
-## Normalize Continuous Data
+## Normalize continuous data
 
 Subtract each value from the mean (center) and divide it by the standard deviation
 
@@ -94,7 +94,7 @@ B.df <- rbind(F.df,M.df)
 ```
 <br>
 
-## Bill Depth by sex
+## Bill depth comparison between sexes
 
 What is the mean bill depth of males and females?
 
@@ -177,7 +177,7 @@ ggplot(data = TruncBD.df, aes(x=BD,y=BDNoSex.resids,color=AllSex))+
 ```
 <br>
 
-## Tarsus comparisons by sex
+## Tarsus comparisons between sexes
 
 ```{r unscaled tarsus t test}
 t.test(B.df$Tarsus[B.df$AllSex=="M"], B.df$Tarsus[B.df$AllSex=="F"])
