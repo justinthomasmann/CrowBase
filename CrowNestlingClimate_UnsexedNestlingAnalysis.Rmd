@@ -77,7 +77,7 @@ precip.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=PrecipCM))+
 ```
 
 ```{r wrap climate plots}
-climate.wrap <- ggarrange(min.plot,max.plot,precip.plot, ncol = 1)
+climate.wrap <- ggarrange(max.plot,min.plot,precip.plot, ncol = 1)
 annotate_figure(climate.wrap, top = "Climate Conditions across March, April, May and June")
 ```
 
