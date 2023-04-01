@@ -1,0 +1,188 @@
+---
+title: "Comparing Climatic Conditions across Years"
+author: "Justin Mann"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(broom) #tidy() to create tibbles from model summaries
+library(car) #vif (variance inflation factor for measuring covariance)
+library(cowplot)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange for plot wraps
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+library(plotly) #ggplotly() to make interactive plots with scroll over ids
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa) #model validation functions
+library(DescTools) #Entropy() and MutInf()
+
+#Libraries for Bayesian Models
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+library(loo) #use loo() to compare fits between bayesian models
+
+#Clustering libraries
+library(umap)
+library(tsne)
+library(ggfortify)#use autoplot() to visualize PCAs
+library(stpm)#stochastic process model
+theme_set(theme_classic()) #default plots with no gridlines
+```
+<br>
+
+## Climate Data
+
+```{r climate variables df}
+clim.df <- read.csv("ClimateVariables.csv", h=TRUE)
+```
+
+```{r plot median max temp}
+median(clim.df$MaxTempC, na.rm=TRUE)
+max.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=MaxTempC))+
+  geom_boxplot()+
+  geom_hline(yintercept = 16.67, color = "red", linetype = "dotted", linewidth = 1)+
+  #ggtitle("Daily Maximum Temperatures across March, April, May and June")+
+  ylab("Maximum Temperature (C)")+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r plot median min temp}
+median(clim.df$MinTempC, na.rm=TRUE)
+min.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=MinTempC))+
+  geom_boxplot()+
+  geom_hline(yintercept = 3.89, color = "red", linetype = "dotted", size = 1)+
+  #ggtitle("Daily Minimum Temperature across March, April, May and June")+
+  ylab("Minimum Temperature (C)")+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+
+```{r plot precip}
+median(clim.df$PrecipCM, na.rm=TRUE)
+precip.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=PrecipCM))+
+  geom_boxplot()+
+  geom_hline(yintercept = 0.025, color = "red", linetype = "dotted", size = 1)+
+  #ggtitle("Daily Minimum Temperature across March, April, May and June")+
+  ylab("Precipitation (cm)")+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r wrap climate plots}
+climate.wrap <- ggarrange(max.plot,min.plot,precip.plot, ncol = 1)
+annotate_figure(climate.wrap, top = "Climate Conditions across March, April, May and June")
+```
+
+## Nestling Data and Climate metrics
+
+```{r dataframe}
+df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv", h=TRUE)
+df <- df[,-1]
+#n=2035 nestlings, 39 variables
+```
+
+<br>
+
+A column to hold decade bins for plotting
+
+```{r creating decade bins}
+df$Decades <- cut(df$Year, breaks = c(1988,1999,2010,2018), labels = c("89-99","00-10","11-18"))
+df <- df %>% relocate(Decades, .before = Year)
+```
+
+<br>
+
+## Normalize Continuous Data
+
+Subtract each value from the mean (center) and divide it by the standard deviation
+
+```{r scaling}
+#categorical data  
+unScaled.df <- df[,1:11]
+
+#continuous data
+dataToScale.df <- df[,12:40]
+
+#scale continuous data
+#?scale()
+scaled.mat <- scale(dataToScale.df, center = TRUE, scale = TRUE)
+
+#join unscaled and scaled data
+scaled.df <- cbind(unScaled.df,scaled.mat)
+```
+
+<br>
+
+
+```{r data frame with only sexed nestlings}
+#Males Scaled
+M.scaled.df <- subset(scaled.df, AllSex=="M")
+#Males Unscaled
+M.df <- subset(df, AllSex=="M")
+
+#Females Scaled
+F.scaled.df <- subset(scaled.df, AllSex=="F")
+#Females Unscaled
+F.df <- subset(df, AllSex=="F")
+
+#Both sexes scaled
+B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
+#Both sexes unscaled
+B.df <- rbind(F.df,M.df)
+```
+
+<br>
+
+## Climate PCA
+
+```{r id columns and matrix for climate PCA}
+climPCA.ids <- scaled.df %>% select(Year,HatchDateJul)
+climPCA.mat <- scaled.df %>% select(MeanMaxTempIncubation,MaxTempMean1_11,MaxTempMean12_22,MeanMinTempIncubation,MinTempMean1_11,MinTempMean12_22,PrecipSumIncubation,PrecipSum1_11,PrecipSum12_22)
+```
+
+```{r PCAs}
+#all climate variables
+climPCA <- prcomp(climPCA.mat)
+#max temps only
+maxPCA <- prcomp(climPCA.mat[,1:3])
+#min temps only
+minPCA <- prcomp(climPCA.mat[4:6])
+#precip only
+precipPCA <- prcomp(climPCA.mat[,7:9])
+```
+
+```{r plot all clim vars}
+autoplot(climPCA, colour=as.factor(climPCA.ids$Year),
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, loadings.label.size = 3)
+
+```
+
+```{r plot max temp vars}
+autoplot(maxPCA, colour=as.factor(climPCA.ids$Year),
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, loadings.label.size = 3)
+
+```
+
+```{r plot min tmep vars}
+autoplot(minPCA, colour=as.factor(climPCA.ids$Year),
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, loadings.label.size = 3)
+
+```
+
+```{r plot precip vars}
+autoplot(precipPCA, colour=as.factor(climPCA.ids$Year),
+         loadings = TRUE, loadings.colour = 'blue',
+         loadings.label = TRUE, loadings.label.size = 3)
+
+```
