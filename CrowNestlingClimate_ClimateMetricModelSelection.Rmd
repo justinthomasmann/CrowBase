@@ -5,13 +5,6 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
----
-title: "Unsexed Nestling Analysis"
-author: "Justin Mann"
-date: "`r Sys.Date()`"
-output: html_document
----
-
 ```{r libraries, include=FALSE}
 library(tidyverse)
 library(broom) #tidy() to create tibbles from model summaries
@@ -41,8 +34,8 @@ library(ggfortify)#use autoplot() to visualize PCAs
 library(stpm)#stochastic process model
 theme_set(theme_classic()) #default plots with no gridlines
 ```
-<br>
 
+<br>
 
 ## Nestling Data and Climate metrics
 
@@ -121,7 +114,7 @@ B.df <- rbind(F.df,M.df)
 
 ## Unsupervised model selection
 
-### What climate metrics best explain variation in bill shape? 
+### What climate metrics best explain variation in bill shape?
 
 Since the strongest effects thus far have shown up in Time Period 2 (12-22 days post hatching), I'm going to use Time 2 for model selection tests.
 
@@ -145,10 +138,12 @@ Minimum Temperature Model fits the data best. GDD is second best, but the delta 
 ```{r MinTempBD.mdl summary}
 summary(MinTempBD.mdl)
 ```
+
 ```{r MinTempBD prediction}
 MinTemp.pred <- ggpredict(MinTempBD.mdl, type = "fe", terms = ~ MinTempMean12_22)
 MinTemp.pred
 ```
+
 ```{r MinTempBD prediction plot}
 ggplot(data = MinTemp.pred, aes(x,predicted))+
   geom_point(data = scaled.df, aes(x=MinTempMean12_22, y=BD))+
@@ -158,15 +153,18 @@ ggplot(data = MinTemp.pred, aes(x,predicted))+
   xlab("Scaled Minimum Temperature")+
   ylab("Scaled Bill Depth")
 ```
+
 <br>
 
 ```{r GDDBD.mdl summary}
 summary(GDDBD.mdl)
 ```
+
 ```{r GDDBD prediction}
 GDDBD.pred <- ggpredict(GDDBD.mdl, type = "fe", terms = ~ GDDSum12_22)
 GDDBD.pred
 ```
+
 ```{r GDDBD prediction plot}
 ggplot(data = GDDBD.pred, aes(x,predicted))+
   geom_point(data = scaled.df, aes(x=GDDSum12_22, y=BD))+
