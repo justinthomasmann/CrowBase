@@ -9,6 +9,7 @@ output: html_document
 library(tidyverse)
 library(dplyr)
 library(zoo)
+library(lubridate)
 ```
 
 ## CLIMOD2 Data for Cornell University Weather Station
@@ -22,22 +23,19 @@ ITHN6 (NWS LI)
 
 <http://climod2.nrcc.cornell.edu/>
 
-```{r data frame}
-df <- read.table("climod2data1989-2022.txt", sep = ",", header = TRUE)
+```{r raw data}
+#Raw text file downloaded from climod2
+rawclim.df <- read.table("climod2data1989-2022.txt", sep = ",", header = TRUE)
 
+#Make variables numeric (will coerce NAs where data are missing)
+rawclim.df$MaxTemp <- as.numeric(rawclim.df$MaxTemperature)
+which(is.na(rawclim.df$MaxTemp))#[1] 1535
+rawclim.df$MinTemp <- as.numeric(rawclim.df$MinTemperature)
+which(is.na(rawclim.df$MinTemp))#[1] 1440 1536 1853 4401
 
-df <- df %>% 
-  rename(MaxTemp=MaxTemperature,MinTemp=MinTemperature,Precip=Precipitation) %>% 
-  select(Date,HatchDateJulYear,MaxTemp,MinTemp,Precip,HDD,CDD,GDD)
-
-
-#coerce climate variables to class numeric, NAs introduced where missing data were coded as characters 
-df$MaxTemp <- as.numeric(df$MaxTemp)
-df$MinTemp <- as.numeric(df$MinTemp)
-df$Precip <- as.numeric(df$Precip)
-df$HDD <- as.numeric(df$HDD)
-df$CDD <- as.numeric(df$CDD)
-df$GDD <- as.numeric(df$GDD)
+rawclim.df$Precip <- as.numeric(rawclim.df$Precipitation)
+rawclim.df$Snowfall <- as.numeric(rawclim.df$Snowfall)
+rawclim.df$SnowDepth <- as.numeric(rawclim.df$SnowDepth)  
 ```
 
 ```{r metric and celcius conversions}
@@ -45,50 +43,41 @@ f2c <- function(x){
   x <- (5/9) * (x-32)
   return(x)
 }
-f2c(42)#first MaxTemp = 5.555C
+f2c(33)#[1] 0.556
 
-df$MaxTempC <- mapply(f2c, df$MaxTemp)
-df$MinTempC <- mapply(f2c, df$MinTemp)
+rawclim.df$MaxC <- mapply(f2c, rawclim.df$MaxTemp)
+rawclim.df$MinC <- mapply(f2c, rawclim.df$MinTemp)
 
 in2cm <- function(x){
   x <- x * 2.54
   return(x)
 }
-in2cm(0.07)#first precip amount = 0.1778 cm
-df$PrecipCM <- mapply(in2cm, df$Precip)
+in2cm(0.1)#[1] 0.254
+
+rawclim.df$PrecipCM <- mapply(in2cm, rawclim.df$Precip)
+rawclim.df$SnowfallCM <- mapply(in2cm, rawclim.df$Snowfall)
+rawclim.df$SnowDepthCM <- mapply(in2cm, rawclim.df$SnowDepth)
 ```
 
 
-```{r reorder df to include C and cm}
-df <- df %>% 
-  select(Date,HatchDateJulYear,MaxTempC,MinTempC,
-         PrecipCM,HDD,CDD,GDD)
+```{r new data}
+clim.df <- rawclim.df %>% 
+  select(Date,MaxC,MinC,
+         PrecipCM,SnowfallCM,SnowDepthCM)
+#add year column
+clim.df$Year <- lubridate::year(clim.df$Date)
+#add Julian Day
+clim.df$JulDay <- lubridate::yday(clim.df$Date)
+#pad Julian Day with zeros
+clim.df$JulDay <- str_pad(clim.df$JulDay, 3, pad = "0")
+#join padded Julian Days with Year
+my_cols <- c("Year", "JulDay")
+clim.df$HatchDateJulYear <- do.call(paste, c(clim.df[my_cols], sep = ""))
+
 ```
 
 
-```{r climate data for plotting}
-#NestingMonths.df <- subset(df, Month >2 & Month <6 & Year < 2019)
-```
 
-
-```{r TempsByYear plot}
-# NestingMonths.df$Year <- as.factor(NestingMonths.df$Year)
-# mean(NestingMonths.df$MaxTempC, na.rm=TRUE)
-# 
-# TempsByYear.plot <- ggplot(data = NestingMonths.df)+
-#   geom_boxplot(aes(x=Year,y=MaxTempC, fill=as.factor(Month)))+
-#   geom_hline(yintercept = 12.64, color = "red", linetype = "dashed", size = 1)+
-#   ylab("Maximum temperature (C)")+
-#   xlab("")+
-#   ggtitle("Mean maximum daily temperature across March, April and May")+
-#   theme(axis.text.x = element_text(angle = 90))+
-#   scale_fill_brewer(name = "Month", labels = c("March", "April", "May"), palette = "Greens")+
-#   geom_rect(aes(xmin=2,xmax=2.5,ymin=Inf, ymax=Inf, alpha=0.2))+
-#   theme_bw()
-# 
-# TempsByYear.plot
-# ggsave("TempsByYear.png", width = 9, height = 5)
-```
 
 
 
