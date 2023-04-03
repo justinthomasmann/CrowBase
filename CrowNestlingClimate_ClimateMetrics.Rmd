@@ -60,22 +60,44 @@ rawclim.df$SnowDepthCM <- mapply(in2cm, rawclim.df$SnowDepth)
 ```
 
 
-```{r new data}
+```{r new data frame}
 clim.df <- rawclim.df %>% 
   select(Date,MaxC,MinC,
          PrecipCM,SnowfallCM,SnowDepthCM)
-#add year column
-clim.df$Year <- lubridate::year(clim.df$Date)
-#add Julian Day
-clim.df$JulDay <- lubridate::yday(clim.df$Date)
-#pad Julian Day with zeros
-clim.df$JulDay <- str_pad(clim.df$JulDay, 3, pad = "0")
-#join padded Julian Days with Year
-my_cols <- c("Year", "JulDay")
-clim.df$HatchDateJulYear <- do.call(paste, c(clim.df[my_cols], sep = ""))
+##add year column
+#clim.df$Year <- lubridate::year(clim.df$Date)
+##add Julian Day
+#clim.df$JulDay <- lubridate::yday(clim.df$Date)
+##pad Julian Day with zeros
+#clim.df$JulDay <- str_pad(clim.df$JulDay, 3, pad = "0")
+##join padded Julian Days with Year
+#my_cols <- c("Year", "JulDay")
+#clim.df$HatchDateJulYear <- do.call(paste, c(clim.df[my_cols], sep = ""))
 
 ```
+<br>
 
+Now, we'll create some potentially biologically-relevant temperature thresholds 
+```{r temperature thesholds}
+#add daily mean column
+clim.df$MeanC <- (clim.df$MaxC + clim.df$MinC)/2
+
+#add columns where daily mean temperatures are set relative to 
+#5 degrees C
+clim.df$C5 <- clim.df$MeanC - 5
+#10 degrees C
+clim.df$C10 <- clim.df$MeanC - 10
+#15 degrees C
+clim.df$C15 <- clim.df$MeanC - 15
+#20 degrees C
+clim.df$C20 <- clim.df$MeanC - 20
+```
+
+```{r write a new climate metric csv}
+clim.df <- clim.df %>% 
+  relocate(c(MinC, MaxC), .after = SnowDepthCM)
+#write.csv(clim.df, "ClimateMetrics_AllMonths1989-2022.csv")
+```
 
 
 
@@ -336,7 +358,7 @@ ClimateMetrics.df <- df %>%
 ```
 
 ```{r}
-write.csv(ClimateMetrics.df, "ClimateMetrics.csv",
+#write.csv(ClimateMetrics.df, "ClimateMetrics.csv",
             row.names = FALSE)
 ```
 

@@ -11,4 +11,7 @@ Precipitation : 8am, unknown, 7am, 6am
 Snowfall : unknown, unknown, 7am, 6am, 8am
 Snow Depth : unknown, unknown, 7am, 6am, 8am
 
+T = Trace amounts (<0.01
+
 Station ID: 304174
+
