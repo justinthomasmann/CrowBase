@@ -79,9 +79,10 @@ df$ID[df$ID=="doa3 NMUR07"]#in, remove below
 df$ID[df$ID=="doa4 NMUR07"]#in, remove below
 df$ID[df$ID=="doa5 NMUR07"]#in, remove below
 df$ID[df$ID=="X0 YFER00"]#identified in DuplicateNestlings file, remove below (*2 obs)
+df$ID[df$ID=="dead fledgling USGS16"]#not in
 
 #Remove 29 individuals listed above 
-df <- df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17","L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00","doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06","doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07","doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07","FE WCRI18","DOA RGBY00","X0 YFER00"))#new n=2365
+df <- df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17","L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00","doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06","doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07","doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07","FE WCRI18","DOA RGBY00","X0 YFER00","dead fledgling USGS16"))#new n=2364
 ```
 <br>
 
@@ -147,6 +148,10 @@ df <- df %>%
 ```
 <br> 
 
+```{r}
+summary(df)
+```
+
 
 
 ```{r age filter}
@@ -155,12 +160,14 @@ df <- df %>% filter(Weight > 160)#new n=2313
 range(df$Weight)
 
 #filter between 24 and 30 days CalcAges
-df <- df %>% filter(between(CalcAge, 24,30))#new n=2035
-range(df$CalcAge)
+df <- df %>% filter(between(FieldAge, 23,29))#new n=2035
+range(df$FieldAge)
+
+df <- df %>% filter(between(Weight, 162, 301))
 
 #resort df 
 df <- df %>% arrange(Year,NestName,ID)
-#write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned.csv")
+write.csv(df, "CrowNestlingClimate_AllNestlingsPossibleRunts.csv")
 ```
 
 

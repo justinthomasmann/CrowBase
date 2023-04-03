@@ -1,5 +1,5 @@
 ---
-title: "Nestlings and Climate"
+title: "Calculating Climate Metrics"
 author: "Justin Mann"
 date: "2022-09-27"
 output: html_document
@@ -23,7 +23,7 @@ ITHN6 (NWS LI)
 <http://climod2.nrcc.cornell.edu/>
 
 ```{r data frame}
-df <- read.csv("IthacaWeatherData1989-2020.csv", h=TRUE)
+df <- read.table("climod2data1989-2022.txt", sep = ",", header = TRUE)
 
 
 df <- df %>% 
