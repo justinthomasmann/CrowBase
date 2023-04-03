@@ -1,0 +1,14 @@
+Data for ITHACA CORNELL UNIV, NY
+
+Observations for each day cover the 24 hours ending
+at the time given below (Local Standard Time).
+
+Observation times may have changed during this period.
+
+Max Temperature : 8am, unknown, 7am, 6am
+Min Temperature : 8am, unknown, 7am, 6am
+Precipitation : 8am, unknown, 7am, 6am
+Snowfall : unknown, unknown, 7am, 6am, 8am
+Snow Depth : unknown, unknown, 7am, 6am, 8am
+
+Station ID: 304174
