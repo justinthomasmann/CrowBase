@@ -38,7 +38,7 @@ clim.df$climDate <- as.factor(clim.df$climDate)
 
 ```{r nestling data}
 #nestling data 
-nestl.df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv", h=TRUE)
+nestl.df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned.csv", h=TRUE)
 nestl.df <- nestl.df[,2:22]
 #coerce Date to class Date
 nestl.df$Date <- as.Date(nestl.df$Date, format = "%m/%d/%Y")

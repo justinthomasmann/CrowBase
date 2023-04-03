@@ -110,7 +110,7 @@ duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)
 duplicates.df <- duplicates.df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=19
 
 #Sort remaining duplicates.df by year and CalcAge and only retain the first (youngest) observation
-df <- df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=2340 (19 fewer than above, so code works)
+df <- df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=2339 (19 fewer than above, so code works)
 
 summary(duplicated(df$ID))#no more duplicates
 ```
@@ -156,50 +156,33 @@ summary(df)
 
 ```{r age filter}
 #filter out Weights < 160 
-df <- df %>% filter(Weight > 160)#new n=2313
+df <- df %>% filter(Weight > 200)#new n=2297
 range(df$Weight)
 
 #filter between 24 and 30 days CalcAges
-df <- df %>% filter(between(FieldAge, 23,29))#new n=2035
+df <- df %>% filter(between(FieldAge, 23,29))#new n=1919
 range(df$FieldAge)
 
-df <- df %>% filter(between(Weight, 162, 301))
+liteWeights.df <- df %>% filter(between(Weight, 162, 301))
 
 #resort df 
 df <- df %>% arrange(Year,NestName,ID)
-write.csv(df, "CrowNestlingClimate_AllNestlingsPossibleRunts.csv")
+#write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned.csv")
 ```
 
 
-```{r plot Weight by FieldAge}
-WeightByFieldAge.plot <- ggplot(data = df, aes(x=FieldAge,y=Weight,label=ID,color=HatchDateJul))+
-  geom_point()
-ggplotly(WeightByFieldAge.plot)
-```
+## Join nestling and climate data
 
-
-```{r CalcAge filter (24-30)}
-df <- df %>% filter(between(CalcAge, 24,30))
-range(df$CalcAge)
-```
-
-
-```{r plot Weight by CalcAge}
-WeightByCalcAge.plot <- ggplot(data = df, aes(x=CalcAge,y=Weight,label=ID))+
-  geom_point()
-ggplotly(WeightByCalcAge.plot)
-```
-
-
-```{r read in climate data}
-climate.df <- read.csv("ClimateMetrics.csv", h=TRUE)
+```{r read in data}
+nestl.df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned.csv", h=TRUE)
+clim.df <- read.csv("ClimateMetrics_ForJoining.csv", h=TRUE)
 ```
 
 
 ```{r joining nestling and climate data}
-df <- left_join(df,climate.df, by = "HatchDateJulYear")
+df <- left_join(nestl.df,clim.df, by = "HatchDateJulYear")
 df <- df %>% relocate(Date, .before = AllSex)
-#write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv")
+write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv")
 ```
 
 ```{r scaling}
