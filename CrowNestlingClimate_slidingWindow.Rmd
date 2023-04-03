@@ -1,0 +1,59 @@
+---
+title: "Testing climwin"
+author: "Justin Mann"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(climwin)
+library(tidyverse)
+library(lubridate)
+```
+
+## Testing sliding window approach used in Liu et al. 2023 J of Avian Biol
+
+The goal is to identify the window of time that best explains variation in nestling morphometrics. In the context of our project, this program will detect the post-hatch time period ('window' of days) over which our nestling's bills are most responsive to climatic conditions. Mathematically, it's simply running the same model, with every possible sequence of days inside a user-defined window of time, and then comparing AIC values across all models.
+
+
+
+
+```{r climate data}
+#climate data
+clim.df <- read.csv("ClimateMetricsFull.csv", h=TRUE)
+clim.df <- clim.df[,1:8]
+#coerce Date to class Date
+clim.df$Date <- as.Date(clim.df$Date, format = "%m/%d/%Y")
+class(clim.df$Date)
+
+# GDD = mean daily temperature subtracted from the base temperature
+# GDD = (max. + min.)/2 - base temp. 
+
+
+#Calculate mean daily temp
+clim.df$MeanTempC <- (clim.df$MaxTempC+clim.df$MinTempC)/2
+#Calculate GDD at 10 degrees C
+clim.df$C10 <- clim.df$MeanTempC-10
+
+clim.df <- clim.df %>% 
+  relocate(MeanTempC, .after = MinTempC) %>% 
+  relocate(PrecipCM, .after = GDD) %>% 
+  
+
+```
+<br>
+
+```{r nestling data}
+#nestling data 
+nestl.df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv", h=TRUE)
+nestl.df <- nestl.df[,2:22]
+#coerce Date to class Date
+nestl.df$Date <- as.Date(nestl.df$Date, format = "%m/%d/%Y")
+class(nestl.df$Date)
+```
+<br>
+
+```{r slidingwin test}
+slidingwin()
+```
+
