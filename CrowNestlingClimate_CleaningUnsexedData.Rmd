@@ -147,6 +147,8 @@ df <- df %>%
 ```
 <br> 
 
+
+
 ```{r age filter}
 #filter out Weights < 160 
 df <- df %>% filter(Weight > 160)#new n=2313
