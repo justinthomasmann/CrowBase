@@ -102,7 +102,7 @@ clim.df <- clim.df %>%
 ```
 
 ```{r clim.df}
-#clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
+clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
 ```
 <br>
 
@@ -163,13 +163,13 @@ c(mean=mean(clim.df[1:19,8]), metric=clim.df[19,20]) #mean() calculation should 
 <br>
 
 
-## C5 rolling means
+## C5 rolling sums
 ```{r C5Sum1_11}
 #An 11-day rolling window calculates the mean of C5 for post-hatch days 1-11
 clim.df$C5Sum1_11 <- zoo::rollapply(clim.df$C5, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[1:11,11]),metric=clim.df[1,21])
+c(sum=sum(clim.df[1:11,11]),metric=clim.df[1,21])
 #mean() calculation should match metric
 ```
 
@@ -178,7 +178,7 @@ c(mean=mean(clim.df[1:11,11]),metric=clim.df[1,21])
 clim.df$C5Sum12_22 <- dplyr::lead(clim.df$C5Sum1_11, n = 11)
 
 #Code check
-c(mean=mean(clim.df[12:22,11]), metric=clim.df[1,22])#mean() calculation should match metric
+c(sum=sum(clim.df[12:22,11]), metric=clim.df[1,22])#mean() calculation should match metric
 ```
 
 ```{r C5SumIncubation}
@@ -186,18 +186,18 @@ c(mean=mean(clim.df[12:22,11]), metric=clim.df[1,22])#mean() calculation should 
 clim.df$C5SumIncubation <- zoo::rollapply(clim.df$C5, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[1:19,11]), metric=clim.df[19,23]) #mean() calculation should match metric
+c(sum=sum(clim.df[1:19,11]), metric=clim.df[19,23]) #mean() calculation should match metric
 ```
 <br>
 
 
-## C10 rolling means
+## C10 rolling sums
 ```{r C10Sum1_11}
 #An 11-day rolling window calculates the mean of C10 for post-hatch days 1-11
 clim.df$C10Sum1_11 <- zoo::rollapply(clim.df$C10, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[1:11,12]),metric=clim.df[1,24])
+c(sum=sum(clim.df[1:11,12]),metric=clim.df[1,24])
 #mean() calculation should match metric
 ```
 
@@ -206,7 +206,7 @@ c(mean=mean(clim.df[1:11,12]),metric=clim.df[1,24])
 clim.df$C10Sum12_22 <- dplyr::lead(clim.df$C10Sum1_11, n = 11)
 
 #Code check
-c(mean=mean(clim.df[12:22,12]), metric=clim.df[1,25])#mean() calculation should match metric
+c(sum=sum(clim.df[12:22,12]), metric=clim.df[1,25])#mean() calculation should match metric
 ```
 
 ```{r C10SumIncubation}
@@ -214,18 +214,18 @@ c(mean=mean(clim.df[12:22,12]), metric=clim.df[1,25])#mean() calculation should 
 clim.df$C10SumIncubation <- zoo::rollapply(clim.df$C10, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[1:19,12]), metric=clim.df[19,26]) #mean() calculation should match metric
+c(sum=sum(clim.df[1:19,12]), metric=clim.df[19,26]) #mean() calculation should match metric
 ```
 <br>
 
 
-## C15 rolling means
+## C15 rolling sums
 ```{r C15Sum1_11}
 #An 11-day rolling window calculates the mean of C15 for post-hatch days 1-11
 clim.df$C15Sum1_11 <- zoo::rollapply(clim.df$C15, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[1:11,13]),metric=clim.df[1,27])
+c(sum=sum(clim.df[1:11,13]),metric=clim.df[1,27])
 #mean() calculation should match metric
 ```
 
@@ -234,7 +234,7 @@ c(mean=mean(clim.df[1:11,13]),metric=clim.df[1,27])
 clim.df$C15Sum12_22 <- dplyr::lead(clim.df$C15Sum1_11, n = 11)
 
 #Code check
-c(mean=mean(clim.df[12:22,13]), metric=clim.df[1,28])#mean() calculation should match metric
+c(sum=sum(clim.df[12:22,13]), metric=clim.df[1,28])#mean() calculation should match metric
 ```
 
 ```{r C15SumIncubation}
@@ -242,7 +242,35 @@ c(mean=mean(clim.df[12:22,13]), metric=clim.df[1,28])#mean() calculation should 
 clim.df$C15SumIncubation <- zoo::rollapply(clim.df$C15, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[1:19,13]), metric=clim.df[19,29]) #mean() calculation should match metric
+c(sum=sum(clim.df[1:19,13]), metric=clim.df[19,29]) #mean() calculation should match metric
+```
+<br>
+
+
+## Precip rolling sums
+```{r PrecipSum1_11}
+#An 11-day rolling window calculates the mean of PrecipCM for post-hatch days 1-11
+clim.df$PrecipSum1_11 <- zoo::rollapply(clim.df$PrecipCM, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(sum=sum(clim.df[1:11,5], na.rm = T),metric=clim.df[1,30])
+#mean() calculation should match metric
+```
+
+```{r PrecipSum12_22}
+#An 11-day rolling window calculates the mean of PrecipCM for post-hatch days 12-22
+clim.df$PrecipSum12_22 <- dplyr::lead(clim.df$PrecipSum1_11, n = 11)
+
+#Code check
+c(sum=sum(clim.df[12:22,5], na.rm = T), metric=clim.df[1,31])#mean() calculation should match metric
+```
+
+```{r PrecipSumIncubation}
+#PrecipCM mean for 19 days prior to hatch date
+clim.df$PrecipSumIncubation <- zoo::rollapply(clim.df$PrecipCM, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
+
+#Code check
+c(sum=sum(clim.df[1:19,5], na.rm = T), metric=clim.df[19,32]) #mean() calculation should match metric
 ```
 <br>
 
@@ -255,18 +283,18 @@ c(mean=mean(clim.df[1:19,13]), metric=clim.df[19,29]) #mean() calculation should
 
 ```{r simplified df for analysis}
 #New dataframe with the derived climate metrics
-ClimateMetrics.df <- df %>% 
+clim.df <- clim.df %>% 
   select(Date,HatchDateJulYear,
-         MaxTempMean1_11,MaxTempMean12_22,MeanMaxTempIncubation,
-         MinTempMean1_11,MinTempMean12_22,MeanMinTempIncubation,
+         MeanMax1_11,MeanMax12_22,MeanMaxIncubation,
+         MeanMin1_11,MeanMin12_22,MeanMinIncubation,
          PrecipSum1_11,PrecipSum12_22,PrecipSumIncubation,
-         GDDSum1_11,GDDSum12_22,GDDSumIncubation,
-         CDDSum1_11,CDDSum12_22,CDDSumIncubation,
-         HDDSum1_11,HDDSum12_22,HDDSumIncubation)
+         C5Sum1_11,C5Sum12_22,C5SumIncubation,
+         C10Sum1_11,C10Sum12_22,C10SumIncubation,
+         C15Sum1_11,C15Sum12_22,C15SumIncubation)
 ```
 
 ```{r}
-write.csv(clim.df, "ClimateMetrics_AllMonths1989-2022.csv", row.names = FALSE)
+write.csv(clim.df, "ClimateMetrics_ForJoining.csv", row.names = FALSE)
 ```
 
 
