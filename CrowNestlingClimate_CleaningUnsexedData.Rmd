@@ -12,7 +12,7 @@ library(broom) #tidy() to create tibbles from model summaries
 library(car) #vif
 library(cowplot)
 library(lme4) #frequentist models  
-library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(sjPlot) #plot_model & tab_model 
 library(ggpubr) #ggarrange
 library(glmmTMB) #zi & overdispersed models
 library(lmerTest) #lmerTest::step

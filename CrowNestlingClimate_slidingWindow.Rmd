@@ -9,8 +9,9 @@ output: html_document
 library(climwin)
 library(tidyverse)
 library(lubridate)
-library(sjPlot)
-library(AICcmodavg)
+library(sjPlot) #plot_model & tab_model 
+library(car) #vif
+library(AICcmodavg) #aictab() for AICc model comparisons
 ```
 
 ## Testing sliding window approach used in Liu et al. 2023 J of Avian Biol
@@ -32,16 +33,11 @@ df$Date <- as.Date(df$Date, format = "%m/%d/%Y")
 #create a date that is 22 days post-hatch (climwin is built to look backwards from a specified date, not forwards)
 df$PostHatch22Date <- df$Date + 22
 
-#make a new vector called CalcAgeDecimal so that CalcAge can be an integer instead
-df$CalcAgeDecimal <- df$CalcAge
-df$CalcAge <- round(df$CalcAgeDecimal)
 
 #move variables in prep for scaling
 df <- df %>% 
   relocate(CalcAge, .after = AllSex) %>% 
-  relocate(CalcAgeDecimal, .after = CalcAge) %>% 
   relocate(PostHatch22Date, .after = Date)
-
 ```
 <br>
 
@@ -55,14 +51,20 @@ R's scale function subtracts each value from the mean (centers) and divide it by
 
 #separate categorical and continous data
 categorical.df <- df[,1:10]
-continuous.df <- df[,11:41]
+continuous.df <- df[,11:40]
 
 #scale continuous data
 scaled.mat <- scale(continuous.df, center = TRUE, scale = TRUE)
 
 #join unscaled and scaled data
 scaled.df <- cbind(categorical.df,scaled.mat)
+
+#data frame with only nestling data
+nestl.scaled.df <- scaled.df[,1:22]
 ```
+<br>
+
+We want to identify the correct baseline model for the sliding window function to use. The outstanding question is whether the model should include weight AND age or just weight. Anne is concerned that age and weight might be explaining the same variation.
 <br>
 
 ```{r data frame with only sexed nestlings}
@@ -83,7 +85,7 @@ B.df <- rbind(F.df,M.df)
 ```
 <br>
 
-```{r null models}
+```{r baseline models}
 weight.mdl <- lm(data = F.scaled.df, BD ~ Weight)
 age.mdl <- lm(data = F.scaled.df, BD ~ CalcAgeDecimal)
 ageWeight.mdl <- lm(data = F.scaled.df, BD ~ Weight + CalcAgeDecimal)
@@ -92,54 +94,149 @@ ageWeightInter.mdl <- lm(data = F.scaled.df, BD ~ Weight * CalcAgeDecimal)
 null.mdls <- list(weight.mdl,age.mdl,ageWeight.mdl,ageWeightInter.mdl)
 null.modnames <- c("weight.mdl","age.mdl","ageWeight.mdl","ageWeightInter.mdl")
 aictab(cand.set = null.mdls, modnames = null.modnames)
+vif(ageWeight.mdl)
+vif(ageWeightInter.mdl, type = "predictor")
 
 plot_model(ageWeightInter.mdl,type = "int")
 summary(ageWeightInter.mdl)
 ```
-
-
-
+<br>
 
 
 ```{r formatting for climwin}
-#format post-hatch date to dd/mm/yyyy
-#make cDate (climate date) for climate data and bDate (biological date) for nestling data
-scaled.df$cDate <- format(strptime(scaled.df$PostHatch22Date, format = "%Y-%m-%d"), "%d/%m/%Y")
-# bDate (biological date) for nestling data
-scaled.df$bDate <- scaled.df$cDate
+#our climate variables for 1989-2022
+clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
+#scale continuous 
+clim.mat <- scale(clim.df[,5:14])
+clim.scaled.df <- cbind(clim.df[,1:4],clim.mat)
 
+#format dates to dd/mm/yyyy
+#make cDate (climate date) for climate data and bDate (biological date) for nestling data
+clim.scaled.df$Date <- as.Date(clim.scaled.df$Date, format = "%m/%d/%Y")
+clim.scaled.df$cDate <- format(strptime(clim.scaled.df$Date, format = "%Y-%m-%d"), "%d/%m/%Y")
 #remove leading 
-scaled.df$cDate <- str_remove(scaled.df$cDate, "^0+")
-nestl.df$climDate <- as.factor(nestl.df$climDate)
+clim.scaled.df$cDate <- str_remove(clim.scaled.df$cDate, "^0+")
+clim.scaled.df$cDate <- as.factor(clim.scaled.df$cDate)
+clim.scaled.df <- clim.scaled.df %>% 
+  relocate(cDate, .after = Date)
+
+#make bDate (biological date) for nestling data
+nestl.scaled.df$PostHatch22Date <- as.Date(nestl.scaled.df$PostHatch22Date, format = "%m/%d/%Y")
+nestl.scaled.df$bDate <- format(strptime(nestl.scaled.df$PostHatch22Date, format = "%Y-%m-%d"), "%d/%m/%Y") 
+nestl.scaled.df$bDate <- str_remove(nestl.scaled.df$bDate, "^0+")
+nestl.scaled.df$bDate <- as.factor(nestl.scaled.df$bDate)
+nestl.scaled.df <- nestl.scaled.df %>% 
+  relocate(bDate, .before = AllSex)
 ```
 
-```{r slidingwin test}
-test1 <- slidingwin(xvar = list(C10 = clim.df$C10),
-           cdate = clim.df$climDate,
-           bdate = nestl.df$climDate,
-           baseline = lm(BD ~ Weight + CalcAge, data = nestl.df),
+
+```{r tarsus slidingwin}
+tarsus.window <- slidingwin(xvar = list(C10 = clim.df$C10),
+           exclude = c(4,0),
+           cdate = clim.scaled.df$cDate,
+           bdate = nestl.scaled.df$bDate,
+           baseline = lm(Tarsus ~ Weight, data = nestl.scaled.df),
            cinterval = "day",
            range = c(22,0),
            type = "relative",
-           stat = "sum",
+           stat = "mean",
            func = "lin")
-```
-```{r}
-test1[[1]]$Dataset
-test1[[1]]$BestModel
+tarsus.window$combos
+tarsus.window[[1]]$Dataset
+tarsus.window[[1]]$BestModel
 ```
 <br>
 
-## Helpful code (not run) but worth saving 
-
-Date formatting and adding leading zeros.
-```{r saved formatting code}
-# #climate data
-# clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=TRUE)
-# #coerce Date to class Date
-# clim.df$Date <- as.Date(clim.df$Date)
-# class(clim.df$Date)
-# clim.df$climDate <- format(strptime(clim.df$Date, format = "%Y-%m-%d"), "%d/%m/%Y")
-# clim.df$climDate <- str_remove(clim.df$climDate, "^0+")
-# clim.df$climDate <- as.factor(clim.df$climDate)
+```{r bill depth slidingwin}
+bd.window <- slidingwin(xvar = list(C10 = clim.df$C10),
+           exclude = c(4,0),
+           cdate = clim.scaled.df$cDate,
+           bdate = nestl.scaled.df$bDate,
+           baseline = lm(BD ~ Weight, data = nestl.scaled.df),
+           cinterval = "day",
+           #k = 10,
+           range = c(22,0),
+           type = "relative",
+           stat = "mean",
+           func = "lin")
+bd.window$combos
+bd.window[[1]]$Dataset
+bd.window[[1]]$BestModel
+plotweights(dataset = bd.window[[1]]$Dataset, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25)
 ```
+<br>
+
+```{r bill depth random window}
+bd.randwindow <- randwin(xvar = list(C10 = clim.df$C10),
+           exclude = c(4,0),
+           window = "sliding",
+           repeats = 50,
+           cdate = clim.scaled.df$cDate,
+           bdate = nestl.scaled.df$bDate,
+           baseline = lm(BD ~ Weight, data = nestl.scaled.df),
+           cinterval = "day",
+           #k = 10,
+           range = c(22,0),
+           type = "relative",
+           stat = "mean",
+           func = "lin")
+bd.randwindow
+bd.window
+```
+
+```{r BD climwin pvalue}
+data(MassRand)
+MassRand
+pvalue(datasetrand = bd.randwindow, dataset = bd.window, metric = "AIC",sample.size = 29)
+```
+
+
+
+```{r upper bill slidingwin}
+ub.window <- slidingwin(xvar = list(C10 = clim.df$C10),
+           exclude = c(4,0),
+           cdate = clim.scaled.df$cDate,
+           bdate = nestl.scaled.df$bDate,
+           baseline = lm(UB ~ Weight, data = nestl.scaled.df),
+           cinterval = "day",
+           k = 10,
+           range = c(22,0),
+           type = "relative",
+           stat = "mean",
+           func = "lin")
+ub.window[[1]]$Dataset
+ub.window[[1]]$BestModel
+```
+<br>
+
+```{r upper bill surface area slidingwin}
+ubs.window <- slidingwin(xvar = list(C10 = clim.df$C10),
+           cdate = clim.scaled.df$cDate,
+           bdate = nestl.scaled.df$bDate,
+           baseline = lm(UBS ~ Weight, data = nestl.scaled.df),
+           cinterval = "day",
+           range = c(22,0),
+           type = "relative",
+           stat = "mean",
+           func = "lin")
+ubs.window[[1]]$Dataset
+ubs.window[[1]]$BestModel
+```
+<br>
+
+
+```{r bill nares to tip slidingwin}
+bnt.window <- slidingwin(xvar = list(C10 = clim.df$C10),
+           cdate = clim.scaled.df$cDate,
+           bdate = nestl.scaled.df$bDate,
+           baseline = lm(BNT ~ Weight, data = nestl.scaled.df),
+           cinterval = "day",
+           range = c(22,0),
+           type = "relative",
+           stat = "mean",
+           func = "lin")
+bnt.window$combos
+bnt.window[[1]]$Dataset
+bnt.window[[1]]$BestModel
+```
+<br>
