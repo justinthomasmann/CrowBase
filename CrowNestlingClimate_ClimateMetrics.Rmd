@@ -94,6 +94,12 @@ clim.df$C10 <- clim.df$MeanC - 10
 clim.df$C15 <- clim.df$MeanC - 15
 #20 degrees C
 clim.df$C20 <- clim.df$MeanC - 20
+
+#make maximum temp relative to C10 without mean
+clim.df$MaxC10 <- clim.df$MaxC - 10
+#make minimum temp relative to C1 without mean
+clim.df$MinC1 <- 1 - clim.df$MinC
+1-(-6.6) 
 ```
 
 ```{r write a new climate metric csv}
@@ -102,7 +108,7 @@ clim.df <- clim.df %>%
 ```
 
 ```{r clim.df}
-clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
+#clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
 ```
 <br>
 

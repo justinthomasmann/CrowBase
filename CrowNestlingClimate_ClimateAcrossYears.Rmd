@@ -40,14 +40,16 @@ theme_set(theme_classic()) #default plots with no gridlines
 
 ```{r climate variables df}
 clim.df <- read.csv("ClimateVariables.csv", h=TRUE)
+clim.df <- clim.df %>% 
+  filter(Month <6)
 ```
 
 ```{r plot median max temp}
 median(clim.df$MaxTempC, na.rm=TRUE)
 max.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=MaxTempC))+
   geom_boxplot()+
-  geom_hline(yintercept = 16.67, color = "red", linetype = "dotted", linewidth = 1)+
-  #ggtitle("Daily Maximum Temperatures across March, April, May and June")+
+  geom_hline(yintercept = 12.78, color = "red", linetype = "dotted", linewidth = 1)+
+  #ggtitle("Daily Maximum Temperatures across March, April, May")+
   ylab("Maximum Temperature (C)")+
   xlab("")+
   theme(axis.text.x = element_text(angle = 90))
@@ -57,8 +59,8 @@ max.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=MaxTempC))+
 median(clim.df$MinTempC, na.rm=TRUE)
 min.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=MinTempC))+
   geom_boxplot()+
-  geom_hline(yintercept = 3.89, color = "red", linetype = "dotted", size = 1)+
-  #ggtitle("Daily Minimum Temperature across March, April, May and June")+
+  geom_hline(yintercept = 1.11, color = "red", linetype = "dotted", size = 1)+
+  #ggtitle("Daily Minimum Temperature across March, April, May")+
   ylab("Minimum Temperature (C)")+
   xlab("")+
   theme(axis.text.x = element_text(angle = 90))
@@ -78,7 +80,7 @@ precip.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=PrecipCM))+
 
 ```{r wrap climate plots}
 climate.wrap <- ggarrange(max.plot,min.plot,precip.plot, ncol = 1)
-annotate_figure(climate.wrap, top = "Climate Conditions across March, April, May and June")
+annotate_figure(climate.wrap, top = "Climate Conditions across March, April, May")
 ```
 
 ## Nestling Data and Climate metrics
