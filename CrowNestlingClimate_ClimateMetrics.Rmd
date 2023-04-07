@@ -59,10 +59,6 @@ rawclim.df$SnowfallCM <- mapply(in2cm, rawclim.df$Snowfall)
 rawclim.df$SnowDepthCM <- mapply(in2cm, rawclim.df$SnowDepth)
 ```
 
-```{r}
-#clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=TRUE)
-```
-
 
 ```{r new data frame}
 clim.df <- rawclim.df %>% 
@@ -85,30 +81,25 @@ Now, we'll create some potentially biologically-relevant temperature thresholds
 #add daily mean column
 clim.df$MeanC <- (clim.df$MaxC + clim.df$MinC)/2
 
-#add columns where daily mean temperatures are set relative to 
-#5 degrees C
-clim.df$C5 <- clim.df$MeanC - 5
-#10 degrees C
-clim.df$C10 <- clim.df$MeanC - 10
-#15 degrees C
-clim.df$C15 <- clim.df$MeanC - 15
-#20 degrees C
-clim.df$C20 <- clim.df$MeanC - 20
+#add column where daily mean temperatures are set relative to #10C
+clim.df$MeanMinus10 <- clim.df$MeanC - 10
 
-#make maximum temp relative to C10 without mean
-clim.df$MaxC10 <- clim.df$MaxC - 10
-#make minimum temp relative to C1 without mean
-clim.df$MinC1 <- 1 - clim.df$MinC
-1-(-6.6) 
+#add column where minimum temp relative to 1 C without mean
+clim.df$OneMinusMin <- 1 - clim.df$MinC
+
+#make maximum temp relative to 10 C without mean
+clim.df$MaxMinus10 <- clim.df$MaxC - 10
+
+```
+
+```{r move temp variables together}
+clim.df <- clim.df %>% 
+  relocate(c(MinC, MaxC), .after = SnowDepthCM) %>% 
+  relocate(c(Year, JulDay, HatchDateJulYear), .after = Date)
 ```
 
 ```{r write a new climate metric csv}
-clim.df <- clim.df %>% 
-  relocate(c(MinC, MaxC), .after = SnowDepthCM)
-```
-
-```{r clim.df}
-#clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
+#write.csv(clim.df, "ClimateMetrics_AllMonths1989-2022.csv", row.names = FALSE)
 ```
 <br>
 
