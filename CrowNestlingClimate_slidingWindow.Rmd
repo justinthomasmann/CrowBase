@@ -444,7 +444,7 @@ plotdelta(dataset = tec.window.min.out))
 ```
 <br>
 
-
+I reran the directly-measured bill metric sliding windows (BD, BW, BNT, TEC) using the MaxMinus10 and OneMinusMin climate metrics. I averaged the median windows from 80% confidence sets for each bill metric. The average window opened 6 days post-hatch and closed 19 days post-hatch. I'm going to add this window to our 1_11 and 12_22 metrics for modeling.
 
 
 
