@@ -345,8 +345,8 @@ c(mean=mean(clim.df[6:19,13]),metric=clim.df[1,36])
 ### OneCMinusMinC rolling means
 ```{r OneCMinusMinC.win}
 #New vector to contain the mean OneCMinusMinC of days 6-19
-clim.df$OneCMinusMinC.win <- dplyr::lead(clim.df$OneCMinusMinC, n = 5)
-clim.df$OneCMinusMinC.win <- zoo::rollapply(clim.df$OneCMinusMinC.win, width=14, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
+clim.df$MinC8_22 <- dplyr::lead(clim.df$OneCMinusMinC, n = 7)
+clim.df$MinC8_22 <- zoo::rollapply(clim.df$Min8_22, width=15, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
 c(mean=mean(clim.df[6:19,12]),metric=clim.df[1,37])
