@@ -20,18 +20,9 @@ climate <- read.csv("ClimateMetrics_ForJoining.csv", h=TRUE)
 
 ```{r}
 df <- left_join(nestlings,climate, by = "HatchDateJulYear")
+df <- df %>% 
+  
 write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv")
 ```
 
-
-## Pairs Plots
-
-```{r}
-?pairs()
-pairs(df[,c(7,11:14,28:32,48)])
-```
-
-```{r}
-glmer(billArea~,data = df)
-```
 
