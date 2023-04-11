@@ -20,7 +20,7 @@ climate <- read.csv("ClimateMetrics_ForJoining.csv", h=TRUE)
 
 ```{r}
 df <- left_join(nestlings,climate, by = "HatchDateJulYear")
-#write.csv(df, "MaleNestlingClimateJoined.csv")
+write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv")
 ```
 
 
