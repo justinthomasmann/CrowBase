@@ -36,83 +36,15 @@ theme_set(theme_classic()) #default plots with no gridlines
 ```
 <br>
 
-## Climate Data
-
-```{r climate variables df}
-clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=TRUE)
-clim.df$Date <- as.Date(clim.df$Date)
-clim.df$Month <- lubridate::month(clim.df$Date)
-clim.df <- clim.df %>% 
-  relocate(Month, .after = Year)
-breedingClim.df <- clim.df %>% 
-  filter(between(Month, 3,5)) %>% 
-  filter(between(JulDay, 71,151))
-breedingClim.df$TotalPrecipCM <- breedingClim.df$PrecipCM + breedingClim.df$SnowfallCM
-```
-
-```{r write climate metrics csv for plotting}
-write.csv(breedingClim.df, "ClimateMetrics_BreedingSeason1989-2022.csv", row.names = F)
-```
-
-
-```{r plot median max temp}
-median(breedingClim.df$MaxC, na.rm=TRUE)
-max.plot <- ggplot(data = breedingClim.df, aes(x=as.factor(Year), y=MaxC))+
-  geom_boxplot()+
-  geom_hline(yintercept = 13.89, color = "red", linetype = "dotted", linewidth = 1)+
-  #ggtitle("Daily Maximum Temperatures across March, April, May and June")+
-  ylab("Maximum Temperature (C)")+
-  xlab("")+
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-```{r plot median min temp}
-median(breedingClim.df$MinC, na.rm=TRUE)
-min.plot <- ggplot(data = breedingClim.df, aes(x=as.factor(Year), y=MinC))+
-  geom_boxplot()+
-  geom_hline(yintercept = 1.67, color = "red", linetype = "dotted", size = 1)+
-  #ggtitle("Daily Minimum Temperature across March, April, May and June")+
-  ylab("Minimum Temperature (C)")+
-  xlab("")+
-  theme(axis.text.x = element_text(angle = 90))
-min.plot
-```
-
-
-```{r plot precip}
-median(breedingClim.df$PrecipCM, na.rm=TRUE)
-precip.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=PrecipCM))+
-  geom_boxplot()+
-  geom_hline(yintercept = 0.025, color = "red", linetype = "dotted", size = 1)+
-  #ggtitle("Daily Minimum Temperature across March, April, May and June")+
-  ylab("Precipitation (cm)")+
-  xlab("")+
-  theme(axis.text.x = element_text(angle = 90))
-```
-
-```{r wrap climate plots}
-climate.wrap <- ggarrange(max.plot,min.plot,precip.plot, ncol = 1)
-annotate_figure(climate.wrap, top = "Climate Conditions during the Breeding Season (12 March-31 May)")
-```
-
 ## Nestling Data and Climate metrics
 
 ```{r dataframe}
-df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv", h=TRUE)
-df <- df[,-1]
-#n=2035 nestlings, 39 variables
+df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
+#n=1786 nestlings, 46 variables
 ```
-
 <br>
 
-A column to hold decade bins for plotting
 
-```{r creating decade bins}
-df$Decades <- cut(df$Year, breaks = c(1988,1999,2010,2018), labels = c("89-99","00-10","11-18"))
-df <- df %>% relocate(Decades, .before = Year)
-```
-
-<br>
 
 ## Normalize Continuous Data
 
@@ -120,17 +52,17 @@ Subtract each value from the mean (center) and divide it by the standard deviati
 
 ```{r scaling}
 #categorical data  
-unScaled.df <- df[,1:11]
+categorical.df <- df[,1:10]
 
 #continuous data
-dataToScale.df <- df[,12:40]
+continuous.df <- df[,11:46]
 
 #scale continuous data
 #?scale()
-scaled.mat <- scale(dataToScale.df, center = TRUE, scale = TRUE)
+scaled.mat <- scale(continuous.df, center = TRUE, scale = TRUE)
 
 #join unscaled and scaled data
-scaled.df <- cbind(unScaled.df,scaled.mat)
+scaled.df <- cbind(categorical.df,scaled.mat)
 ```
 
 <br>
@@ -167,187 +99,6 @@ B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
 #Both sexes unscaled
 B.df <- rbind(F.df,M.df)
 ```
-
-<br>
-
-## Climate PCA
-
-```{r id columns and matrix for climate PCA}
-climPCA.ids <- scaled.df %>% select(Year,HatchDateJul)
-climPCA.mat <- scaled.df %>% select(MeanMaxTempIncubation,MaxTempMean1_11,MaxTempMean12_22,MeanMinTempIncubation,MinTempMean1_11,MinTempMean12_22,PrecipSumIncubation,PrecipSum1_11,PrecipSum12_22)
-```
-
-```{r PCAs}
-#all climate variables
-climPCA <- prcomp(climPCA.mat)
-#max temps only
-maxPCA <- prcomp(climPCA.mat[,1:3])
-#min temps only
-minPCA <- prcomp(climPCA.mat[4:6])
-#precip only
-precipPCA <- prcomp(climPCA.mat[,7:9])
-```
-
-```{r plot all clim vars}
-autoplot(climPCA, colour=as.factor(climPCA.ids$Year),
-         loadings = TRUE, loadings.colour = 'blue',
-         loadings.label = TRUE, loadings.label.size = 3)
-
-```
-
-```{r plot max temp vars}
-autoplot(maxPCA, colour=as.factor(climPCA.ids$Year),
-         loadings = TRUE, loadings.colour = 'blue',
-         loadings.label = TRUE, loadings.label.size = 3)
-
-```
-
-```{r plot min tmep vars}
-autoplot(minPCA, colour=as.factor(climPCA.ids$Year),
-         loadings = TRUE, loadings.colour = 'blue',
-         loadings.label = TRUE, loadings.label.size = 3)
-
-```
-
-```{r plot precip vars}
-autoplot(precipPCA, colour=as.factor(climPCA.ids$Year),
-         loadings = TRUE, loadings.colour = 'blue',
-         loadings.label = TRUE, loadings.label.size = 3)
-
-```
-
-## Bill Depth by sex
-
-What is the mean bill depth of males and females?
-
-```{r unscaled bill depth t test}
-t.test(B.df$BD[B.df$AllSex=="M"], B.df$BD[B.df$AllSex=="F"])
-```
-
-<br>
-
-Plot unscaled bill depth distributions for males and females with verticle lines showing the mean values.
-
-```{r unscaled bill depth by sex plot}
-ggplot(data = B.df, aes(x=BD, fill = AllSex))+
-  geom_histogram(colour = "black", bins = 50)+
-  geom_vline(xintercept = 12.55, color="#009E73", linetype="dashed", size=1)+
-  geom_vline(xintercept = 12.98, color="#E69F00", linetype="dashed", size=1)+
-  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))
-```
-
-<br>
-
-Plot the residuals of a scaled model showing how weight and age explain bill depth.
-
-```{r scaled bill depth residuals by sex}
-#Scaled BD 
-BDNoSex.scaled.mdl <- lm(data = B.scaled.df, BD ~ Weight + CalcAge)
-BDNoSex.summ <- summary(BDNoSex.scaled.mdl)
-B.scaled.df$BDNoSex.resids <- BDNoSex.summ$residuals
-
-ggplot(data = B.scaled.df, aes(x=BDNoSex.resids,fill=AllSex))+
-  geom_histogram(colour = "black", bins = 100)+
-  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
-  theme(plot.title = element_text(size = 22),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 12),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-```
-
-```{r bill depth by weight scaled}
-ggplot(data = B.scaled.df, aes(x=BD,y=BDNoSex.resids,color=AllSex))+
-  geom_point()+
-  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
-  theme(plot.title = element_text(size = 22),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 12),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-```
-
-```{r t test scaled bill depth residuals}
-mean(B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="M"])
-mean(B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="F"])
-t.test(B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="M"],B.scaled.df$BDNoSex.resids[B.scaled.df$AllSex=="F"])
-```
-
-<br>
-
-```{r truncated bill depth residuals}
-TruncBD.df <- B.scaled.df %>% filter(between(BD,-1,1))
-t.test(TruncBD.df$BDNoSex.resids[TruncBD.df$AllSex=="M"],TruncBD.df$BDNoSex.resids[TruncBD.df$AllSex=="F"])
-```
-
-```{r bill depth by bill depth residuals scaled}
-ggplot(data = TruncBD.df, aes(x=BD,y=BDNoSex.resids,color=AllSex))+
-  geom_point()+
-  geom_jitter(width = 0.5)+
-  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
-  theme(plot.title = element_text(size = 22),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 12),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-```
-
-How to deal with the sex differences in the unsexed kids: 1. Classify clusters of years that are climatically similar. 2.
-
-## Tarsus comparisons by sex
-
-```{r unscaled tarsus t test}
-t.test(B.df$Tarsus[B.df$AllSex=="M"], B.df$Tarsus[B.df$AllSex=="F"])
-```
-
-```{r unscaled tarsus by sex plot}
-ggplot(data = B.df, aes(x=Tarsus, fill = AllSex))+
-  geom_histogram(colour = "black", bins = 100)+
-  geom_vline(xintercept = 58.006, color="#009E73", linetype="dashed", size=1)+
-  geom_vline(xintercept = 59.9, color="#E69F00", linetype="dashed", size=1)+
-  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))
-```
-
-```{r scaled tarsus residuals by sex}
-#Scaled tarsus 
-TarsusNoSex.scaled.mdl <- lm(data = B.scaled.df, Tarsus ~ Weight + CalcAge)
-TarsusNoSex.summ <- summary(TarsusNoSex.scaled.mdl)
-B.scaled.df$TarsusNoSex.resids <- TarsusNoSex.summ$residuals
-
-ggplot(data = B.scaled.df, aes(x=TarsusNoSex.resids,fill=AllSex))+
-  geom_histogram(colour = "black", bins = 100)+
-  scale_fill_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
-  theme(plot.title = element_text(size = 22),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 12),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-```
-
-```{r tarsus by weight scaled}
-ggplot(data = B.scaled.df, aes(x=Tarsus,y=TarsusNoSex.resids,color=AllSex))+
-  geom_point()+
-  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
-  theme(plot.title = element_text(size = 22),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 12),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-```
-
-```{r t test scaled tarsus residuals}
-t.test(B.scaled.df$TarsusNoSex.resids[B.scaled.df$AllSex=="M"],B.scaled.df$TarsusNoSex.resids[B.scaled.df$AllSex=="F"])
-```
 <br>
 
 
@@ -355,49 +106,58 @@ t.test(B.scaled.df$TarsusNoSex.resids[B.scaled.df$AllSex=="M"],B.scaled.df$Tarsu
 
 ### What climate metrics best explain variation in bill shape? 
 
-Since the strongest effects thus far have shown up in Time Period 2 (12-22 days post hatching), I'm going to use Time 2 for model selection tests.
+Here, we'll compare AIC values from models using MinC, MaxC, GDD10C, MaxCMinus10C and OneCMinusMinC measurements for days 12-22. 
 
-```{r bill depth time 2 model selection}
+```{r bill depth climate metric models}
 #Min
-MinTempBD.mdl <- lm(BD ~ MinTempMean12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
-MaxTempBD.mdl <- lm(BD ~ MaxTempMean12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
-GDDBD.mdl <- lm(BD ~ GDDSum12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
-CDDBD.mdl <- lm(BD ~ CDDSum12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
-HDDBD.mdl <- lm(BD ~ HDDSum12_22 * PrecipSum12_22 + CalcAge + Weight, data = scaled.df, na.action = "na.fail")
+MinC.BD.mdl <- lm(BD ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+MaxC.BD.mdl <- lm(BD ~ MaxC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+GDD10C.BD.mdl <- lm(BD ~ GDD10CSum12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+MaxCMinus10C.BD.mdl <- lm(BD ~ MaxCMinus10C12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+OneCMinusMinC.BD.mdl <- lm(BD ~ OneCMinusMinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
 ```
 
-```{r bill depth time 2 model comparison}
-BDTime2Models <- list(MinTempBD.mdl,MaxTempBD.mdl,GDDBD.mdl,CDDBD.mdl,HDDBD.mdl)
-BDTime2ModelNames <- c('MinTempBD.mdl','MaxTempBD.mdl','GDDBD.mdl','CDDBD.mdl','HDDBD.mdl')
+```{r bill depth climate metric model comparison}
+BDTime2Models <- list(MinC.BD.mdl,MaxC.BD.mdl,GDD10C.BD.mdl,MaxCMinus10C.BD.mdl,OneCMinusMinC.BD.mdl)
+BDTime2ModelNames <- c('MinC','MaxC','GDD10C','MaxCMinus10C','OneCMinusMinC')
 aictab(cand.set = BDTime2Models, modnames = BDTime2ModelNames, sort = TRUE)
 ```
 
-Minimum Temperature Model fits the data best. GDD is second best, but the delta AICc is 11.43 between the two.
+MinC Model fits the data best; GDD is second best. But the delta AICc is 11.28 between the top two models. Comparing the model summaries below, precipitation has a significant negative affect in the MinC model but not the GDD10C model. Additionally, MinC has a slightly higher estimate but also a slightly higher std. error.
 
-```{r MinTempBD.mdl summary}
-summary(MinTempBD.mdl)
+```{r BD climate metric best model summary}
+summary(MinC.BD.mdl)
 ```
-```{r}
-MinTemp.pred <- ggpredict(MinTempBD.mdl, type = "fe", terms = ~ MinTempMean12_22)
-MinTemp.pred
+```{r BD second best model summary}
+summary(GDD10C.BD.mdl)
 ```
-```{r}
-ggplot(data = MinTemp.pred, aes(x,predicted))+
-  geom_point(data = scaled.df, aes(x=MinTempMean12_22, y=BD))+
+
+```{r BD climate metric best model predition}
+MinC.pred <- ggpredict(MinC.BD.mdl, type = "fe", terms = ~ MinC12_22)
+MinC.pred
+```
+```{r BD climate metric best model plot}
+ggplot(data = MinC.pred, aes(x,predicted))+
+  geom_point(data = scaled.df, aes(x=MinC12_22, y=BD))+
   geom_line(color = "red")+
   geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "red", alpha = 0.1)+
   scale_y_continuous(limits = c(-4,4))
 ```
+<br>
 
+Using MinC as the best fit metric from above, here we'll look at whether days 1-11, 12-22, or average of the best sliding windows, days 6-19
+```{r bill depth time period models}
+#Min
+MinC1_11.BD.mdl <- lm(BD ~ MinC1_11 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+MinC12_22.BD.mdl <- lm(BD ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+MinC.win.BD.mdl <- lm(BD ~ MinC.win * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
 
-```{r GDDBD.mdl summary}
-summary(GDDBD.mdl)
 ```
 
-```{r}
-ggplot(data = scaled.df, aes(x = MinTempMean12_22, y = BD))+
-  geom_point()+
-  geom_abline(mapping=aes(intercept = -4.32, slope = 0.154))
+```{r bill depth time period model comparison}
+BDTimeModels <- list(MinC1_11.BD.mdl,MinC12_22.BD.mdl,MinC.win.BD.mdl)
+BDTimeModelNames <- c('MinC1_11','MinC12_22','MinC.win.BD.mdl')
+aictab(cand.set = BDTimeModels, modnames = BDTimeModelNames, sort = TRUE)
 ```
 
 
@@ -406,7 +166,38 @@ ggplot(data = scaled.df, aes(x = MinTempMean12_22, y = BD))+
 
 
 
-## Bill Depth Models
+
+
+## Bill Width Model Comparisons
+
+```{r bill width time 2 model selection}
+#Min
+MinC.BW.mdl <- lm(BW ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+MaxC.BW.mdl <- lm(BW ~ MaxC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+GDD10C.BW.mdl <- lm(BW ~ GDD10CSum12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+MaxCMinus10C.BW.mdl <- lm(BW ~ MaxCMinus10C12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+OneCMinusMinC.BW.mdl <- lm(BW ~ OneCMinusMinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+```
+
+```{r bill width time 2 model comparison}
+BWTime2Models <- list(MinC.BW.mdl,MaxC.BW.mdl,GDD10C.BW.mdl,MaxCMinus10C.BW.mdl,OneCMinusMinC.BW.mdl)
+BWTime2ModelNames <- c('MinC','MaxC','GDD10C','MaxCMinus10C','OneCMinusMinC')
+aictab(cand.set = BWTime2Models, modnames = BWTime2ModelNames, sort = TRUE)
+```
+
+```{r BW best model summary}
+summary(MinC.BW.mdl)
+```
+
+
+
+# Bayesian Models
+
+## Bill Depth
 
 Bayesian Bill Depth GDD Incubation model
 
