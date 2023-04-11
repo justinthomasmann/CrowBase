@@ -31,19 +31,14 @@ Anne has identified some more dubious nestlings. Waiting to hear back about whic
 #Nestling data sheet with updated climate metrics (C5-C20)
 df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
 
-df <- df %>% 
-  filter(FieldAge >23) %>% 
-  filter(CalcAge >23)
-
 #coerce our date vector to an R date
-df$Date <- as.Date(df$Date, format = "%m/%d/%Y")
+df$Date <- as.Date(df$Date)
 
 #create a date that is 22 days post-hatch (climwin is built to look backwards from a specified date, not forwards)
 df$PostHatch22Date <- df$Date + 22
 
 #move variables in prep for scaling
 df <- df %>% 
-  relocate(CalcAge, .after = AllSex) %>% 
   relocate(PostHatch22Date, .after = Date)
 
 #our climate data for 1989-2022

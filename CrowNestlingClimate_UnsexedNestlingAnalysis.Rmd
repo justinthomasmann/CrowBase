@@ -52,10 +52,10 @@ Subtract each value from the mean (center) and divide it by the standard deviati
 
 ```{r scaling}
 #categorical data  
-categorical.df <- df[,1:10]
+categorical.df <- df[,1:9]
 
 #continuous data
-continuous.df <- df[,11:46]
+continuous.df <- df[,10:45]
 
 #scale continuous data
 #?scale()
@@ -73,14 +73,12 @@ Summarize the unscaled data
 summary(df)
 ```
 
-<br>
 
 Summarize the scaled data
 
 ```{r scaled data summary}
 summary(scaled.df)
 ```
-
 <br>
 
 ```{r data frame with only sexed nestlings}
@@ -109,11 +107,14 @@ B.df <- rbind(F.df,M.df)
 Here, we'll compare AIC values from models using MinC, MaxC, GDD10C, MaxCMinus10C and OneCMinusMinC measurements for days 12-22. 
 
 ```{r bill depth climate metric models}
-#Min
 MinC.BD.mdl <- lm(BD ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
 MaxC.BD.mdl <- lm(BD ~ MaxC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
 GDD10C.BD.mdl <- lm(BD ~ GDD10CSum12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
 MaxCMinus10C.BD.mdl <- lm(BD ~ MaxCMinus10C12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
 OneCMinusMinC.BD.mdl <- lm(BD ~ OneCMinusMinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
 ```
 
@@ -147,19 +148,28 @@ ggplot(data = MinC.pred, aes(x,predicted))+
 
 Using MinC as the best fit metric from above, here we'll look at whether days 1-11, 12-22, or average of the best sliding windows, days 6-19
 ```{r bill depth time period models}
-#Min
 MinC1_11.BD.mdl <- lm(BD ~ MinC1_11 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
 MinC12_22.BD.mdl <- lm(BD ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
 MinC.win.BD.mdl <- lm(BD ~ MinC.win * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+MinC8_22.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
 
 ```
 
 ```{r bill depth time period model comparison}
-BDTimeModels <- list(MinC1_11.BD.mdl,MinC12_22.BD.mdl,MinC.win.BD.mdl)
-BDTimeModelNames <- c('MinC1_11','MinC12_22','MinC.win.BD.mdl')
+BDTimeModels <- list(MinC1_11.BD.mdl,MinC12_22.BD.mdl,MinC.win.BD.mdl,MinC8_22.BD.mdl)
+BDTimeModelNames <- c('MinC1_11','MinC12_22','MinC.win',"MinC8_22")
 aictab(cand.set = BDTimeModels, modnames = BDTimeModelNames, sort = TRUE)
 ```
+```{r bill depth time period best model}
+summary(MinC8_22.BD.mdl)
+```
 
+```{r bill depth time period best model}
+summary(MinC12_22.BD.mdl)
+```
 
 
 
@@ -171,7 +181,6 @@ aictab(cand.set = BDTimeModels, modnames = BDTimeModelNames, sort = TRUE)
 ## Bill Width Model Comparisons
 
 ```{r bill width time 2 model selection}
-#Min
 MinC.BW.mdl <- lm(BW ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
 
 MaxC.BW.mdl <- lm(BW ~ MaxC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
@@ -180,12 +189,12 @@ GDD10C.BW.mdl <- lm(BW ~ GDD10CSum12_22 * PrecipSum12_22 + Weight, data = scaled
 
 MaxCMinus10C.BW.mdl <- lm(BW ~ MaxCMinus10C12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
 
-OneCMinusMinC.BW.mdl <- lm(BW ~ OneCMinusMinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+MinC8_22.BW.mdl <- lm(BW ~ MinC8_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
 ```
 
 ```{r bill width time 2 model comparison}
-BWTime2Models <- list(MinC.BW.mdl,MaxC.BW.mdl,GDD10C.BW.mdl,MaxCMinus10C.BW.mdl,OneCMinusMinC.BW.mdl)
-BWTime2ModelNames <- c('MinC','MaxC','GDD10C','MaxCMinus10C','OneCMinusMinC')
+BWTime2Models <- list(MinC.BW.mdl,MaxC.BW.mdl,GDD10C.BW.mdl,MaxCMinus10C.BW.mdl,MinC8_22.BW.mdl)
+BWTime2ModelNames <- c('MinC','MaxC','GDD10C','MaxCMinus10C','MinC8_22')
 aictab(cand.set = BWTime2Models, modnames = BWTime2ModelNames, sort = TRUE)
 ```
 
