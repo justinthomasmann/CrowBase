@@ -160,14 +160,14 @@ df <- df %>% filter(Weight > 200)#new n=2297
 range(df$Weight)
 
 #filter between 24 and 30 days CalcAges
-df <- df %>% filter(between(FieldAge, 23,29))#new n=1919
+df <- df %>% filter(between(FieldAge, 24,29))#new n=1919
 range(df$FieldAge)
 
 liteWeights.df <- df %>% filter(between(Weight, 162, 301))
 
 #resort df 
 df <- df %>% arrange(Year,NestName,ID)
-#write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned.csv")
+#write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned.csv", row.names = FALSE)
 ```
 
 
