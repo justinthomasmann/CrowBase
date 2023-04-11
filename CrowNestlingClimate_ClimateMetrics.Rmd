@@ -356,7 +356,7 @@ c(mean=mean(clim.df[6:19,12]),metric=clim.df[1,37])
 
 ```{r simplified df for analysis}
 #New dataframe with the derived climate metrics
-climdf <- clim.df[,c(1,4,14:37)]
+clim.df <- clim.df[,c(1,4,14:37)]
 ```
 
 ```{r write metrics csv for joining with nestling data}
