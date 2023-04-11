@@ -174,7 +174,7 @@ MinC.null.mdl <- lm(data = scaled.df, BD ~ MeanMin12_22 + Weight)
 MaxC.null.mdl <- lm(data = scaled.df, BD ~ MeanMax12_22 + Weight)
 MinandC10.null.mdl <- lm(data = scaled.df, BD ~ MeanMin12_22 + C10Sum12_22 + Weight)
 
-clim.null.mdls <- list(C5.null.mdl,C10.null.mdl,C15.null.mdl,MinC.null.mdl,MaxC.null.mdl,MinandC10.null.mdl)
+clim.null.mdls <- list(C10.null.mdl,C15.null.mdl,MinC.null.mdl,MaxC.null.mdl,MinandC10.null.mdl)
 clim.null.modnames <- c("C5.null.mdl","C10.null.mdl","C15.null.mdl","MinC.null.mdl","MaxC.null.mdl","MinandC10.null.mdl")
 aictab(cand.set = clim.null.mdls, modnames = clim.null.modnames, sort = TRUE)
 summary(MinandC10.null.mdl)
