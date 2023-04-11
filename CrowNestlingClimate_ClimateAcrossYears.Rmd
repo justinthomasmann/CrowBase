@@ -39,36 +39,48 @@ theme_set(theme_classic()) #default plots with no gridlines
 ## Climate Data
 
 ```{r climate variables df}
-clim.df <- read.csv("ClimateVariables.csv", h=TRUE)
+clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=TRUE)
+clim.df$Date <- as.Date(clim.df$Date)
+clim.df$Month <- lubridate::month(clim.df$Date)
 clim.df <- clim.df %>% 
-  filter(Month <6)
+  relocate(Month, .after = Year)
+breedingClim.df <- clim.df %>% 
+  filter(between(Month, 3,5)) %>% 
+  filter(between(JulDay, 71,151))
+breedingClim.df$TotalPrecipCM <- breedingClim.df$PrecipCM + breedingClim.df$SnowfallCM
 ```
 
+```{r write climate metrics csv for plotting}
+#write.csv(breedingClim.df, "ClimateMetrics_BreedingSeason1989-2022.csv", row.names = F)
+```
+
+
 ```{r plot median max temp}
-median(clim.df$MaxTempC, na.rm=TRUE)
-max.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=MaxTempC))+
+median(breedingClim.df$MaxC, na.rm=TRUE)
+max.plot <- ggplot(data = breedingClim.df, aes(x=as.factor(Year), y=MaxC))+
   geom_boxplot()+
-  geom_hline(yintercept = 12.78, color = "red", linetype = "dotted", linewidth = 1)+
-  #ggtitle("Daily Maximum Temperatures across March, April, May")+
+  geom_hline(yintercept = 13.89, color = "red", linetype = "dotted", linewidth = 1)+
+  #ggtitle("Daily Maximum Temperatures across March, April, May and June")+
   ylab("Maximum Temperature (C)")+
   xlab("")+
   theme(axis.text.x = element_text(angle = 90))
 ```
 
 ```{r plot median min temp}
-median(clim.df$MinTempC, na.rm=TRUE)
-min.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=MinTempC))+
+median(breedingClim.df$MinC, na.rm=TRUE)
+min.plot <- ggplot(data = breedingClim.df, aes(x=as.factor(Year), y=MinC))+
   geom_boxplot()+
-  geom_hline(yintercept = 1.11, color = "red", linetype = "dotted", size = 1)+
-  #ggtitle("Daily Minimum Temperature across March, April, May")+
+  geom_hline(yintercept = 1.67, color = "red", linetype = "dotted", size = 1)+
+  #ggtitle("Daily Minimum Temperature across March, April, May and June")+
   ylab("Minimum Temperature (C)")+
   xlab("")+
   theme(axis.text.x = element_text(angle = 90))
+min.plot
 ```
 
 
 ```{r plot precip}
-median(clim.df$PrecipCM, na.rm=TRUE)
+median(breedingClim.df$PrecipCM, na.rm=TRUE)
 precip.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=PrecipCM))+
   geom_boxplot()+
   geom_hline(yintercept = 0.025, color = "red", linetype = "dotted", size = 1)+
@@ -80,7 +92,7 @@ precip.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=PrecipCM))+
 
 ```{r wrap climate plots}
 climate.wrap <- ggarrange(max.plot,min.plot,precip.plot, ncol = 1)
-annotate_figure(climate.wrap, top = "Climate Conditions across March, April, May")
+annotate_figure(climate.wrap, top = "Climate Conditions during the Breeding Season (12 March-31 May)")
 ```
 
 ## Nestling Data and Climate metrics
@@ -90,7 +102,6 @@ df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv", h=TR
 df <- df[,-1]
 #n=2035 nestlings, 39 variables
 ```
-
 <br>
 
 A column to hold decade bins for plotting
@@ -120,7 +131,6 @@ scaled.mat <- scale(dataToScale.df, center = TRUE, scale = TRUE)
 #join unscaled and scaled data
 scaled.df <- cbind(unScaled.df,scaled.mat)
 ```
-
 <br>
 
 
@@ -140,7 +150,6 @@ B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
 #Both sexes unscaled
 B.df <- rbind(F.df,M.df)
 ```
-
 <br>
 
 ## Climate PCA

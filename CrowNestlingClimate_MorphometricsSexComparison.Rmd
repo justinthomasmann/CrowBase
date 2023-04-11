@@ -39,42 +39,32 @@ theme_set(theme_classic()) #default plots with no gridlines
 ## Nestling data and climate metrics
 
 ```{r dataframe}
-df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoined.csv", h=TRUE)
+df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
 df <- df[,-1]
-#n=2035 nestlings, 39 variables
+#n=1786 nestlings, 46 variables
 ```
-
 <br>
 
-A column to hold decade bins for plotting
-
-```{r creating decade bins}
-df$Decades <- cut(df$Year, breaks = c(1988,1999,2010,2018), labels = c("89-99","00-10","11-18"))
-df <- df %>% relocate(Decades, .before = Year)
-```
-
-<br>
-
-## Normalize continuous data
+## Normalize Continuous Data
 
 Subtract each value from the mean (center) and divide it by the standard deviation
 
 ```{r scaling}
 #categorical data  
-unScaled.df <- df[,1:11]
+categorical.df <- df[,1:10]
 
 #continuous data
-dataToScale.df <- df[,12:40]
+continuous.df <- df[,11:46]
 
 #scale continuous data
 #?scale()
-scaled.mat <- scale(dataToScale.df, center = TRUE, scale = TRUE)
+scaled.mat <- scale(continuous.df, center = TRUE, scale = TRUE)
 
 #join unscaled and scaled data
-scaled.df <- cbind(unScaled.df,scaled.mat)
+scaled.df <- cbind(categorical.df,scaled.mat)
 ```
-
 <br>
+
 
 ```{r data frame with only sexed nestlings}
 #Males Scaled
