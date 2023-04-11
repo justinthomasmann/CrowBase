@@ -360,7 +360,7 @@ clim.df <- clim.df[,c(1,4,14:37)]
 ```
 
 ```{r write metrics csv for joining with nestling data}
-write.csv(clim.df, "ClimateMetrics_ForJoining.csv", row.names = FALSE)
+#write.csv(clim.df, "ClimateMetrics_ForJoining.csv", row.names = FALSE)
 ```
 
 
