@@ -14,12 +14,17 @@ library(dplyr)
 ## Dataframes for nestlings and climate metrics
 
 ```{r df}
-nestlings <- read.csv("CrowNestlingClimate_AllNestlingsCleaned.csv", h=TRUE)
+nestlings <- read.csv("CrowNestlingClimate_AllNestlingsCleaned.csv", h=TRUE)# 1868
 climate <- read.csv("ClimateMetrics_ForJoining.csv", h=TRUE)
 ```
 
 ```{r join and write csv}
 df <- left_join(nestlings,climate, by = "HatchDateJulYear")
 
-#write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", row.names = F)
+df <- df %>% 
+  relocate(Date, .before = Year) %>% 
+  relocate(CalcAge, .after = AllSex)
+
+#write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", 
+#          row.names = F)
 ```
