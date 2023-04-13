@@ -169,6 +169,19 @@ summary(MinC12_22.BD.mdl)
 ```
 <br>
 
+```{r BD climate time period best model predition}
+MinC8_22.pred <- ggpredict(MinC8_22.BD.mdl, type = "fe", terms = ~ MinC8_22)
+MinC8_22.pred
+```
+```{r BD climate metric best model plot}
+ggplot(data = MinC8_22.pred, aes(x,predicted))+
+  geom_point(data = scaled.df, aes(x=MinC8_22, y=BD))+
+  geom_line(color = "red")+
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "red", alpha = 0.1)+
+  scale_y_continuous(limits = c(-5,5))+
+  ylab("Bill depth")+
+  xlab("8-22 days post-hatching minimum temperature (C) ")
+```
 
 
 
@@ -212,6 +225,134 @@ aictab(cand.set = BWTimeMods, modnames = BWTimeModNames, sort = TRUE)
 ```
 ```{r bill width time period best model}
 summary(MinC8_22.BW.mdl)
+```
+<br>
+
+## TEC Comparisons
+
+```{r TEC time 2 model selection}
+MinC.TEC.mdl <- lm(TEC ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+MaxC.TEC.mdl <- lm(TEC ~ MaxC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+GDD10C.TEC.mdl <- lm(TEC ~ GDD10CSum12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+```
+
+```{r TEC time 2 model comparison}
+TEC12_22Mods <- list(MinC.TEC.mdl,MaxC.TEC.mdl,GDD10C.TEC.mdl)
+TEC12_22ModNames <- c('MinC','MaxC','GDD10C')
+aictab(cand.set = TEC12_22Mods, modnames = TEC12_22ModNames, sort = TRUE)
+```
+<br>
+```{r TEC best model summary}
+summary(MinC.TEC.mdl)
+```
+
+
+Using MinC as the best fit metric from above, here we'll look at whether days 1-11, 12-22, 6-19, or 8-22 differ in how they fit the data.
+```{r TEC time period models}
+MinC1_11.TEC.mdl <- lm(TEC ~ MinC1_11 * PrecipSum1_11 + Weight, data = scaled.df, na.action = "na.fail")
+
+MinC12_22.TEC.mdl <- lm(TEC ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+MinC6_19.TEC.mdl <- lm(TEC ~ MinC6_19 * PrecipSum6_19 + Weight, data = scaled.df, na.action = "na.fail")
+
+MinC8_22.TEC.mdl <- lm(TEC ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+```
+
+```{r TEC time period model comparison}
+TECTimeMods <- list(MinC1_11.TEC.mdl,MinC12_22.TEC.mdl,MinC6_19.TEC.mdl,MinC8_22.TEC.mdl)
+TECTimeModNames <- c('MinC1_11','MinC12_22','MinC6_19',"MinC8_22")
+aictab(cand.set = TECTimeMods, modnames = TECTimeModNames, sort = TRUE)
+```
+<br>
+
+## BNT Comparisons
+
+```{r BNT time 2 model selection}
+MinC.BNT.mdl <- lm(BNT ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+MaxC.BNT.mdl <- lm(BNT ~ MaxC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+GDD10C.BNT.mdl <- lm(BNT ~ GDD10CSum12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+```
+
+```{r BNT time 2 model comparison}
+BNT12_22Mods <- list(MinC.BNT.mdl,MaxC.BNT.mdl,GDD10C.BNT.mdl)
+BNT12_22ModNames <- c('MinC','MaxC','GDD10C')
+aictab(cand.set = BNT12_22Mods, modnames = BNT12_22ModNames, sort = TRUE)
+```
+<br>
+```{r BNT best model summary}
+summary(MinC.BNT.mdl)
+```
+
+
+Using MinC as the best fit metric from above, here we'll look at whether days 1-11, 12-22, 6-19, or 8-22 differ in how they fit the data.
+```{r BNT time period models}
+MinC1_11.BNT.mdl <- lm(BNT ~ MinC1_11 * PrecipSum1_11 + Weight, data = scaled.df, na.action = "na.fail")
+
+MinC12_22.BNT.mdl <- lm(BNT ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+MinC6_19.BNT.mdl <- lm(BNT ~ MinC6_19 * PrecipSum6_19 + Weight, data = scaled.df, na.action = "na.fail")
+
+MinC8_22.BNT.mdl <- lm(BNT ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+```
+
+```{r BNT time period model comparison}
+BNTTimeMods <- list(MinC1_11.BNT.mdl,MinC12_22.BNT.mdl,MinC6_19.BNT.mdl,MinC8_22.BNT.mdl)
+BNTTimeModNames <- c('MinC1_11','MinC12_22','MinC6_19',"MinC8_22")
+aictab(cand.set = BNTTimeMods, modnames = BNTTimeModNames, sort = TRUE)
+```
+<br>
+
+
+## Upper Bill Model Comparisons
+
+```{r UB time 2 model selection}
+MinC.UB.mdl <- lm(UB ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+MaxC.UB.mdl <- lm(UB ~ MaxC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+GDD10C.UB.mdl <- lm(UB ~ GDD10CSum12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+```
+
+```{r UB time 2 model comparison}
+UB12_22Mods <- list(MinC.UB.mdl,MaxC.UB.mdl,GDD10C.UB.mdl)
+UBTime2ModNames <- c('MinC','MaxC','GDD10C')
+aictab(cand.set = UB12_22Mods, modnames = UBTime2ModNames, sort = TRUE)
+```
+```{r UB best model summary}
+summary(MinC.UB.mdl)
+```
+<br>
+
+Using MinC as the best fit metric from above, here we'll look at whether days 1-11, 12-22, 6-19, or 8-22 differ in how they fit the data.
+```{r UB time period models}
+MinC1_11.UB.mdl <- lm(UB ~ MinC1_11 * PrecipSum1_11 + Weight, data = scaled.df, na.action = "na.fail")
+
+MinC12_22.UB.mdl <- lm(UB ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+MinC6_19.UB.mdl <- lm(UB ~ MinC6_19 * PrecipSum6_19 + Weight, data = scaled.df, na.action = "na.fail")
+
+MinC8_22.UB.mdl <- lm(UB ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+```
+
+```{r UB time period model comparison}
+UBTimeMods <- list(MinC1_11.UB.mdl,MinC12_22.UB.mdl,MinC6_19.UB.mdl,MinC8_22.UB.mdl)
+UBTimeModNames <- c('MinC1_11','MinC12_22','MinC6_19',"MinC8_22")
+aictab(cand.set = UBTimeMods, modnames = UBTimeModNames, sort = TRUE)
+```
+```{r UB time period best model}
+summary(MinC6_19.UB.mdl)
+```
+<br>
+
+```{r UB interaction plot}
+plot_model(MinC6_19.UB.mdl, type = "int", mdrt.values = "meansd")
 ```
 
 
