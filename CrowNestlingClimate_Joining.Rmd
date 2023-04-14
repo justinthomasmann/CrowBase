@@ -26,10 +26,13 @@ df <- df %>%
   relocate(CalcAge, .after = AllSex)
 
 #trim some kids with impossible measurements (per Anne)
-df <- df %>% filter(Tarsus < 70)
+df <- df %>% 
+  filter(Tarsus < 70) %>% 
+  filter(CalcAge > 23.9)
 
-#New n=1866 nestlings
 
-#write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", 
-#          row.names = F)
+#New n=1864 nestlings
+
+write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv",
+         row.names = F)
 ```
