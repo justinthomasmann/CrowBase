@@ -25,54 +25,54 @@ ITHN6 (NWS LI)
 
 ```{r raw data}
 #Raw text file downloaded from climod2
-rawclim.df <- read.table("climod2data1989-2022.txt", sep = ",", header = TRUE)
-
-#Make variables numeric (will coerce NAs where data are missing)
-rawclim.df$MaxTemp <- as.numeric(rawclim.df$MaxTemperature)
-which(is.na(rawclim.df$MaxTemp))#[1] 1535
-rawclim.df$MinTemp <- as.numeric(rawclim.df$MinTemperature)
-which(is.na(rawclim.df$MinTemp))#[1] 1440 1536 1853 4401
-
-rawclim.df$Precip <- as.numeric(rawclim.df$Precipitation)
-rawclim.df$Snowfall <- as.numeric(rawclim.df$Snowfall)
-rawclim.df$SnowDepth <- as.numeric(rawclim.df$SnowDepth)
+# rawclim.df <- read.table("climod2data1989-2022.txt", sep = ",", header = TRUE)
+# 
+# #Make variables numeric (will coerce NAs where data are missing)
+# rawclim.df$MaxTemp <- as.numeric(rawclim.df$MaxTemperature)
+# which(is.na(rawclim.df$MaxTemp))#[1] 1535
+# rawclim.df$MinTemp <- as.numeric(rawclim.df$MinTemperature)
+# which(is.na(rawclim.df$MinTemp))#[1] 1440 1536 1853 4401
+# 
+# rawclim.df$Precip <- as.numeric(rawclim.df$Precipitation)
+# rawclim.df$Snowfall <- as.numeric(rawclim.df$Snowfall)
+# rawclim.df$SnowDepth <- as.numeric(rawclim.df$SnowDepth)
 ```
 
 ```{r metric and celcius conversions}
-f2c <- function(x){
-  x <- (5/9) * (x-32)
-  return(x)
-}
-f2c(33)#[1] 0.556
-
-rawclim.df$MaxC <- mapply(f2c, rawclim.df$MaxTemp)
-rawclim.df$MinC <- mapply(f2c, rawclim.df$MinTemp)
-
-in2cm <- function(x){
-  x <- x * 2.54
-  return(x)
-}
-in2cm(0.1)#[1] 0.254
-
-rawclim.df$PrecipCM <- mapply(in2cm, rawclim.df$Precip)
-rawclim.df$SnowfallCM <- mapply(in2cm, rawclim.df$Snowfall)
-rawclim.df$SnowDepthCM <- mapply(in2cm, rawclim.df$SnowDepth)
+# f2c <- function(x){
+#   x <- (5/9) * (x-32)
+#   return(x)
+# }
+# f2c(33)#[1] 0.556
+# 
+# rawclim.df$MaxC <- mapply(f2c, rawclim.df$MaxTemp)
+# rawclim.df$MinC <- mapply(f2c, rawclim.df$MinTemp)
+# 
+# in2cm <- function(x){
+#   x <- x * 2.54
+#   return(x)
+# }
+# in2cm(0.1)#[1] 0.254
+# 
+# rawclim.df$PrecipCM <- mapply(in2cm, rawclim.df$Precip)
+# rawclim.df$SnowfallCM <- mapply(in2cm, rawclim.df$Snowfall)
+# rawclim.df$SnowDepthCM <- mapply(in2cm, rawclim.df$SnowDepth)
 ```
 
 
 ```{r new data frame}
-clim.df <- rawclim.df %>%
-  select(Date,MaxC,MinC,
-         PrecipCM,SnowfallCM,SnowDepthCM)
-#add year column
-clim.df$Year <- lubridate::year(clim.df$Date)
-#add Julian Day
-clim.df$JulDay <- lubridate::yday(clim.df$Date)
-#pad Julian Day with zeros
-clim.df$JulDay <- str_pad(clim.df$JulDay, 3, pad = "0")
-#join padded Julian Days with Year
-my_cols <- c("Year", "JulDay")
-clim.df$HatchDateJulYear <- do.call(paste, c(clim.df[my_cols], sep = ""))
+# clim.df <- rawclim.df %>%
+#   select(Date,MaxC,MinC,
+#          PrecipCM,SnowfallCM,SnowDepthCM)
+# #add year column
+# clim.df$Year <- lubridate::year(clim.df$Date)
+# #add Julian Day
+# clim.df$JulDay <- lubridate::yday(clim.df$Date)
+# #pad Julian Day with zeros
+# clim.df$JulDay <- str_pad(clim.df$JulDay, 3, pad = "0")
+# #join padded Julian Days with Year
+# my_cols <- c("Year", "JulDay")
+# clim.df$HatchDateJulYear <- do.call(paste, c(clim.df[my_cols], sep = ""))
 ```
 <br>
 
@@ -81,19 +81,19 @@ clim.df$HatchDateJulYear <- do.call(paste, c(clim.df[my_cols], sep = ""))
 
 Create biologically-relevant temperature thresholds  
 ```{r temperature thesholds}
-#add daily mean column
-clim.df$MeanC <- (clim.df$MaxC + clim.df$MinC)/2
-
-#add GDD column where daily mean temperatures are set relative to #10C
-clim.df$GDD10C <- clim.df$MeanC - 10
+# #add daily mean column
+# clim.df$MeanC <- (clim.df$MaxC + clim.df$MinC)/2
+# 
+# #add GDD column where daily mean temperatures are set relative to #10C
+# clim.df$GDD10C <- clim.df$MeanC - 10
 ```
 
 
 ```{r move temp variables together}
-clim.df <- clim.df %>%
-  relocate(c(MinC, MaxC), .after = SnowDepthCM) %>%
-  relocate(c(Year, JulDay, HatchDateJulYear), .after = Date) %>%
-  relocate(PrecipCM, .after = HatchDateJulYear)
+# clim.df <- clim.df %>%
+#   relocate(c(MinC, MaxC), .after = SnowDepthCM) %>%
+#   relocate(c(Year, JulDay, HatchDateJulYear), .after = Date) %>%
+#   relocate(PrecipCM, .after = HatchDateJulYear)
 ```
 
 ```{r write a new climate metric csv}
@@ -102,6 +102,9 @@ clim.df <- clim.df %>%
 
 ```{r read in new climate metric csv}
 clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
+
+#remove snowfall and snowdepth columns
+clim.df <- clim.df[,-c(6,7)]
 ```
 <br>
 
@@ -113,7 +116,7 @@ clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
 clim.df$MaxC1_11 <- zoo::rollapply(clim.df$MaxC, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[1:11,10]),metric=clim.df[1,13])
+c(mean=mean(clim.df[1:11,7]),metric=clim.df[1,10])
 #mean() calculation should match metric
 ```
 
@@ -122,7 +125,7 @@ c(mean=mean(clim.df[1:11,10]),metric=clim.df[1,13])
 clim.df$MaxC12_22 <- dplyr::lead(clim.df$MaxC1_11, n = 11)
 
 #Code check
-c(mean=mean(clim.df[12:22,10]), metric=clim.df[1,14])#mean() calculation should match metric
+c(mean=mean(clim.df[12:22,7]), metric=clim.df[1,11])#mean() calculation should match metric
 ```
 
 ```{r Mean MaxCIncubation}
@@ -130,7 +133,7 @@ c(mean=mean(clim.df[12:22,10]), metric=clim.df[1,14])#mean() calculation should 
 clim.df$MaxCIncubation <- zoo::rollapply(clim.df$MaxC, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[1:19,10]), metric=clim.df[19,15]) #mean() calculation should match metric
+c(mean=mean(clim.df[1:19,7]), metric=clim.df[19,12]) #mean() calculation should match metric
 ```
 <br>
 
@@ -141,7 +144,7 @@ c(mean=mean(clim.df[1:19,10]), metric=clim.df[19,15]) #mean() calculation should
 clim.df$MinC1_11 <- zoo::rollapply(clim.df$MinC, width=11, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[1:11,9]),metric=clim.df[1,16])
+c(mean=mean(clim.df[1:11,6]),metric=clim.df[1,13])
 #mean() calculation should match metric
 ```
 
@@ -150,7 +153,7 @@ c(mean=mean(clim.df[1:11,9]),metric=clim.df[1,16])
 clim.df$MinC12_22 <- dplyr::lead(clim.df$MinC1_11, n = 11)
 
 #Code check
-c(mean=mean(clim.df[12:22,9]), metric=clim.df[1,17])#mean() calculation should match metric
+c(mean=mean(clim.df[12:22,6]), metric=clim.df[1,14])#mean() calculation should match metric
 ```
 
 ```{r MinCIncubation}
@@ -158,7 +161,7 @@ c(mean=mean(clim.df[12:22,9]), metric=clim.df[1,17])#mean() calculation should m
 clim.df$MinCIncubation <- zoo::rollapply(clim.df$MinC, width=19, FUN=mean, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[1:19,9]), metric=clim.df[19,18]) #mean() calculation should match metric
+c(mean=mean(clim.df[1:19,6]), metric=clim.df[19,15]) #mean() calculation should match metric
 ```
 <br>
 
@@ -169,7 +172,7 @@ c(mean=mean(clim.df[1:19,9]), metric=clim.df[19,18]) #mean() calculation should 
 clim.df$GDD10CSum1_11 <- zoo::rollapply(clim.df$GDD10C, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum=sum(clim.df[1:11,12]),metric=clim.df[1,19])
+c(sum=sum(clim.df[1:11,9]),metric=clim.df[1,16])
 #sum() calculation should match metric
 ```
 
@@ -178,7 +181,7 @@ c(sum=sum(clim.df[1:11,12]),metric=clim.df[1,19])
 clim.df$GDD10CSum12_22 <- dplyr::lead(clim.df$GDD10CSum1_11, n = 11)
 
 #Code check
-c(sum=sum(clim.df[12:22,12]), metric=clim.df[1,20])#sum() calculation should match metric
+c(sum=sum(clim.df[12:22,9]), metric=clim.df[1,17])#sum() calculation should match metric
 ```
 
 ```{r GDD10CSumIncubation}
@@ -186,7 +189,7 @@ c(sum=sum(clim.df[12:22,12]), metric=clim.df[1,20])#sum() calculation should mat
 clim.df$GDD10CSumIncubation <- zoo::rollapply(clim.df$GDD10C, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum=sum(clim.df[1:19,12]), metric=clim.df[19,21]) #sum() calculation should match metric
+c(sum=sum(clim.df[1:19,9]), metric=clim.df[19,18]) #sum() calculation should match metric
 ```
 <br>
 
@@ -197,7 +200,7 @@ c(sum=sum(clim.df[1:19,12]), metric=clim.df[19,21]) #sum() calculation should ma
 clim.df$PrecipSum1_11 <- zoo::rollapply(clim.df$PrecipCM, width=11, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum=sum(clim.df[1:11,5], na.rm = T),metric=clim.df[1,22])
+c(sum=sum(clim.df[1:11,5], na.rm = T),metric=clim.df[1,19])
 #sum() calculation should match metric
 ```
 
@@ -206,7 +209,7 @@ c(sum=sum(clim.df[1:11,5], na.rm = T),metric=clim.df[1,22])
 clim.df$PrecipSum12_22 <- dplyr::lead(clim.df$PrecipSum1_11, n = 11)
 
 #Code check
-c(sum=sum(clim.df[12:22,5], na.rm = T), metric=clim.df[1,23])#sum() calculation should match metric
+c(sum=sum(clim.df[12:22,5], na.rm = T), metric=clim.df[1,20])#sum() calculation should match metric
 ```
 
 ```{r PrecipSumIncubation}
@@ -214,7 +217,7 @@ c(sum=sum(clim.df[12:22,5], na.rm = T), metric=clim.df[1,23])#sum() calculation 
 clim.df$PrecipSumIncubation <- zoo::rollapply(clim.df$PrecipCM, width=19, FUN=sum, align = 'right', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum=sum(clim.df[1:19,5], na.rm = T), metric=clim.df[19,24]) #sum() calculation should match metric
+c(sum=sum(clim.df[1:19,5], na.rm = T), metric=clim.df[19,21]) #sum() calculation should match metric
 ```
 <br>
 
@@ -228,7 +231,7 @@ clim.df$MaxC6_19 <- dplyr::lead(clim.df$MaxC, n = 5)
 clim.df$MaxC6_19 <- zoo::rollapply(clim.df$MaxC6_19, width=14, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[6:19,10]),metric=clim.df[1,25])
+c(mean=mean(clim.df[6:19,7]),metric=clim.df[1,22])
 #mean() calculation should match metric
 ```
 <br>
@@ -240,7 +243,7 @@ clim.df$MinC6_19 <- dplyr::lead(clim.df$MinC, n = 5)
 clim.df$MinC6_19 <- zoo::rollapply(clim.df$MinC6_19, width=14, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[6:19,9]),metric=clim.df[1,26])
+c(mean=mean(clim.df[6:19,6]),metric=clim.df[1,23])
 #mean() calculation should match metric
 ```
 <br>
@@ -252,7 +255,7 @@ clim.df$GDD10CSum6_19 <- dplyr::lead(clim.df$GDD10C, n = 5)
 clim.df$GDD10CSum6_19 <- zoo::rollapply(clim.df$GDD10CSum6_19, width=14, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum=sum(clim.df[6:19,12], na.rm = TRUE),metric=clim.df[1,27])
+c(sum=sum(clim.df[6:19,9], na.rm = TRUE),metric=clim.df[1,24])
 #sum() calculation should match metric
 ```
 <br>
@@ -264,7 +267,7 @@ clim.df$PrecipSum6_19 <- dplyr::lead(clim.df$PrecipCM, n = 5)
 clim.df$PrecipSum6_19 <- zoo::rollapply(clim.df$PrecipSum6_19, width=14, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum=sum(clim.df[6:19,5], na.rm = T),metric=clim.df[1,28])
+c(sum=sum(clim.df[6:19,5], na.rm = T),metric=clim.df[1,25])
 #mean() calculation should match metric
 ```
 <br>
@@ -280,7 +283,7 @@ clim.df$MaxC8_22 <- dplyr::lead(clim.df$MaxC, n = 7)
 clim.df$MaxC8_22 <- zoo::rollapply(clim.df$MaxC8_22, width=15, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[8:22,10]),metric=clim.df[1,29])
+c(mean=mean(clim.df[8:22,7]),metric=clim.df[1,26])
 #mean() calculation should match metric
 ```
 <br>
@@ -292,7 +295,7 @@ clim.df$MinC8_22 <- dplyr::lead(clim.df$MinC, n = 7)
 clim.df$MinC8_22 <- zoo::rollapply(clim.df$MinC8_22, width=15, FUN=mean, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(mean=mean(clim.df[8:22,9]),metric=clim.df[1,30])
+c(mean=mean(clim.df[8:22,6]),metric=clim.df[1,27])
 #mean() calculation should match metric
 ```
 <br>
@@ -304,7 +307,7 @@ clim.df$GDD10CSum8_22 <- dplyr::lead(clim.df$GDD10C, n = 7)
 clim.df$GDD10CSum8_22 <- zoo::rollapply(clim.df$GDD10CSum8_22, width=15, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum=sum(clim.df[8:22,12], na.rm = TRUE),metric=clim.df[1,31])
+c(sum=sum(clim.df[8:22,9], na.rm = TRUE),metric=clim.df[1,28])
 #sum() calculation should match metric
 ```
 <br>
@@ -316,14 +319,14 @@ clim.df$PrecipSum8_22 <- dplyr::lead(clim.df$PrecipCM, n = 7)
 clim.df$PrecipSum8_22 <- zoo::rollapply(clim.df$PrecipSum8_22, width=15, FUN=sum, align = 'left', fill = NA, partial = TRUE, na.rm = TRUE)
 
 #Code check
-c(sum=sum(clim.df[8:22,5], na.rm = T),metric=clim.df[1,32])
+c(sum=sum(clim.df[8:22,5], na.rm = T),metric=clim.df[1,29])
 #mean() calculation should match metric
 ```
 <br>
 
 ```{r simplified df for analysis}
 #New dataframe with the derived climate metrics
-clim.df <- clim.df[,c(1,4,13:32)]
+clim.df <- clim.df[,c(1,4,10:29)]
 ```
 
 ```{r write metrics csv for joining with nestling data}
