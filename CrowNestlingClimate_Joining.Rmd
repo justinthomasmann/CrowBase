@@ -33,6 +33,6 @@ df <- df %>%
 
 #New n=1864 nestlings
 
-write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv",
-         row.names = F)
+# write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv",
+#          row.names = F)
 ```
