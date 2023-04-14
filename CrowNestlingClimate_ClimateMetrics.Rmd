@@ -24,55 +24,55 @@ ITHN6 (NWS LI)
 <http://climod2.nrcc.cornell.edu/>
 
 ```{r raw data}
-# #Raw text file downloaded from climod2
-# rawclim.df <- read.table("climod2data1989-2022.txt", sep = ",", header = TRUE)
-# 
-# #Make variables numeric (will coerce NAs where data are missing)
-# rawclim.df$MaxTemp <- as.numeric(rawclim.df$MaxTemperature)
-# which(is.na(rawclim.df$MaxTemp))#[1] 1535
-# rawclim.df$MinTemp <- as.numeric(rawclim.df$MinTemperature)
-# which(is.na(rawclim.df$MinTemp))#[1] 1440 1536 1853 4401
-# 
-# rawclim.df$Precip <- as.numeric(rawclim.df$Precipitation)
-# rawclim.df$Snowfall <- as.numeric(rawclim.df$Snowfall)
-# rawclim.df$SnowDepth <- as.numeric(rawclim.df$SnowDepth)
+#Raw text file downloaded from climod2
+rawclim.df <- read.table("climod2data1989-2022.txt", sep = ",", header = TRUE)
+
+#Make variables numeric (will coerce NAs where data are missing)
+rawclim.df$MaxTemp <- as.numeric(rawclim.df$MaxTemperature)
+which(is.na(rawclim.df$MaxTemp))#[1] 1535
+rawclim.df$MinTemp <- as.numeric(rawclim.df$MinTemperature)
+which(is.na(rawclim.df$MinTemp))#[1] 1440 1536 1853 4401
+
+rawclim.df$Precip <- as.numeric(rawclim.df$Precipitation)
+rawclim.df$Snowfall <- as.numeric(rawclim.df$Snowfall)
+rawclim.df$SnowDepth <- as.numeric(rawclim.df$SnowDepth)
 ```
 
 ```{r metric and celcius conversions}
-# f2c <- function(x){
-#   x <- (5/9) * (x-32)
-#   return(x)
-# }
-# f2c(33)#[1] 0.556
-# 
-# rawclim.df$MaxC <- mapply(f2c, rawclim.df$MaxTemp)
-# rawclim.df$MinC <- mapply(f2c, rawclim.df$MinTemp)
-# 
-# in2cm <- function(x){
-#   x <- x * 2.54
-#   return(x)
-# }
-# in2cm(0.1)#[1] 0.254
-# 
-# rawclim.df$RainCM <- mapply(in2cm, rawclim.df$Precip)
-# rawclim.df$SnowfallCM <- mapply(in2cm, rawclim.df$Snowfall)
-# rawclim.df$SnowDepthCM <- mapply(in2cm, rawclim.df$SnowDepth)
+f2c <- function(x){
+  x <- (5/9) * (x-32)
+  return(x)
+}
+f2c(33)#[1] 0.556
+
+rawclim.df$MaxC <- mapply(f2c, rawclim.df$MaxTemp)
+rawclim.df$MinC <- mapply(f2c, rawclim.df$MinTemp)
+
+in2cm <- function(x){
+  x <- x * 2.54
+  return(x)
+}
+in2cm(0.1)#[1] 0.254
+
+rawclim.df$PrecipCM <- mapply(in2cm, rawclim.df$Precip)
+rawclim.df$SnowfallCM <- mapply(in2cm, rawclim.df$Snowfall)
+rawclim.df$SnowDepthCM <- mapply(in2cm, rawclim.df$SnowDepth)
 ```
 
 
 ```{r new data frame}
-# clim.df <- rawclim.df %>%
-#   select(Date,MaxC,MinC,
-#          RainCM,SnowfallCM,SnowDepthCM)
-# #add year column
-# clim.df$Year <- lubridate::year(clim.df$Date)
-# #add Julian Day
-# clim.df$JulDay <- lubridate::yday(clim.df$Date)
-# #pad Julian Day with zeros
-# clim.df$JulDay <- str_pad(clim.df$JulDay, 3, pad = "0")
-# #join padded Julian Days with Year
-# my_cols <- c("Year", "JulDay")
-# clim.df$HatchDateJulYear <- do.call(paste, c(clim.df[my_cols], sep = ""))
+clim.df <- rawclim.df %>%
+  select(Date,MaxC,MinC,
+         PrecipCM,SnowfallCM,SnowDepthCM)
+#add year column
+clim.df$Year <- lubridate::year(clim.df$Date)
+#add Julian Day
+clim.df$JulDay <- lubridate::yday(clim.df$Date)
+#pad Julian Day with zeros
+clim.df$JulDay <- str_pad(clim.df$JulDay, 3, pad = "0")
+#join padded Julian Days with Year
+my_cols <- c("Year", "JulDay")
+clim.df$HatchDateJulYear <- do.call(paste, c(clim.df[my_cols], sep = ""))
 ```
 <br>
 
@@ -81,23 +81,19 @@ ITHN6 (NWS LI)
 
 Create biologically-relevant temperature thresholds  
 ```{r temperature thesholds}
-# #add daily mean column
-# clim.df$MeanC <- (clim.df$MaxC + clim.df$MinC)/2
-# 
-# #add GDD column where daily mean temperatures are set relative to #10C
-# clim.df$GDD10C <- clim.df$MeanC - 10
-```
+#add daily mean column
+clim.df$MeanC <- (clim.df$MaxC + clim.df$MinC)/2
 
-```{r total precip}
-# clim.df$PrecipCM <- clim.df$RainCM + clim.df$SnowfallCM
+#add GDD column where daily mean temperatures are set relative to #10C
+clim.df$GDD10C <- clim.df$MeanC - 10
 ```
 
 
 ```{r move temp variables together}
-# clim.df <- clim.df %>%
-#   relocate(c(MinC, MaxC), .after = SnowDepthCM) %>%
-#   relocate(c(Year, JulDay, HatchDateJulYear), .after = Date) %>% 
-#   relocate(PrecipCM, .after = HatchDateJulYear)
+clim.df <- clim.df %>%
+  relocate(c(MinC, MaxC), .after = SnowDepthCM) %>%
+  relocate(c(Year, JulDay, HatchDateJulYear), .after = Date) %>%
+  relocate(PrecipCM, .after = HatchDateJulYear)
 ```
 
 ```{r write a new climate metric csv}
