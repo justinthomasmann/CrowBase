@@ -28,7 +28,7 @@ egB.df <- Mass
 Anne has identified some more dubious nestlings. Waiting to hear back about which nestlings to remove, so the following analyses are just prototypes and could change. 
 
 ```{r our data}
-#Nestling data sheet with updated climate metrics (C5-C20)
+#Nestling data sheet with updated climate metrics
 df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
 
 #coerce our date vector to an R date
@@ -163,11 +163,9 @@ summary(M.ageWeightInter.mdl)
 
 
 ```{r climate metric model comparison}
-MeanMinus10.null.mdl <- lm(data = scaled.df, BD ~ C10Sum12_22 + Weight)
-C15.null.mdl <- lm(data = scaled.df, BD ~ C15Sum12_22 + Weight)
-MinC.null.mdl <- lm(data = scaled.df, BD ~ MeanMin12_22 + Weight)
-MaxC.null.mdl <- lm(data = scaled.df, BD ~ MeanMax12_22 + Weight)
-MinandC10.null.mdl <- lm(data = scaled.df, BD ~ MeanMin12_22 + C10Sum12_22 + Weight)
+MinC.null.mdl <- lm(data = scaled.df, BD ~ MinC12_22 * PrecipSum12_22 + Weight)
+MaxC.null.mdl <- lm(data = scaled.df, BD ~ MaxC12_22 + Weight)
+GDD10C.null.mdl <- lm(data = scaled.df, BD ~ GDD10CSum12_22 + Weight)
 
 clim.null.mdls <- list(C10.null.mdl,C15.null.mdl,MinC.null.mdl,MaxC.null.mdl,MinandC10.null.mdl)
 clim.null.modnames <- c("C5.null.mdl","C10.null.mdl","C15.null.mdl","MinC.null.mdl","MaxC.null.mdl","MinandC10.null.mdl")
