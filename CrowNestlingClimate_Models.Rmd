@@ -144,13 +144,8 @@ B.df <- rbind(F.df,M.df)
 
 ### Female Models
 
-```{r F upper bill GDD2 model}
-# Upper bill GDD model
-F.UB2.mdl <- lm(UB ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.df)
-summary(F.UB2.mdl)
-# Precipitation has a negative effect, mainly when it's cold
-
-F.scaled.UB2.mdl <- lm(UB ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.scaled.df)
+```{r old models}
+F.scaled.UB2.mdl <- lm(UB ~ MinC8_22 + GDD10CSum8_22*PrecipSum8_22 + Weight, data = F.scaled.df)
 summary(F.scaled.UB2.mdl)
 
 ?plot_model()
@@ -163,24 +158,149 @@ vif(F.scaled.UB2.mdl)
 ```
 <br>
 
-```{r}
-min(df$PrecipSum12_22)
+
+## Temp changes!!
+
+```{r F upper bill GDD2 model}
+####Temp changes####
+
+# Upper bill GDD model
+F.UBFull.mdl <- lm(UB ~ MinC8_22 + GDD10CSum8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+F.UBMinInter.mdl <- lm(UB ~ MinC8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+F.UBGDDInter.mdl <- lm(UB ~ GDD10CSum8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+F.Precip.mdl <- lm(UB ~ PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+F.MinNoInter.mdl <- lm(UB ~ MinC8_22 + PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
 ```
 
+
+```{r}
+dredge(F.UBFull.mdl)
+```
+
+```{r}
+Inter.UB.mdls <- list(F.UBMinInter.mdl,F.UBGDDInter.mdl, F.UBFull.mdl, F.Precip.mdl, F.MinNoInter.mdl)
+Inter.UB.modnames <- c("MinInter","GDDInter","FullMdl","F.Precip","F.MinNoInter.mdl")
+aictab(cand.set = Inter.UB.mdls, modnames = Inter.UB.modnames)
+```
+
+```{r}
+summary(F.UBMinInter.mdl)
+```
+
+```{r}
+?plot_model
+plot_model(F.UBMinInter.mdl, type = "int", mdrt.values = "")
+```
+```{r F.UB predition}
+MinC.pred <- ggpredict(F.UBMinInter.mdl, type = "fe", terms = ~ MinC8_22)
+MinC.pred
+```
+```{r BD climate metric best model plot}
+ggplot(data = MinC.pred, aes(x,predicted))+
+  geom_point(data = scaled.df, aes(x=MinC12_22, y=BD))+
+  geom_line(color = "red")+
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "red", alpha = 0.1)+
+  scale_y_continuous(limits = c(-4,4))
+```
 
 ```{r F upper bill GDD2 plotting}
 F.UB.df <- tidy(F.scaled.UB2.mdl, quick = FALSE)
   ci <- as_tibble(confint(F.scaled.UB2.mdl))
   F.UB.df$ci.lower <- ci$`2.5 %`
   F.UB.df$ci.upper <- ci$`97.5 %`
-  F.UB.df <- F.UB.df[-c(1,2,4),]
   F.UB.df$Sex <- "F"
   F.UB.df$Metric <- "Upper Bill"
 ```
 
+
+```{r UB.fplot}
+UB.fplot <- ggplot(data = F.UB.df)+
+    geom_pointrange(aes(x=term, y=estimate, ymin=ci.lower, ymax=ci.upper, color=Sex), 
+                    position=position_dodge(width=0.3), shape=20, size=1.3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="black",size=1, linetype="dotted")+
+    scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+    #scale_x_discrete(labels=c("GDD * Precip", "Precip"))+
+    #scale_y_continuous(limits = c(-.3,.3), breaks = seq(-.2,.2,.1))+
+    theme(plot.title = element_text(size = 22),
+          axis.text.x = element_text(size = 14),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(15,15,15,15))
+UB.fplot
+```
+<br>
+
+###Bill Depth
+
+```{r F BD model comparisons}
+####Temp changes####
+
+F.BD.Full.mdl <- lm(BD ~ MinC8_22 + GDD10CSum8_22 + MinC8_22*PrecipSum8_22 + GDD10CSum8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+F.BD.Full.NoInter.mdl <- lm(BD ~ MinC8_22 + GDD10CSum8_22 + PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+F.BD.MinInter.mdl <- lm(BD ~ MinC8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+F.BD.GDDInter.mdl <- lm(BD ~ GDD10CSum8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+F.BD.Precip.mdl <- lm(BD ~ PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+F.BD.MinNoInter.mdl <- lm(BD ~ MinC8_22 + PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+```
+
+
+```{r}
+F.BD.dredge <- dredge(F.BD.Full.mdl)
+F.BD.dredge
+```
+
+```{r}
+Inter.BD.mdls <- list(F.BD.Full.mdl,F.BD.MinInter.mdl, F.BD.GDDInter.mdl, F.BD.Precip.mdl, F.BD.MinNoInter.mdl, F.BD.Full.NoInter.mdl)
+Inter.BD.modnames <- c("F.BD.Full.mdl","F.BD.MinInter.mdl","F.BD.GDDInter.mdl","F.BD.Precip.mdl","F.BD.MinNoInter.mdl", "F.BD.Full.NoInter.mdl")
+aictab(cand.set = Inter.BD.mdls, modnames = Inter.BD.modnames)
+```
+
+```{r}
+summary(F.BD.GDDInter.mdl)
+```
+
+```{r}
+BD.ModAvg <- model.avg(F.BD.dredge, subset = delta<2, revised.var = TRUE, fit = TRUE)
+summary(BD.ModAvg)
+```
+
+
+```{r}
+?plot_model
+plot_model(F.BD.Full.NoInter.mdl, type = "est")
+```
+```{r F.UB predition}
+F.BD.Full.pred <- ggpredict(F.BD.Full.NoInter.mdl, type = "fe", terms = ~ MinC8_22)
+F.BD.Full.pred
+```
+```{r BD climate metric best model plot}
+ggplot(data = F.BD.Full.pred, aes(x,predicted))+
+  geom_point(shape = 1, size = 1.8, data = scaled.df, aes(x=MinC12_22, y=BD))+
+  geom_line(color = "#009E73", size = 1)+
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#009E73", alpha = 0.3)+
+  scale_y_continuous(limits = c(-4,4))
+```
+
+
+
+## Temp changes end!!
+
+
 ```{r F bill nares to tip GDD2 model}
 # Bill nares to tip model
-F.scaled.BNT2.mdl <- lm(BillNT ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.scaled.df)
+F.scaled.BNT2.mdl <- lm(BillNT ~ GDD10CSum8_22*PrecipSum8_22 + Weight, data = F.scaled.df)
 summary(F.scaled.BNT2.mdl)
 # Precipitation has a negative effect, mainly when it's cold
 ```
@@ -199,7 +319,7 @@ F.BNT.df <- tidy(F.scaled.BNT2.mdl, quick = FALSE)
 
 ```{r F upper bill surface area GDD2 model}
 # Upper bill surface area model
-F.scaled.UBS2.mdl <- lm(UBS ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.scaled.df)
+F.scaled.UBS2.mdl <- lm(UBS ~ GDD10CSum8_22*PrecipSum8_22 + Weight, data = F.scaled.df)
 summary(F.scaled.UBS2.mdl)
 # Precipitation has a negative effect, mainly when it's cold
 ```
@@ -218,25 +338,25 @@ F.UBS.df <- tidy(F.scaled.UBS2.mdl, quick = FALSE)
 
 ```{r F bill depth GDD2 model}
 # Bill depth model
-F.scaled.BD2.mdl <- lm(BillDepth ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.scaled.df)
+F.scaled.BD2.mdl <- lm(BillDepth ~ GDD10CSum8_22*PrecipSum8_22 + Weight, data = F.scaled.df)
 summary(F.scaled.BD2.mdl)
 # Temperature is the only important climate variable
 ```
 <br>
 
 ```{r F bill depth GDD2 plotting}
-F.BD.df <- tidy(F.scaled.BD2.mdl, quick = FALSE)
-  ci <- as_tibble(confint(F.scaled.BD2.mdl))
+F.BD.df <- tidy(F.BD.Full.NoInter.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.BD.Full.NoInter.mdl))
   F.BD.df$ci.lower <- ci$`2.5 %`
   F.BD.df$ci.upper <- ci$`97.5 %`
-  F.BD.df <- F.BD.df[2,]
+  F.BD.df <- F.BD.df[-1,]
   F.BD.df$Sex <- "F"
   F.BD.df$Metric <- "Bill Depth"
 ```
 
 ```{r F tarsus GDD2 model}
 # Tarsus GDD2 model
-F.scaled.Tarsus2.mdl <- lm(Tarsus ~ GDDSum12_22*PrecipSum12_22 + Weight, data = F.scaled.df)
+F.scaled.Tarsus2.mdl <- lm(Tarsus ~ GDD10CSum8_22*PrecipSum8_22 + Weight, data = F.scaled.df)
 summary(F.scaled.Tarsus2.mdl)
 # Climate variables have no effect
 ```
@@ -257,7 +377,7 @@ F.Tarsus.df <- tidy(F.scaled.Tarsus2.mdl, quick = FALSE)
 
 ```{r M upper bill GDD2 model}
 # Upper bill model
-M.scaled.UB2.mdl <- lm(UB ~ GDDSum12_22*PrecipSum12_22 + Weight, data = M.scaled.df)
+M.scaled.UB2.mdl <- lm(UB ~ GDD10CSum8_22*PrecipSum8_22 + Weight, data = M.scaled.df)
 summary(M.scaled.UB2.mdl)
 # Weight is the only important predictor
 ```
@@ -275,7 +395,7 @@ M.UB.df <- tidy(M.scaled.UB2.mdl, quick = FALSE)
 
 ```{r M bill nares to tip GDD2 model}
 # Bill nares to tip model
-M.scaled.BNT2.mdl <- lm(BillNT ~ GDDSum12_22*PrecipSum12_22 + Weight, data = M.scaled.df)
+M.scaled.BNT2.mdl <- lm(BillNT ~ GDD10CSum8_22*PrecipSum8_22 + Weight, data = M.scaled.df)
 summary(M.scaled.BNT2.mdl)
 # Weight is the only important predictor
 ```
@@ -293,7 +413,7 @@ M.BNT.df <- tidy(M.scaled.BNT2.mdl, quick = FALSE)
 
 ```{r M upper bill surface area GDD2 model}
 # Upper bill surface area model
-M.scaled.UBS2.mdl <- lm(UBS ~ GDDSum12_22*PrecipSum12_22 + Weight, data = M.scaled.df)
+M.scaled.UBS2.mdl <- lm(UBS ~ GDD10CSum8_22*PrecipSum8_22 + Weight, data = M.scaled.df)
 summary(M.scaled.UBS2.mdl)
 ```
 <br>
@@ -310,7 +430,7 @@ M.UBS.df <- tidy(M.scaled.UBS2.mdl, quick = FALSE)
 
 ```{r M bill depth GDD2 model}
 # Bill depth model
-M.scaled.BD2.mdl <- lm(BillDepth ~ GDDSum12_22*PrecipSum12_22 + Weight, data = M.scaled.df)
+M.scaled.BD2.mdl <- lm(BillDepth ~ GDD10CSum8_22*PrecipSum8_22 + Weight, data = M.scaled.df)
 summary(M.scaled.BD2.mdl)
 # Temperature and the interaction between temp and precip are both important
 ```
@@ -328,7 +448,7 @@ M.BD.df <- tidy(M.scaled.BD2.mdl, quick = FALSE)
 
 ```{r M tarsus GDD2 model}
 # Tarsus model
-M.scaled.Tarsus2.mdl <- lm(Tarsus ~ GDDSum12_22*PrecipSum12_22 + Weight, data = M.scaled.df)
+M.scaled.Tarsus2.mdl <- lm(Tarsus ~ GDD10CSum8_22*PrecipSum8_22 + Weight, data = M.scaled.df)
 summary(M.scaled.Tarsus2.mdl)
 # Climate variables have no effect
 ```
@@ -346,7 +466,7 @@ M.Tarsus.df <- tidy(M.scaled.Tarsus2.mdl, quick = FALSE)
 
 
 ```{r UBS GDD2 both sexes model}
-B.scaled.UBS2.mdl <- lm(UBS ~ GDDSum12_22 + PrecipSum12_22*AllSex + Weight, data = B.scaled.df)
+B.scaled.UBS2.mdl <- lm(UBS ~ GDD10CSum8_22 + PrecipSum8_22*AllSex + Weight, data = B.scaled.df)
 summary(B.scaled.UBS2.mdl)
 ```
 
@@ -401,14 +521,14 @@ BNT.fplot
 
 
 ```{r UB.fplot}
-UB.fplot <- ggplot(data = UBForestPlot.df)+
+UB.fplot <- ggplot(data = F.UB.df)+
     geom_pointrange(aes(x=term, y=estimate, ymin=ci.lower, ymax=ci.upper, color=Sex), 
                     position=position_dodge(width=0.3), shape=20, size=1.3)+
     coord_flip()+
-    geom_hline(yintercept = 0, color="black",size=1, linetype="dotted")+
+    geom_hline(yintercept = 0, color="black",size=1.5, linetype="dotted")+
     scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
-    scale_x_discrete(labels=c("GDD * Precip", "Precip"))+
-    scale_y_continuous(limits = c(-.3,.3), breaks = seq(-.2,.2,.1))+
+    #scale_x_discrete(labels=c("GDD * Precip", "Precip"))+
+    #scale_y_continuous(limits = c(-.3,.3), breaks = seq(-.2,.2,.1))+
     theme(plot.title = element_text(size = 22),
           axis.text.x = element_text(size = 14),
           axis.title.x = element_blank(),
@@ -420,14 +540,14 @@ UB.fplot
 ```
 
 ```{r BD.fplot}
-BD.fplot <- ggplot(data = BDForestPlot.df)+
+BD.fplot <- ggplot(data = F.BD.df)+
     geom_pointrange(aes(x=term, y=estimate, ymin=ci.lower, ymax=ci.upper, color=Sex), 
                     position=position_dodge(width=0.3), shape=20, size=1.3)+
     coord_flip()+
-    geom_hline(yintercept = 0, color="black",size=1, linetype="dotted")+
+    geom_hline(yintercept = 0, color="black",size=1.2, linetype="dotted")+
     scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
-    scale_x_discrete(labels=c("GDD", "GDD * Precip"))+
-    scale_y_continuous(limits = c(-.3,.3), breaks = seq(-.2,.2,.1))+
+    #scale_x_discrete(labels=c("GDD", "GDD * Precip"))+
+    #scale_y_continuous(limits = c(-.3,.3), breaks = seq(-.2,.2,.1))+
     theme(plot.title = element_text(size = 22),
           axis.text.x = element_text(size = 14),
           axis.title.x = element_blank(),
@@ -465,7 +585,7 @@ cowplot::save_plot("billMetrics.wrap.png", billMetrics.wrap, base_height = 8, ba
 ```
 
 ```{r UBS Weight GDD scatter plot}
-UBSByWeightGDD.plot <- ggplot(data = B.df, aes(x=GDDSum12_22, y=UBS/Weight, color=AllSex))+
+UBSByWeightGDD.plot <- ggplot(data = B.df, aes(x=GDD10CSum8_22, y=UBS/Weight, color=AllSex))+
   geom_point(size = 1.2)+
   geom_smooth()+
   scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
