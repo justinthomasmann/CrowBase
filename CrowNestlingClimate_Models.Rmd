@@ -81,23 +81,62 @@ mdl.tbl <- function(mdl){
 
 ```{r dataframes}
 #Both sexes
-B.df <- read.csv("CrowNestlingClimate_BothSexesClean.csv",h=TRUE)
-B.df$AllSex <- as.factor(B.df$AllSex)
-summary(B.df)
-
-B.factors.df <- B.df[,1:5]
-B.scaled.df <- scale(B.df[,6:27])
-B.scaled.df <- cbind(B.factors.df,B.scaled.df)
-
-#Males
-M.df <- subset(B.df, AllSex=="M")
-M.scaled.df <- subset(B.scaled.df, AllSex=="M")
-
-#Females 
-F.df <- subset(B.df, AllSex=="F")
-F.scaled.df <- subset(B.scaled.df, AllSex=="F")
+df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
 ```
 <br>
+
+```{r data summary}
+summary(df)
+```
+
+
+## Normalize Continuous Data
+
+Subtract each value from the mean (center) and divide it by the standard deviation
+
+```{r scaling}
+#categorical data  
+categorical.df <- df[,1:9]
+
+#continuous data
+continuous.df <- df[,10:41]
+
+#scale continuous data
+#?scale()
+scaled.mat <- scale(continuous.df, center = TRUE, scale = TRUE)
+
+#join unscaled and scaled data
+scaled.df <- cbind(categorical.df,scaled.mat)
+```
+<br>
+
+
+Summarize the unscaled data
+
+```{r data summary}
+summary(scaled.df)
+```
+<br>
+
+
+```{r data frame with only sexed nestlings}
+#Males Scaled
+M.scaled.df <- subset(scaled.df, AllSex=="M")
+#Males Unscaled
+M.df <- subset(df, AllSex=="M")
+
+#Females Scaled
+F.scaled.df <- subset(scaled.df, AllSex=="F")
+#Females Unscaled
+F.df <- subset(df, AllSex=="F")
+
+#Both sexes scaled
+B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
+#Both sexes unscaled
+B.df <- rbind(F.df,M.df)
+```
+<br>
+
 
 
 ## Bio Symposium Poster Models 

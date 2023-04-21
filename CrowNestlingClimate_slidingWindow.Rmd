@@ -28,7 +28,7 @@ egB.df <- Mass
 Anne has identified some more dubious nestlings. Waiting to hear back about which nestlings to remove, so the following analyses are just prototypes and could change. 
 
 ```{r our data}
-#Nestling data sheet with updated climate metrics (C5-C20)
+#Nestling data sheet with updated climate metrics
 df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
 
 #coerce our date vector to an R date
@@ -71,7 +71,7 @@ nestl.scaled.df <- scaled.df[,1:22]
 
 #Climate:
 #scale continuous 
-clim.mat <- scale(clim.df[,5:13])
+clim.mat <- scale(clim.df[,5:11])
 clim.scaled.df <- cbind(clim.df[,1:4],clim.mat)
 ```
 <br>
@@ -163,23 +163,22 @@ summary(M.ageWeightInter.mdl)
 
 
 ```{r climate metric model comparison}
-MeanMinus10.null.mdl <- lm(data = scaled.df, BD ~ C10Sum12_22 + Weight)
-C15.null.mdl <- lm(data = scaled.df, BD ~ C15Sum12_22 + Weight)
-MinC.null.mdl <- lm(data = scaled.df, BD ~ MeanMin12_22 + Weight)
-MaxC.null.mdl <- lm(data = scaled.df, BD ~ MeanMax12_22 + Weight)
-MinandC10.null.mdl <- lm(data = scaled.df, BD ~ MeanMin12_22 + C10Sum12_22 + Weight)
+MinC.null.mdl <- lm(data = scaled.df, BD ~ MinC12_22 * PrecipSum12_22 + Weight)
+MaxC.null.mdl <- lm(data = scaled.df, BD ~ MaxC12_22 * PrecipSum12_22 + Weight)
+GDD10C.null.mdl <- lm(data = scaled.df, BD ~ GDD10CSum12_22 * PrecipSum12_22 + Weight)
 
-clim.null.mdls <- list(C10.null.mdl,C15.null.mdl,MinC.null.mdl,MaxC.null.mdl,MinandC10.null.mdl)
-clim.null.modnames <- c("C5.null.mdl","C10.null.mdl","C15.null.mdl","MinC.null.mdl","MaxC.null.mdl","MinandC10.null.mdl")
+clim.null.mdls <- list(MinC.null.mdl,MaxC.null.mdl,GDD10C.null.mdl)
+clim.null.modnames <- c("MinC.null.mdl","MaxC.null.mdl","GDD10C.null.mdl")
 aictab(cand.set = clim.null.mdls, modnames = clim.null.modnames, sort = TRUE)
-summary(MinandC10.null.mdl)
-summary(C10.null.mdl)
+
 summary(MinC.null.mdl)
 ```
 
-## Tarsus sliding window
-```{r tarsus slidingwin}
-tarsus.window <- slidingwin(xvar = list(MaxMinus10 = clim.scaled.df$MaxMinus10),
+## Tarsus sliding windows
+
+MinC
+```{r tarsus.window.min}
+tarsus.window.min <- slidingwin(xvar = list(MinC = clim.scaled.df$MinC),
            exclude = c(4,0), #exclude windows shorter than 4 days
            cdate = clim.scaled.df$cDate,
            bdate = nestl.scaled.df$bDate,
@@ -190,22 +189,43 @@ tarsus.window <- slidingwin(xvar = list(MaxMinus10 = clim.scaled.df$MaxMinus10),
            type = "relative",
            stat = "mean",
            func = "lin")
-tarsus.window.out <- tarsus.window[[1]]$Dataset
-tarsus.window$combos
-tarsus.window[[1]]$Dataset
-tarsus.window[[1]]$BestModel
-medwin(dataset = tarsus.window.out, cw = 0.80)
+tarsus.window.min.out <- tarsus.window.min[[1]]$Dataset
+tarsus.window.min$combos
+tarsus.window.min[[1]]$Dataset
+tarsus.window.min[[1]]$BestModel
+medwin(dataset = tarsus.window.min.out, cw = 0.80)
 ```
-
-```{r tarsus.window plot weights}
-ggarrange(plotweights(dataset = tarsus.window[[1]]$Dataset, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25), plotdelta(dataset = tarsus.window.out))
+```{r tarsus.window.min plot weights}
+ggarrange(plotweights(dataset = tarsus.window.min[[1]]$Dataset, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25), plotdelta(dataset = tarsus.window.min.out))
+```
+MaxC
+```{r tarsus.window.max}
+tarsus.window.max <- slidingwin(xvar = list(MaxC = clim.scaled.df$MaxC),
+           exclude = c(4,0), #exclude windows shorter than 4 days
+           cdate = clim.scaled.df$cDate,
+           bdate = nestl.scaled.df$bDate,
+           baseline = lm(Tarsus ~ Weight, data = nestl.scaled.df),
+           cinterval = "day",
+           #k = 10, #cross validation improves confidence in Beta values, but drastically narrows delta AIC
+           range = c(22,0),
+           type = "relative",
+           stat = "mean",
+           func = "lin")
+tarsus.window.max.out <- tarsus.window.max[[1]]$Dataset
+tarsus.window.max$combos
+tarsus.window.max[[1]]$Dataset
+tarsus.window.max[[1]]$BestModel
+medwin(dataset = tarsus.window.max.out, cw = 0.80)
+```
+```{r tarsus.window.max plot weights}
+ggarrange(plotweights(dataset = tarsus.window.max[[1]]$Dataset, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25), plotdelta(dataset = tarsus.window.max.out))
 ```
 <br>
 
 
 ## BD sliding window
-```{r bill depth MaxMinus10 slidingwin}
-bd.window.max <- slidingwin(xvar = list(MaxMinus10= clim.scaled.df$MaxMinus10),
+```{r bd.window.max}
+bd.window.max <- slidingwin(xvar = list(MaxC= clim.scaled.df$MaxC),
            exclude = c(4,0), #exclude windows shorter than 4 days
            cdate = clim.scaled.df$cDate,
            bdate = nestl.scaled.df$bDate,
@@ -229,12 +249,12 @@ ggarrange(plotweights(dataset = bd.window.max.out, cw1 = 0.95, cw2 = 0.75, cw3 =
 plotdelta(dataset = bd.window.max.out))
 ```
 
-```{r bill depth OneMinusMin slidingwin}
-bd.window.min <- slidingwin(xvar = list(OneMinusMin= clim.scaled.df$OneMinusMin),
+```{r bd.window.min}
+bd.window.min <- slidingwin(xvar = list(MinC= clim.scaled.df$MinC),
            exclude = c(4,0), #exclude windows shorter than 4 days
            cdate = clim.scaled.df$cDate,
            bdate = nestl.scaled.df$bDate,
-           baseline = lm(BD ~ Weight, data = nestl.scaled.df),
+           baseline = lm(BD ~ GDD10CSum12_22*PrecipSum12_22 + Weight, data = scaled.df),
            cinterval = "day",
            #k = 10, #cross validation improves confidence in Beta values, but drastically narrows delta AIC
            range = c(22,0),
@@ -255,9 +275,34 @@ plotdelta(dataset = bd.window.min.out))
 ```
 <br>
 
+```{r bd.window.gdd}
+bd.window.gdd <- slidingwin(xvar = list(GDD= clim.scaled.df$GDD10C),
+           exclude = c(4,0), #exclude windows shorter than 4 days
+           cdate = clim.scaled.df$cDate,
+           bdate = nestl.scaled.df$bDate,
+           baseline = lm(BD ~ Weight, data = nestl.scaled.df),
+           cinterval = "day",
+           #k = 10, #cross validation improves confidence in Beta values, but drastically narrows delta AIC
+           range = c(22,0),
+           type = "relative",
+           stat = "mean",
+           func = "lin")
+bd.window.gdd.out <- bd.window.gdd[[1]]$Dataset
+bd.window.gdd$combos
+bd.window.gdd[[1]]$Dataset
+bd.window.gdd[[1]]$BestModel
+medwin(dataset = bd.window.gdd.out, cw = 0.8)
+```
+
+```{r bd.window.gdd plots}
+ggarrange(plotweights(dataset = bd.window.gdd.out, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25), plotdelta(dataset = bd.window.gdd.out))
+```
+<br>
+
+
 Randomized bill depth window
 ```{r bill depth random window}
-bd.randwindow <- randwin(xvar = list(MaxMinus10= clim.scaled.df$MaxMinus10),
+bd.randwindow <- randwin(xvar = list(MaxC= clim.scaled.df$MaxC),
            exclude = c(4,0), #exclude windows shorter than 4 days
            window = "sliding",
            repeats = 100,
@@ -271,13 +316,13 @@ bd.randwindow <- randwin(xvar = list(MaxMinus10= clim.scaled.df$MaxMinus10),
            stat = "mean",
            func = "lin")
 
-bd.randwindow <- as.data.frame(bd.randwindow)
+bd.randwindow.out <- as.data.frame(bd.randwindow)
 ```
 <br>
 
 ```{r BD climwin pvalue}
-plothist(bd.window.out,bd.randwindow)
-pvalue(datasetrand = bd.randwindow, dataset = bd.window.out, metric = "AIC", sample.size = 29)
+plothist(bd.window.max.out,bd.randwindow)
+pvalue(datasetrand = bd.randwindow, dataset = bd.window.max.out, metric = "AIC", sample.size = 29)
 ```
 <br>
 
@@ -310,11 +355,11 @@ plotdelta(dataset = bw.window.max.out))
 
 
 ```{r BW OneMinusMin slidingwin}
-bw.window.min <- slidingwin(xvar = list(OneMinusMin= clim.scaled.df$OneMinusMin),
+bw.window.min <- slidingwin(xvar = list(MinC= clim.scaled.df$MinC),
            exclude = c(4,0), #exclude windows shorter than 4 days
            cdate = clim.scaled.df$cDate,
            bdate = nestl.scaled.df$bDate,
-           baseline = lm(BW ~ Weight, data = nestl.scaled.df),
+           baseline = lm(BW ~ GDD10CSum12_22*PrecipSum12_22 + Weight, data = scaled.df),
            cinterval = "day",
            #k = 10, #cross validation improves confidence in Beta values, but drastically narrows delta AIC
            range = c(22,0),
@@ -337,7 +382,7 @@ plotdelta(dataset = bw.window.min.out))
 
 ## TEC sliding window
 ```{r TEC MaxMinus10 slidingwin}
-tec.window.max <- slidingwin(xvar = list(MaxMinus10= clim.scaled.df$MaxMinus10),
+tec.window.gdd <- slidingwin(xvar = list(GDD= clim.scaled.df$GDD10C),
            exclude = c(4,0), #exclude windows shorter than 4 days
            cdate = clim.scaled.df$cDate,
            bdate = nestl.scaled.df$bDate,
@@ -348,25 +393,26 @@ tec.window.max <- slidingwin(xvar = list(MaxMinus10= clim.scaled.df$MaxMinus10),
            type = "relative",
            stat = "mean",
            func = "lin")
-tec.window.max.out <- tec.window.max[[1]]$Dataset
-tec.window.max[[1]]$BestModel
-medwin(tec.window.max.out, cw = 0.80)
+tec.window.gdd.out <- tec.window.max[[1]]$Dataset
+tec.window.gdd[[1]]$BestModel
+medwin(tec.window.gdd.out, cw = 0.80)
 ```
 <br>
 
+
 ```{r tec.window.max plots}
-ggarrange(plotweights(dataset = tec.window.max.out, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25),
-plotdelta(dataset = tec.window.max.out))
+ggarrange(plotweights(dataset = tec.window.gdd.out, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25),
+plotdelta(dataset = tec.window.gdd.out))
 ```
 <br>
 
 
 ```{r TEC OneMinusMin slidingwin}
-tec.window.min <- slidingwin(xvar = list(OneMinusMin= clim.scaled.df$OneMinusMin),
+tec.window.min <- slidingwin(xvar = list(MinC= clim.scaled.df$MinC),
            exclude = c(4,0), #exclude windows shorter than 4 days
            cdate = clim.scaled.df$cDate,
            bdate = nestl.scaled.df$bDate,
-           baseline = lm(TEC ~ Weight, data = nestl.scaled.df),
+           baseline = lm(TEC ~ GDD10CSum12_22 * PrecipSum12_22 + Weight, data = scaled.df),
            cinterval = "day",
            #k = 10, #cross validation improves confidence in Beta values, but drastically narrows delta AIC
            range = c(22,0),
@@ -448,7 +494,7 @@ I reran the directly-measured bill metric sliding windows (BD, BW, BNT, TEC) usi
 
 ## UB sliding window
 ```{r upper bill slidingwin}
-ub.window <- slidingwin(xvar = list(MaxMinus10= clim.scaled.df$MaxMinus10),
+ub.window <- slidingwin(xvar = list(MinC= clim.scaled.df$MinC),
            exclude = c(4,0), #exclude windows shorter than 4 days
            cdate = clim.scaled.df$cDate,
            bdate = nestl.scaled.df$bDate,

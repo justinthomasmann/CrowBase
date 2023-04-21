@@ -111,8 +111,23 @@ MinC.BD.mdl <- lm(BD ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na
 
 MaxC.BD.mdl <- lm(BD ~ MaxC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
 
-GDD10C.BD.mdl <- lm(BD ~ GDD10CSum12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+GDD10C.BD.mdl <- lm(BD ~ GDD10CSum12_22 + MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+GDD.BD.dredge <- dredge(GDD10C.BD.mdl)
+GDD.BD.dredge
 ```
+
+```{r}
+GDD10C.BD.MinInter.mdl <- lm(BD ~ GDD10CSum12_22 + MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+
+GDD10C.BD.GDDInter.mdl <- lm(BD ~ MinC12_22 + GDD10CSum12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
+```
+```{r}
+Inter.BD.mdls <- list(GDD10C.BD.MinInter.mdl,GDD10C.BD.GDDInter.mdl)
+Inter.BD.modnames <- c("MinInter","GDDInter")
+aictab(cand.set = Inter.BD.mdls, modnames = Inter.BD.modnames)
+```
+
 
 ```{r bill depth climate metric model comparison}
 BD12_22Mods <- list(MinC.BD.mdl,MaxC.BD.mdl,GDD10C.BD.mdl)
@@ -124,7 +139,7 @@ aictab(cand.set = BD12_22Mods, modnames = BD12_22ModNames, sort = TRUE)
 MinC Model fits the data best; GDD is second best. But the delta AICc is 11.28 between the top two models. Comparing the model summaries below, MinC and Precip have slightly higher estimates but also a slightly higher std. errors.
 
 ```{r BD climate metric best model summary}
-summary(MinC.BD.mdl)
+summary(GDD10C.BD.GDDInter.mdl)
 ```
 ```{r BD second best model summary}
 summary(GDD10C.BD.mdl)
