@@ -139,7 +139,7 @@ aictab(cand.set = BD12_22Mods, modnames = BD12_22ModNames, sort = TRUE)
 MinC Model fits the data best; GDD is second best. But the delta AICc is 11.28 between the top two models. Comparing the model summaries below, MinC and Precip have slightly higher estimates but also a slightly higher std. errors.
 
 ```{r BD climate metric best model summary}
-summary(GDD10C.BD.GDDInter.mdl)
+summary(MinC.BD.mdl)
 ```
 ```{r BD second best model summary}
 summary(GDD10C.BD.mdl)
@@ -151,9 +151,9 @@ MinC.pred
 ```
 ```{r BD climate metric best model plot}
 ggplot(data = MinC.pred, aes(x,predicted))+
-  geom_point(data = scaled.df, aes(x=MinC12_22, y=BD))+
-  geom_line(color = "red")+
-  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "red", alpha = 0.1)+
+  geom_point(data = scaled.df, aes(x=MinC12_22, y=BD), shape = 1)+
+  geom_line(color = "#009E73", size = 1)+
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#009E73", alpha = 0.2)+
   scale_y_continuous(limits = c(-4,4))
 ```
 <br>
