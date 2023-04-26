@@ -1,0 +1,340 @@
+---
+title: "Research Days Poster Models"
+author: "Justin Mann"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(broom) #tidy() to create tibbles from model summaries
+library(car) #vif
+library(cowplot)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange
+library(glmmTMB) #zi & overdispersed models
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+#PACKAGES FOR BAYESIAN MODELS
+# library(rstanarm) #stan models
+# library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+# library(loo) #use loo() to compare fits between bayesian models
+library(plotly)
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa)
+theme_set(theme_classic())
+```
+
+
+## Read in data
+
+```{r dataframes}
+#Both sexes
+df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
+```
+<br>
+
+```{r data summary}
+summary(df)
+```
+
+
+## Normalize Continuous Data
+
+Subtract each value from the mean (center) and divide it by the standard deviation
+
+```{r scaling}
+#categorical data  
+categorical.df <- df[,1:9]
+
+#continuous data
+continuous.df <- df[,10:41]
+
+#scale continuous data
+#?scale()
+scaled.mat <- scale(continuous.df, center = TRUE, scale = TRUE)
+
+#join unscaled and scaled data
+scaled.df <- cbind(categorical.df,scaled.mat)
+```
+<br>
+
+
+```{r data frame with only sexed nestlings}
+#Males Scaled
+M.scaled.df <- subset(scaled.df, AllSex=="M")
+#Males Unscaled
+M.df <- subset(df, AllSex=="M")
+
+#Females Scaled
+F.scaled.df <- subset(scaled.df, AllSex=="F")
+#Females Unscaled
+F.df <- subset(df, AllSex=="F")
+
+#Both sexes scaled
+B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
+#Both sexes unscaled
+B.df <- rbind(F.df,M.df)
+```
+<br>
+
+##Female models 
+```{r F.BD.mdl}
+#Bill depth
+F.BD.mdl <- lm(BD~ MinC8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+summary(F.BD.mdl)
+```
+
+```{r F.BW.mdl}
+#Bill width
+F.BW.mdl <- lm(BW~ MinC8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+summary(F.BW.mdl)
+```
+
+```{r F.BNT.mdl}
+#Bill nares to tip
+F.BNT.mdl <- lm(BNT~ MinC8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+summary(F.BNT.mdl)
+```
+
+```{r F.TEC.mdl}
+#Total exposed culmen
+F.TEC.mdl <- lm(TEC~ MinC8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+summary(F.TEC.mdl)
+```
+
+```{r F.UB.mdl}
+#Upper bill
+F.UB.mdl <- lm(UB~ MinC8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+summary(F.UB.mdl)
+```
+
+```{r F.UBS.mdl}
+#Upper bill surface area
+F.UBS.mdl <- lm(UBS~ MinC8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+summary(F.UBS.mdl)
+```
+
+```{r F.Tarsus.mdl}
+#Tarsus
+F.Tarsus.mdl <- lm(Tarsus~ MinC8_22*PrecipSum8_22 + Weight, data = F.scaled.df, na.action = "na.fail")
+
+summary(F.Tarsus.mdl)
+```
+<br>
+
+
+##Male models 
+```{r M.BD.mdl}
+#Bill depth
+M.BD.mdl <- lm(BD~ MinC8_22*PrecipSum8_22 + Weight, data = M.scaled.df, na.action = "na.fail")
+
+summary(M.BD.mdl)
+```
+
+```{r M.BW.mdl}
+#Bill width
+M.BW.mdl <- lm(BW~ MinC8_22*PrecipSum8_22 + Weight, data = M.scaled.df, na.action = "na.fail")
+
+summary(M.BW.mdl)
+```
+
+```{r M.BNT.mdl}
+#Bill nares to tip
+M.BNT.mdl <- lm(BNT~ MinC8_22*PrecipSum8_22 + Weight, data = M.scaled.df, na.action = "na.fail")
+
+summary(M.BNT.mdl)
+```
+
+```{r M.TEC.mdl}
+#Total exposed culmen
+M.TEC.mdl <- lm(TEC~ MinC8_22*PrecipSum8_22 + Weight, data = M.scaled.df, na.action = "na.fail")
+
+summary(M.TEC.mdl)
+```
+
+```{r M.UB.mdl}
+#Upper bill
+M.UB.mdl <- lm(UB~ MinC8_22*PrecipSum8_22 + Weight, data = M.scaled.df, na.action = "na.fail")
+
+summary(M.UB.mdl)
+```
+
+```{r M.UBS.mdl}
+#Upper bill surface area
+M.UBS.mdl <- lm(UBS~ MinC8_22*PrecipSum8_22 + Weight, data = M.scaled.df, na.action = "na.fail")
+
+summary(M.UBS.mdl)
+```
+
+```{r M.Tarsus.mdl}
+#Tarsus
+M.Tarsus.mdl <- lm(Tarsus~ MinC8_22*PrecipSum8_22 + Weight, data = M.scaled.df, na.action = "na.fail")
+
+summary(M.Tarsus.mdl)
+```
+<br>
+
+
+## Data frames for forest plots
+```{r F.BD.df}
+F.BD.df <- tidy(F.BD.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.BD.mdl))
+  F.BD.df$ci.lower <- ci$`2.5 %`
+  F.BD.df$ci.upper <- ci$`97.5 %`
+  F.BD.df$Sex <- "F"
+  F.BD.df$Metric <- "Bill Depth"
+  F.BD.df <- F.BD.df[-1,]
+```
+
+```{r F.BW.df}
+F.BW.df <- tidy(F.BW.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.BW.mdl))
+  F.BW.df$ci.lower <- ci$`2.5 %`
+  F.BW.df$ci.upper <- ci$`97.5 %`
+  F.BW.df$Sex <- "F"
+  F.BW.df$Metric <- "Bill Width"
+  F.BW.df <- F.BW.df[-1,]
+```
+
+```{r F.BNT.df}
+F.BNT.df <- tidy(F.BNT.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.BNT.mdl))
+  F.BNT.df$ci.lower <- ci$`2.5 %`
+  F.BNT.df$ci.upper <- ci$`97.5 %`
+  F.BNT.df$Sex <- "F"
+  F.BNT.df$Metric <- "Bill nares to tip"
+  F.BNT.df <- F.BNT.df[-1,]
+```
+
+```{r F.TEC.df}
+F.TEC.df <- tidy(F.TEC.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.TEC.mdl))
+  F.TEC.df$ci.lower <- ci$`2.5 %`
+  F.TEC.df$ci.upper <- ci$`97.5 %`
+  F.TEC.df$Sex <- "F"
+  F.TEC.df$Metric <- "Total exposed culmen"
+  F.TEC.df <- F.TEC.df[-1,]
+```
+
+```{r F.UB.df}
+F.UB.df <- tidy(F.UB.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.UB.mdl))
+  F.UB.df$ci.lower <- ci$`2.5 %`
+  F.UB.df$ci.upper <- ci$`97.5 %`
+  F.UB.df$Sex <- "F"
+  F.UB.df$Metric <- "Upper bill"
+  F.UB.df <- F.UB.df[-1,]
+```
+
+```{r F.UBS.df}
+F.UBS.df <- tidy(F.UBS.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.UBS.mdl))
+  F.UBS.df$ci.lower <- ci$`2.5 %`
+  F.UBS.df$ci.upper <- ci$`97.5 %`
+  F.UBS.df$Sex <- "F"
+  F.UBS.df$Metric <- "Upper bill surface area"
+  F.UBS.df <- F.UBS.df[-1,]
+```
+
+```{r F.Tarsus.df}
+F.Tarsus.df <- tidy(F.Tarsus.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.Tarsus.mdl))
+  F.Tarsus.df$ci.lower <- ci$`2.5 %`
+  F.Tarsus.df$ci.upper <- ci$`97.5 %`
+  F.Tarsus.df$Sex <- "F"
+  F.Tarsus.df$Metric <- "Tarsus"
+  F.Tarsus.df <- F.Tarsus.df[-1,]
+```
+<br>
+
+```{r M.BD.df}
+M.BD.df <- tidy(M.BD.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.BD.mdl))
+  M.BD.df$ci.lower <- ci$`2.5 %`
+  M.BD.df$ci.upper <- ci$`97.5 %`
+  M.BD.df$Sex <- "M"
+  M.BD.df$Metric <- "Bill Depth"
+  M.BD.df <- M.BD.df[-1,]
+```
+
+```{r M.BW.df}
+M.BW.df <- tidy(M.BW.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.BW.mdl))
+  M.BW.df$ci.lower <- ci$`2.5 %`
+  M.BW.df$ci.upper <- ci$`97.5 %`
+  M.BW.df$Sex <- "M"
+  M.BW.df$Metric <- "Bill Width"
+  M.BW.df <- M.BW.df[-1,]
+```
+
+```{r M.BNT.df}
+M.BNT.df <- tidy(M.BNT.mdl, quick = MALSE)
+  ci <- as_tibble(confint(M.BNT.mdl))
+  M.BNT.df$ci.lower <- ci$`2.5 %`
+  M.BNT.df$ci.upper <- ci$`97.5 %`
+  M.BNT.df$Sex <- "M"
+  M.BNT.df$Metric <- "Bill nares to tip"
+  M.BNT.df <- M.BNT.df[-1,]
+```
+
+```{r M.TEC.df}
+M.TEC.df <- tidy(M.TEC.mdl, quick = MALSE)
+  ci <- as_tibble(confint(M.TEC.mdl))
+  M.TEC.df$ci.lower <- ci$`2.5 %`
+  M.TEC.df$ci.upper <- ci$`97.5 %`
+  M.TEC.df$Sex <- "M"
+  M.TEC.df$Metric <- "Total exposed culmen"
+  M.TEC.df <- M.TEC.df[-1,]
+```
+
+```{r M.UB.df}
+M.UB.df <- tidy(M.UB.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.UB.mdl))
+  M.UB.df$ci.lower <- ci$`2.5 %`
+  M.UB.df$ci.upper <- ci$`97.5 %`
+  M.UB.df$Sex <- "M"
+  M.UB.df$Metric <- "Upper bill"
+  M.UB.df <- M.UB.df[-1,]
+```
+
+```{r M.UBS.df}
+M.UBS.df <- tidy(M.UBS.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.UBS.mdl))
+  M.UBS.df$ci.lower <- ci$`2.5 %`
+  M.UBS.df$ci.upper <- ci$`97.5 %`
+  M.UBS.df$Sex <- "M"
+  M.UBS.df$Metric <- "Upper bill surface area"
+  M.UBS.df <- M.UBS.df[-1,]
+```
+
+```{r M.Tarsus.df}
+M.Tarsus.df <- tidy(M.Tarsus.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.Tarsus.mdl))
+  M.Tarsus.df$ci.lower <- ci$`2.5 %`
+  M.Tarsus.df$ci.upper <- ci$`97.5 %`
+  M.Tarsus.df$Sex <- "M"
+  M.Tarsus.df$Metric <- "Tarsus"
+  M.Tarsus.df <- M.Tarsus.df[-1,]
+```
+
+```{r poster forest plots df}
+PosterForestPlot.df <- rbind(F.BD.df, M.BD.df, F.BW.df, M.BW.df, F.BNT.df, M.BNT.df, F.TEC.df, M.TEC.df, F.UB.df, M.UB.df, F.UBS.df, M.UBS.df, F.Tarsus.df, M.Tarsus.df)
+BDForestPlot.df <- subset(PosterForestPlot.df, Metric=="Bill Depth")
+BWForestPlot.df <- subset(PosterForestPlot.df, Metric=="Bill Width")
+BNTForestPlot.df <- subset(PosterForestPlot.df, Metric=="Bill nares to tip")
+TECForestPlot.df <- subset(PosterForestPlot.df, Metric=="Total exposed culmen")
+UBForestPlot.df <- subset(PosterForestPlot.df, Metric=="Upper Bill")
+UBSForestPlot.df <- subset(PosterForestPlot.df, Metric=="Upper Bill Surface Area")
+TarsusForestPlot.df <- subset(PosterForestPlot.df, Metric=="Tarsus")
+```
