@@ -47,7 +47,6 @@ clim.df <- clim.df %>%
 breedingClim.df <- clim.df %>% 
   filter(between(Month, 3,5)) %>% 
   filter(between(JulDay, 71,151))
-breedingClim.df$TotalPrecipCM <- breedingClim.df$PrecipCM + breedingClim.df$SnowfallCM
 ```
 
 ```{r write climate metrics csv for plotting}
