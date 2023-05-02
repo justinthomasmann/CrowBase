@@ -40,7 +40,7 @@ theme_set(theme_classic()) #default plots with no gridlines
 
 ```{r dataframe}
 df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
-#n=1864 nestlings, 41 variables
+#n=1863 nestlings, 41 variables
 ```
 <br>
 
@@ -99,6 +99,144 @@ B.df <- rbind(F.df,M.df)
 ```
 <br>
 
+```{r WeightbyMin.mdl}
+MinC8_22.Weight.mdl <- lm(Weight ~ MinC8_22 * PrecipSum8_22, data = scaled.df, na.action = "na.fail")
+summary(MinC8_22.Weight.mdl)
+```
+
+```{r Weight interplot}
+Weight.intplot <- plot_model(MinC8_22.Weight.mdl, type = "int", mdrt.values = "quart")
+Weight.intplot
+Weight.intplot <- Weight.intplot +
+  scale_color_manual(name="Precipitation Quartiles", values=c("#FFC107","#1E88E5","#D81B60"), breaks =  c(-0.75,-0.26,0.58), labels=c("Lower","Median","Upper"))+
+  scale_fill_manual(values = c("#FFC107","#1E88E5","#D81B60"))+
+  ggtitle("")+
+  xlab("Minimum temperature (C) scaled")+
+  ylab("Weight (g) scaled")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = c(0.85,0.85))
+Weight.intplot
+cowplot::save_plot("Plots/Weight.intplot.png", Weight.intplot, base_height = 4, base_width = 6)
+```
+
+
+## Exploratory plots
+
+```{r WeightbyMin.plot}
+WeightbyMin.plot <- ggplot(data = df, aes(x = MinC8_22, y = Weight))+
+  geom_point(shape = 1)+
+  geom_smooth()+
+  ylab("Weight (g)")+
+  xlab("Averaged minimum temperature (C)")
+WeightbyMin.plot
+cowplot::save_plot("Plots/WeightbyMin.plot.png", WeightbyMin.plot, base_height = 4, base_width = 7)
+```
+
+```{r WeightbyGDD.plot}
+WeightbyGDD.plot <- ggplot(data = df, aes(x = GDD10CSum8_22, y = Weight))+
+  geom_point(shape = 1)+
+  geom_smooth()+
+  ylab("Weight (g)")+
+  xlab("Summed growing degree days (10 C threshold)")
+WeightbyGDD.plot
+cowplot::save_plot("Plots/WeightbyGDD.plot.png", WeightbyGDD.plot, base_height = 4, base_width = 7)
+```
+
+```{r WeightbyPrecip.plot}
+WeightbyPrecip.plot <- ggplot(data = df, aes(x = PrecipSum8_22, y = Weight))+
+  geom_point(shape = 1)+
+  geom_smooth()+
+  ylab("Weight (g)")+
+  xlab("Summed precipitation (cm)")
+WeightbyPrecip.plot
+cowplot::save_plot("Plots/WeightbyPrecip.plot.png", WeightbyPrecip.plot, base_height = 4, base_width = 7)
+```
+
+
+
+
+
+
+
+```{r UBS.mdl}
+MinC8_22.UBS.mdl <- lm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df, na.action = "na.fail")
+summary(MinC8_22.UBS.mdl)
+```
+
+
+```{r BD climate time period best model predition}
+UBS.pred <- ggpredict(MinC8_22.UBS.mdl, type = "fe", terms = ~ MinC8_22)
+UBS.pred
+```
+```{r BD climate metric best model plot}
+UBSbyMin.plot <- ggplot(data = UBS.pred, aes(x,predicted))+
+  geom_point(data = scaled.df, aes(x=MinC8_22, y=UBS), shape = 1)+
+  geom_line(color = "#009E73", size = 0.7)+
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#009E73", alpha = 0.2)+
+  ylab("Upper bill surface area (mm^2) scaled")+
+  xlab("Minimum temperature (C) scaled")
+UBSbyMin.plot
+cowplot::save_plot("Plots/UBSbyMin.plot.png", UBSbyMin.plot, base_height = 4, base_width = 6)
+```
+
+```{r UBS MinC8_22.mdl fplot.df}
+UBS.df <- tidy(MinC8_22.UBS.mdl, quick = FALSE)
+  ci <- as_tibble(confint(MinC8_22.UBS.mdl))
+  UBS.df$ci.lower <- ci$`2.5 %`
+  UBS.df$ci.upper <- ci$`97.5 %`
+  UBS.df$Metric <- "Upper bill surface area"
+  UBS.df <- UBS.df[-1,]
+```
+
+```{r UBS.fplot}
+UBS.fplot <- ggplot(data = UBS.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper), color = "black", size=1, width=0.3)+
+    geom_point(aes(x=term,y=estimate), color = "black", shape = 16, size = 3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    scale_y_continuous(limits = c(-0.3,0.7))+
+    ggtitle("Parameters affecting upper bill surface area")+
+    ylab("Parameter estimate")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(15,15,15,15))
+UBS.fplot
+cowplot::save_plot("Plots/UBS.fplot.png", UBS.fplot, base_height = 4, base_width = 7)
+```
+
+
+
+
+
+```{r UBSWeightRatiobyMin.mdl}
+MinC8_22.UBSWeightRatio.mdl <- lm(UBSWeightRatio ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df, na.action = "na.fail")
+summary(MinC8_22.UBSWeightRatio.mdl)
+```
+
+
+
+```{r UBSWeightRatiobyMin.plot}
+B.df$UBSWeightRatio <- B.df$UBS/B.df$Weight
+UBSWeightRatiobyMin.plot <- ggplot(data = B.df, aes(x = MinC8_22, y = UBSWeightRatio, color= AllSex))+
+  geom_point(shape = 1)+
+  geom_smooth()+
+  #scale_y_continuous(limits = c(0.1,0.9))+
+  ylab("Upper bill surface area/weight ratio")+
+  xlab("Average minimum temperature (C)")
+cowplot::save_plot("Plots/UBSWeightRatiobyMin.plot.png", UBSWeightRatiobyMin.plot, base_height = 4, base_width = 6)
+```
+
+
+
 
 ## Unsupervised model selection
 
@@ -147,7 +285,7 @@ BDTimeModNames <- c('MinC1_11','MinC12_22','MinC6_19',"MinC8_22")
 aictab(cand.set = BDTimeMods, modnames = BDTimeModNames, sort = TRUE)
 ```
 
-```{r bill depth time period best model}
+```{r bill depth time period model}
 summary(MinC8_22.BD.mdl)
 ```
 <br>
@@ -224,6 +362,7 @@ cowplot::save_plot("Plots/BD.intplot.png", BD.intplot, base_height = 4, base_wid
 MinC8_22.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df, na.action = "na.fail")
 summary(MinC8_22.Tarsus.mdl)
 ```
+
 ```{r Tarsus MinC8_22.mdl fplot.df}
 Tarsus.df <- tidy(MinC8_22.Tarsus.mdl, quick = FALSE)
   ci <- as_tibble(confint(MinC8_22.Tarsus.mdl))
@@ -252,54 +391,6 @@ Tarsus.fplot <- ggplot(data = Tarsus.df)+
           plot.margin = margin(15,15,15,15))
 Tarsus.fplot
 #cowplot::save_plot("Plots/Tarsus.fplot.png", Tarsus.fplot, base_height = 4, base_width = 7)
-```
-
-```{r WeightbyMin.plot}
-WeightbyMin.plot <- ggplot(data = df, aes(x = MinC8_22, y = Weight))+
-  geom_point(shape = 1)+
-  geom_smooth()+
-  ylab("Weight (g)")+
-  xlab("Averaged minimum temperature (C)")
-WeightbyMin.plot
-cowplot::save_plot("Plots/WeightbyMin.plot.png", WeightbyMin.plot, base_height = 4, base_width = 7)
-```
-```{r WeightbyGDD.plot}
-WeightbyGDD.plot <- ggplot(data = df, aes(x = GDD10CSum8_22, y = Weight))+
-  geom_point(shape = 1)+
-  geom_smooth()+
-  ylab("Weight (g)")+
-  xlab("Summed growing degree days (10 C threshold)")
-WeightbyGDD.plot
-cowplot::save_plot("Plots/WeightbyGDD.plot.png", WeightbyGDD.plot, base_height = 4, base_width = 7)
-```
-
-```{r WeightbyPrecip.plot}
-WeightbyPrecip.plot <- ggplot(data = df, aes(x = PrecipSum8_22, y = Weight))+
-  geom_point(shape = 1)+
-  geom_smooth()+
-  ylab("Weight (g)")+
-  xlab("Summed precipitation (cm)")
-WeightbyPrecip.plot
-cowplot::save_plot("Plots/WeightbyPrecip.plot.png", WeightbyPrecip.plot, base_height = 4, base_width = 7)
-```
-
-```{r UBSbyMin.plot}
-ggplot(data = df, aes(x = MinC8_22, y = UB))+
-  geom_point(shape = 1)+
-  geom_smooth()+
-  #scale_y_continuous(limits = c(0.1,0.9))+
-  ylab("Upper bill (mm)")+
-  xlab("Average minimum temperature (C)")
-```
-
-```{r UBSWeightRatiobyMin.plot}
-df$UBSWeightRatio <- df$UBS/df$Weight
-ggplot(data = df, aes(x = MinC8_22, y = UBSWeightRatio))+
-  geom_point(shape = 1)+
-  geom_smooth()+
-  scale_y_continuous(limits = c(0.1,0.9))+
-  ylab("Upper bill surface area/weight ratio")+
-  xlab("Average minimum temperature (C)")
 ```
 
 
@@ -345,6 +436,36 @@ aictab(cand.set = BWTimeMods, modnames = BWTimeModNames, sort = TRUE)
 summary(MinC8_22.BW.mdl)
 ```
 <br>
+
+```{r BW MinC8_22.mdl fplot.df}
+BW.df <- tidy(MinC8_22.BW.mdl, quick = FALSE)
+  ci <- as_tibble(confint(MinC8_22.BW.mdl))
+  BW.df$ci.lower <- ci$`2.5 %`
+  BW.df$ci.upper <- ci$`97.5 %`
+  BW.df$Metric <- "Bill width"
+  BW.df <- BW.df[-1,]
+```
+
+```{r BW.fplot}
+BW.fplot <- ggplot(data = BW.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper), color = "black", size=1, width=0.3)+
+    geom_point(aes(x=term,y=estimate), color = "black", shape = 16, size = 3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    #scale_y_continuous(limits = c(-0.3,1))+
+    ggtitle("Parameters affecting bill width")+
+    ylab("Parameter estimate")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(15,15,15,15))
+BW.fplot
+cowplot::save_plot("Plots/BW.fplot.png", BW.fplot, base_height = 4, base_width = 7)
+```
 
 ## TEC Comparisons
 

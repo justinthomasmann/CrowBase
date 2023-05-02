@@ -472,7 +472,7 @@ plotdelta(dataset = bnt.window.max.out))
 <br>
 
 ```{r BNT OneMinusMin slidingwin}
-bnt.window.min <- slidingwin(xvar = list(OneMinusMin= clim.scaled.df$OneMinusMin),
+bnt.window.min <- slidingwin(xvar = list(MinC= clim.scaled.df$MinC),
            #exclude = c(4,0), #exclude windows shorter than 4 days
            cdate = clim.scaled.df$cDate,
            bdate = nestl.scaled.df$bDate,
