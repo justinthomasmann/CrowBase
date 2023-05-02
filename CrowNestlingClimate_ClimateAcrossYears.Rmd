@@ -74,7 +74,6 @@ min.plot <- ggplot(data = breedingClim.df, aes(x=as.factor(Year), y=MinC))+
   ylab("Minimum Temperature (C)")+
   xlab("")+
   theme(axis.text.x = element_text(angle = 90))
-min.plot
 ```
 
 
@@ -91,8 +90,8 @@ precip.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=PrecipCM))+
 
 ```{r wrap climate plots}
 BreedingClimate.wrap <- ggarrange(max.plot,min.plot,precip.plot, ncol = 1)
-annotate_figure(climate.wrap, top = "Climate during the breeding season (12 March-31 May)")
-cowplot::save_plot("BreedingClimate.wrap.png", BreedingClimate.wrap, base_height = 8, base_width = 6)
+BreedingClimate.wrap <- annotate_figure(BreedingClimate.wrap, top = "Climate during the breeding season (12 March-31 May)")
+#cowplot::save_plot("Plots/BreedingClimate.wrap.png", BreedingClimate.wrap, base_height = 8, base_width = 6)
 ```
 
 ## Nestling Data and Climate metrics

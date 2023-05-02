@@ -196,8 +196,11 @@ tarsus.window.min[[1]]$BestModel
 medwin(dataset = tarsus.window.min.out, cw = 0.80)
 ```
 ```{r tarsus.window.min plot weights}
-ggarrange(plotweights(dataset = tarsus.window.min[[1]]$Dataset, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25), plotdelta(dataset = tarsus.window.min.out))
+TarsusWindow.plots <- ggarrange(plotweights(dataset = tarsus.window.min[[1]]$Dataset, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25), plotdelta(dataset = tarsus.window.min.out))
+TarsusWindow.plots <- annotate_figure(TarsusWindow.plots, bottom = text_grob("Tarsus", face = "bold", size = 16))
 ```
+
+
 MaxC
 ```{r tarsus.window.max}
 tarsus.window.max <- slidingwin(xvar = list(MaxC = clim.scaled.df$MaxC),
@@ -270,9 +273,18 @@ medwin(dataset = bd.window.min.out, cw = 0.80)
 <br>
 
 ```{r bd.window.min plots}
-ggarrange(plotweights(dataset = bd.window.min.out, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25),
+BDWindow.plots <- ggarrange(plotweights(dataset = bd.window.min.out, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25),
 plotdelta(dataset = bd.window.min.out))
+BDWindow.plots <- annotate_figure(BDWindow.plots, bottom = text_grob("Bill Depth", face = "bold", size = 16))
 ```
+
+```{r window comparison plots}
+WindowComparison.wrap <- ggarrange(TarsusWindow.plots,BDWindow.plots, nrow = 2)
+WindowComparison.wrap
+#cowplot::save_plot("Plots/WindowComparison.wrap.png", WindowComparison.wrap, base_height = 9, base_width = 8)
+```
+
+
 <br>
 
 ```{r bd.window.gdd}
