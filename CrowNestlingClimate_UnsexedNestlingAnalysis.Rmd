@@ -112,20 +112,6 @@ MinC.BD.mdl <- lm(BD ~ MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na
 MaxC.BD.mdl <- lm(BD ~ MaxC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
 
 GDD10C.BD.mdl <- lm(BD ~ GDD10CSum12_22 + MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
-
-GDD.BD.dredge <- dredge(GDD10C.BD.mdl)
-GDD.BD.dredge
-```
-
-```{r}
-GDD10C.BD.MinInter.mdl <- lm(BD ~ GDD10CSum12_22 + MinC12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
-
-GDD10C.BD.GDDInter.mdl <- lm(BD ~ MinC12_22 + GDD10CSum12_22 * PrecipSum12_22 + Weight, data = scaled.df, na.action = "na.fail")
-```
-```{r}
-Inter.BD.mdls <- list(GDD10C.BD.MinInter.mdl,GDD10C.BD.GDDInter.mdl)
-Inter.BD.modnames <- c("MinInter","GDDInter")
-aictab(cand.set = Inter.BD.mdls, modnames = Inter.BD.modnames)
 ```
 
 
@@ -143,18 +129,6 @@ summary(MinC.BD.mdl)
 ```
 ```{r BD second best model summary}
 summary(GDD10C.BD.mdl)
-```
-
-```{r BD climate metric best model predition}
-MinC.pred <- ggpredict(MinC.BD.mdl, type = "fe", terms = ~ MinC12_22)
-MinC.pred
-```
-```{r BD climate metric best model plot}
-ggplot(data = MinC.pred, aes(x,predicted))+
-  geom_point(data = scaled.df, aes(x=MinC12_22, y=BD), shape = 1)+
-  geom_line(color = "#009E73", size = 1)+
-  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#009E73", alpha = 0.2)+
-  scale_y_continuous(limits = c(-4,4))
 ```
 <br>
 
@@ -175,12 +149,9 @@ BDTimeMods <- list(MinC1_11.BD.mdl,MinC12_22.BD.mdl,MinC6_19.BD.mdl,MinC8_22.BD.
 BDTimeModNames <- c('MinC1_11','MinC12_22','MinC6_19',"MinC8_22")
 aictab(cand.set = BDTimeMods, modnames = BDTimeModNames, sort = TRUE)
 ```
-```{r bill depth time period best model}
-summary(MinC8_22.BD.mdl)
-```
 
 ```{r bill depth time period best model}
-summary(MinC12_22.BD.mdl)
+summary(MinC8_22.BD.mdl)
 ```
 <br>
 
@@ -190,12 +161,14 @@ MinC8_22.pred
 ```
 ```{r BD climate metric best model plot}
 ggplot(data = MinC8_22.pred, aes(x,predicted))+
-  geom_point(data = scaled.df, aes(x=MinC8_22, y=BD))+
-  geom_line(color = "red")+
-  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "red", alpha = 0.1)+
-  scale_y_continuous(limits = c(-5,5))+
-  ylab("Bill depth")+
-  xlab("8-22 days post-hatching minimum temperature (C) ")
+  geom_point(data = scaled.df, aes(x=MinC8_22, y=BD), shape = 1)+
+  geom_line(color = "#009E73", size = 1)+
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#009E73", alpha = 0.2)+
+  ylab("Bill depth (mm) scaled")+
+  xlab("Minimum temperature (C) scaled")
+```
+```{r BD interplot}
+plot_model(MinC8_22.BD.mdl, type = "int", mdrt.values = "quart")
 ```
 
 
