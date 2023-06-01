@@ -196,17 +196,21 @@ MinC8_22.UBSWR.mdl <- lm(UBSWeightRatio ~ MinC8_22 * PrecipSum8_22, data = scale
 summary(MinC8_22.UBSWR.mdl)
 ```
 
+
+## Upper Bill Surface Area (UBS)
+
 ```{r UBS.mdl}
 MinC8_22.UBS.mdl <- lm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df, na.action = "na.fail")
 summary(MinC8_22.UBS.mdl)
 ```
 
 
-```{r BD climate time period best model predition}
+```{r UBS climate time period best model predition}
 UBS.pred <- ggpredict(MinC8_22.UBS.mdl, type = "fe", terms = ~MinC8_22)
 UBS.pred
 ```
-```{r BD climate metric best model plot}
+
+```{r UBS climate metric best model plot}
 UBSbyMin.plot <- ggplot(data = UBS.pred, aes(x,predicted))+
   geom_point(data = scaled.df, aes(x=MinC8_22, y=UBS), shape = 1)+
   geom_line(color = "#1E88E5", size = 0.7)+
@@ -254,6 +258,147 @@ cowplot::save_plot("Plots/UBS.wrap.png", UBS.wrap, base_height = 5, base_width =
 ```
 
 
+
+## Bill Depth
+
+```{r BD.mdl}
+MinC8_22.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df, na.action = "na.fail")
+summary(MinC8_22.BD.mdl)
+```
+
+
+```{r BD climate time period best model predition}
+BD.pred <- ggpredict(MinC8_22.BD.mdl, type = "fe", terms = ~MinC8_22)
+BD.pred
+```
+
+```{r BD climate metric best model plot}
+BDbyMin.plot <- ggplot(data = BD.pred, aes(x,predicted))+
+  geom_point(data = scaled.df, aes(x=MinC8_22, y=BD), shape = 1)+
+  geom_line(color = "#1E88E5", size = 0.7)+
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#1E88E5", alpha = 0.2)+
+  ylab("Bill Depth (mm) scaled")+
+  xlab("Mean minimum temperature (C) scaled")
+BDbyMin.plot
+#cowplot::save_plot("Plots/BDbyMin.plot.png", BDbyMin.plot, base_height = 4, base_width = 6)
+```
+
+```{r BD interaction plot}
+BDInter.plot <- plot_model(MinC8_22.BD.mdl, type = "int", mdrt.values = "quart")+
+  scale_color_manual(name="Precipitation Quartiles",
+                    values=c("#D81B60","#FFC107","#1E88E5"),
+                    breaks =  c(-0.75,-0.26,0.58),
+                    labels=c("Lower","Median","Upper"))+
+  scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
+  ggtitle("")+
+  xlab("Scaled minimum temperature")+
+  ylab("Scaled upper bill size")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = c(0.5,0.95))
+BDInter.plot
+#cowplot::save_plot("Plots/BDbyMin.plot.png", BDbyMin.plot, base_height = 4, base_width = 6)
+```
+
+
+```{r BD MinC8_22.mdl fplot.df}
+BD.df <- tidy(MinC8_22.BD.mdl, quick = FALSE)
+  ci <- as_tibble(confint(MinC8_22.BD.mdl))
+  BD.df$ci.lower <- ci$`2.5 %`
+  BD.df$ci.upper <- ci$`97.5 %`
+  BD.df$Metric <- "Bill Depth"
+  BD.df <- BD.df[-1,]
+```
+
+```{r BD.fplot}
+BD.fplot <- ggplot(data = BD.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper), color = "black", size=1, width=0.3)+
+    geom_point(aes(x=term,y=estimate), color = "black", shape = 16, size = 3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    scale_y_continuous(limits = c(-0.3,0.7))+
+    #ggtitle("Parameters affecting upper bill surface area")+
+    ylab("Parameter estimate")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(15,15,15,15))
+BD.fplot
+#cowplot::save_plot("Plots/BD.fplot.png", BD.fplot, base_height = 4, base_width = 7)
+```
+
+
+```{r BD.wrap}
+BD.wrap <- ggarrange(BD.fplot,BDbyMin.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
+cowplot::save_plot("Plots/BD.wrap.png", BD.wrap, base_height = 5, base_width = 12)
+```
+
+
+## Upper Bill
+
+```{r UB.mdl}
+MinC8_22.UB.mdl <- lm(UB ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df, na.action = "na.fail")
+summary(MinC8_22.UB.mdl)
+```
+
+
+```{r UB climate time period best model predition}
+UB.pred <- ggpredict(MinC8_22.BD.mdl, type = "fe", terms = ~PrecipSum8_22)
+UB.pred
+```
+
+```{r UB climate metric best model plot}
+UBbyMin.plot <- ggplot(data = UB.pred, aes(x,predicted))+
+  geom_point(data = scaled.df, aes(x=PrecipSum8_22, y=UB), shape = 1)+
+  geom_line(color = "#1E88E5", size = 0.7)+
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#1E88E5", alpha = 0.2)+
+  ylab("Upper bill (mm) scaled")+
+  xlab("Summed precipitation (cm) scaled")
+UBbyMin.plot
+#cowplot::save_plot("Plots/UBbyMin.plot.png", UBbyMin.plot, base_height = 4, base_width = 6)
+```
+
+```{r UB MinC8_22.mdl fplot.df}
+UB.df <- tidy(MinC8_22.UB.mdl, quick = FALSE)
+  ci <- as_tibble(confint(MinC8_22.UB.mdl))
+  UB.df$ci.lower <- ci$`2.5 %`
+  UB.df$ci.upper <- ci$`97.5 %`
+  UB.df$Metric <- "Upper Bill"
+  UB.df <- UB.df[-1,]
+```
+
+```{r UB.fplot}
+UB.fplot <- ggplot(data = UB.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper), color = "black", size=1, width=0.3)+
+    geom_point(aes(x=term,y=estimate), color = "black", shape = 16, size = 3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    scale_y_continuous(limits = c(-0.3,0.7))+
+    ylab("Parameter estimate")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(15,15,15,15))
+UB.fplot
+#cowplot::save_plot("Plots/UB.fplot.png", UB.fplot, base_height = 4, base_width = 7)
+```
+
+
+```{r UB.wrap}
+UB.wrap <- ggarrange(UB.fplot,UBbyMin.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
+cowplot::save_plot("Plots/UB.wrap.png", UB.wrap, base_height = 5, base_width = 12)
+```
 
 
 ## Unsupervised model selection
