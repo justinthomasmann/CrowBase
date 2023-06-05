@@ -5,26 +5,122 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(broom) #tidy() to create tibbles from model summaries
+library(car) #vif (variance inflation factor for measuring covariance)
+library(cowplot)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange for plot wraps
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+library(plotly) #ggplotly() to make interactive plots with scroll over ids
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa) #model validation functions
+library(DescTools) #Entropy() and MutInf()
+
+#Libraries for Bayesian Models
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+library(loo) #use loo() to compare fits between bayesian models
+
+#Clustering libraries
+library(umap)
+library(tsne)
+library(ggfortify)#use autoplot() to visualize PCAs
+library(stpm)#stochastic process model
+theme_set(theme_classic()) #default plots with no gridlines
+```
+<br>
+
+## Nestling Data and Climate metrics
+
+```{r dataframes}
+oldfull.df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
+#n=1863 nestlings, 41 variables
+
+sexed.df <- read.csv("CrowNestlingClimate_BothSexesClean.csv", h=TRUE)
+sexed.df <- sexed.df %>% 
+  arrange(HatchDateJulYear)
+```
+<br>
+
+```{r simplified sex.df}
+#Remove climate vectors
+sexed.df <- sexed.df[,c(2:15)]
+sexed.df <- sexed.df %>% rename(BNT=BillNT,BW=BillWidth,BD=BillDepth)
+sexed.df$origin <- 'sexed.df'
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r only sexed birds from oldfull.df}
+#subset full dataframe by males and females
+oldfull.M.df <- subset(oldfull.df, AllSex == "M")
+oldfull.F.df <- subset(oldfull.df, AllSex == "F")
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+#dataframe with all sexed birds from the full dataset
+oldfull.Both.df <- rbind(oldfull.M.df,oldfull.F.df)
+oldfull.Both.df <- oldfull.Both.df %>% arrange(HatchDateJulYear)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+```{r full join}
+fulljoin.df <- full_join(oldfull.Both.df,sexed.df, by = c("ID","CalcAge","HatchDateJulYear","AllSex","BD","BW","BNT","TEC","UB","UBS","TBS","Skull","Tarsus","Weight"))
+fulljoin.df <- fulljoin.df %>% relocate(origin, .before = FieldAge)
+fulljoin.df <- fulljoin.df %>% arrange(origin)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r left join}
+leftjoin.df <- left_join(oldfull.Both.df,sexed.df, by = "ID")
+leftjoin.df <- leftjoin.df %>% relocate(origin, .before = FieldAge)
+```
+
+
+```{r right join}
+rightjoin.df <- right_join(oldfull.Both.df,sexed.df, by = "ID")
+rightjoin.df <- rightjoin.df %>% relocate(origin, .before = FieldAge)
+```
+
+```{r removals from full dataset}
+oldfull.Both.df <- oldfull.Both.df %>% filter(!grepl("EN WKAY05", ID))
+```
+
+
+```{r simplified full join}
+NewFullSexed.df <- fulljoin.df %>% 
+  select(ID, FieldAge, HatchDateJulYear, AllSex, CalcAge, BNT, BW, BD, TEC, UB, UBS, TBS, Skull, Tarsus, Weight) %>% 
+  relocate(HatchDateJulYear, .before = ID) %>% 
+  relocate(CalcAge, .before = AllSex)
+```
+
+
+```{r get unsexed kids}
+Full.Unsexed.df <- oldfull.df[oldfull.df$AllSex != "M" & oldfull.df$AllSex != "F",]
+Full.Unsexed.df <- Full.Unsexed.df %>% 
+  select(ID, FieldAge, HatchDateJulYear, AllSex, CalcAge, BNT, BW, BD, TEC, UB, UBS, TBS, Skull, Tarsus, Weight) %>% 
+  relocate(HatchDateJulYear, .before = ID) %>% 
+  relocate(CalcAge, .before = AllSex)
+```
+
+
+```{r combine Full.Unsexed.df with NewFullSexed.df}
+NewFull.df <- rbind(NewFullSexed.df, Full.Unsexed.df)
+NewFull.df <- NewFull.df %>% 
+  filter(!is.na(ID)) %>% 
+  dplyr::arrange(HatchDateJulYear)
+
+#check for duplicate nestlings
+duplicates.df <- NewFull.df %>% group_by(ID) %>% filter(n()>1)
+#20 duplicates
+```
+
+```{r write a new csv}
+FullNestlingDataset <- write.csv()
+```
+

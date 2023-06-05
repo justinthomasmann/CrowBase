@@ -36,7 +36,7 @@ df <- read.csv("CrowNestlingClimate.csv", h=TRUE)#n=2394 nestlings
 ```
 <br>
 
-Anne went through CrowNestlingClimate.csv and identified runts and nestlings with untrustworthy measurements, which are outline by her in "SoCalledRuntNestlingsByYear.xlsx" Below, I checked for the presence of those nestlings and removed them from the df.
+Anne went through CrowNestlingClimate.csv and identified runts and nestlings with untrustworthy measurements, which are outlined by her in "SoCalledRuntNestlingsByYear.xlsx" Below, I checked for the presence of those nestlings and removed them from the df.
 <br>
 
 ```{r Annes cleaning list}
@@ -49,6 +49,7 @@ df$ID[df$ID=="Y-5 ROTA98"]#not in
 df$ID[df$ID=="B3 WINK98"]#in, remove below
 df$ID[df$ID=="B-1	WINK98"]#not in
 df$ID[df$ID=="GL JSUP05"]#in, remove below
+df$ID[df$ID=="EN WKAY05"]#not in
 df$ID[df$ID=="CV WKAY05"]#not in 
 df$ID[df$ID=="YB-OSW HORC10"]#not in 
 df$ID[df$ID=="FE WCRI18"]#in, remove below
