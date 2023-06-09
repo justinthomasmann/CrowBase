@@ -49,7 +49,7 @@ df$ID[df$ID=="Y-5 ROTA98"]#not in
 df$ID[df$ID=="B3 WINK98"]#in, remove below
 df$ID[df$ID=="B-1	WINK98"]#not in
 df$ID[df$ID=="GL JSUP05"]#in, remove below
-df$ID[df$ID=="EN WKAY05"]#not in
+df$ID[df$ID=="EN WKAY05"]#in, remove below
 df$ID[df$ID=="CV WKAY05"]#not in 
 df$ID[df$ID=="YB-OSW HORC10"]#not in 
 df$ID[df$ID=="FE WCRI18"]#in, remove below
@@ -80,10 +80,10 @@ df$ID[df$ID=="doa3 NMUR07"]#in, remove below
 df$ID[df$ID=="doa4 NMUR07"]#in, remove below
 df$ID[df$ID=="doa5 NMUR07"]#in, remove below
 df$ID[df$ID=="X0 YFER00"]#identified in DuplicateNestlings file, remove below (*2 obs)
-df$ID[df$ID=="dead fledgling USGS16"]#not in
+df$ID[df$ID=="dead fledgling USGS16"]#in, remove below
 
-#Remove 29 individuals listed above 
-df <- df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17","L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00","doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06","doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07","doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07","FE WCRI18","DOA RGBY00","X0 YFER00","dead fledgling USGS16"))#new n=2364
+#Remove 31 individuals listed above 
+df <- df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17","L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00","doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06","doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07","doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07","FE WCRI18","DOA RGBY00","X0 YFER00","dead fledgling USGS16", "EN WKAY05"))#new n=2363
 ```
 <br>
 
@@ -92,16 +92,16 @@ Below, I identified nestlings that happened to be measured twice (for a variety 
 
 ```{r dealing with duplicates}
 #Find duplicate IDs 
-duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)
+duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)#46 duplicate nestling IDs
 
 #list of duplicates sent to Anne
 #write.csv(duplicates.df, "DuplicateNestlings.csv")
 
 #Deleting SPEG04 per Anne's request
-df <- df %>% filter(!NestName=="SEPG04")#4 nestlings (new n=2361)
+df <- df %>% filter(!NestName=="SEPG04")#4 nestlings (new n=2359)
 
 #Keeping second measurement for GYMN08 per Anne's request
-df <- subset(df, NestName!="GYMN08" | BandDateJul!="126")#new n=2359
+df <- subset(df, NestName!="GYMN08" | BandDateJul!="126")#new n=2357
 
 #Update duplicate IDs (new n=38)
 duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)
@@ -111,20 +111,21 @@ duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)
 duplicates.df <- duplicates.df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=19
 
 #Sort remaining duplicates.df by year and CalcAge and only retain the first (youngest) observation
-df <- df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=2339 (19 fewer than above, so code works)
+df <- df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=2338 (19 fewer than above, so code works)
 
 summary(duplicated(df$ID))#no more duplicates
 ```
 
 
 ```{r select and rename variables}
-#Select variables
-df <- df %>% 
-  select(Year,Name,NestName,ID,AgeField,CalcAge,HatchDateJul,HatchDateJulYear,AllSex,BillNT,BillWidth,BillDepth,TEC,Head,UpperBill,UBillSurface,TotBillSurface,Skull,Tarsus,Weight)
-
 #Rename variables
 df <- df %>% 
   rename(FieldAge=AgeField,BNT=BillNT,BW=BillWidth,BD=BillDepth,UB=UpperBill,UBS=UBillSurface,TBS=TotBillSurface)
+
+#Select variables
+df <- df %>%
+  select(Year,Name,NestName,ID,AgeField,CalcAge,HatchDateJulYear,AllSex,BillNT,BillWidth,BillDepth,TEC,Head,UpperBill,UBillSurface,TotBillSurface,Skull,Tarsus,Weight)
+
 ```
 <br>
 
@@ -200,34 +201,16 @@ Scaled.df <- scale(DataToScale.df)
 scaled.df <- cbind(DataNotScaled.df,Scaled.df)
 ```
 
-```{r BD Time 1 model}
-BDTime1.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
-summary(BDTime1.scaled.mdl)
-```
-
-```{r BD Time 2 model}
-BDTime2.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
-summary(BDTime2.scaled.mdl)
-```
 
 
-```{r BD Incub model}
-BDIncub.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge)
-summary(BDIncub.scaled.mdl)
-```
 
 
-```{r Tarsus Time 1 model}
-TarsusTime1.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSum1_11 * PrecipSum1_11 + Weight + CalcAge)
-summary(TarsusTime1.scaled.mdl)
-```
 
-```{r Tarsus Time 2 model}
-TarsusTime2.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSum12_22 * PrecipSum12_22 + Weight + CalcAge)
-summary(TarsusTime2.scaled.mdl)
-```
 
-```{r Tarsus Incub model}
-TarsusIncub.scaled.mdl <- lm(data = scaled.df, Tarsus ~ GDDSumIncubation * PrecipSumIncubation + Weight + CalcAge)
-summary(TarsusIncub.scaled.mdl)
-```
+
+
+
+
+
+
+

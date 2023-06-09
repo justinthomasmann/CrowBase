@@ -118,9 +118,21 @@ NewFull.df <- NewFull.df %>%
 #check for duplicate nestlings
 duplicates.df <- NewFull.df %>% group_by(ID) %>% filter(n()>1)
 #20 duplicates
+
+#removing SEPG04 kids per Anne's request
+NewFull.df <- NewFull.df[!grepl("SEPG04", NewFull.df$ID),]
+
+NewFull.df <- NewFull.df %>%  group_by(HatchDateJulYear) %>% arrange(ID, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)
+
+NewFull.df <- NewFull.df %>% 
+  arrange(HatchDateJulYear)
+
+duplicates.df <- NewFull.df %>% group_by(ID) %>% filter(n()>1)
+
+NewFull.df <- NewFull.df[which(NewFull.df$ID != "S1 HORC10" & NewFull.df$CalcAge != 29.4),]
 ```
 
 ```{r write a new csv}
-FullNestlingDataset <- write.csv()
+FullNestlingDataset <- write.csv(NewFull.df, "FullNestlingDataset.csv", row.names = FALSE)
 ```
 
