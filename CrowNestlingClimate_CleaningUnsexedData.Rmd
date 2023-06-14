@@ -124,7 +124,7 @@ df <- df %>%
 
 #Select variables
 df <- df %>%
-  select(Year,Name,NestName,ID,AgeField,CalcAge,HatchDateJulYear,AllSex,BillNT,BillWidth,BillDepth,TEC,Head,UpperBill,UBillSurface,TotBillSurface,Skull,Tarsus,Weight)
+  select(Year,Name,NestName,ID,FieldAge,CalcAge,HatchDateJulYear,AllSex,BNT,BW,BD,TEC,Head,UB,UBS,TBS,Skull,Tarsus,Weight,WingChord,Primary7,TailLength)
 
 ```
 <br>
@@ -138,7 +138,7 @@ countNAs
 ```{r remove NAs and double check}
 #Remove NAs
 df <- df %>% 
-  filter_at(vars(Weight,HatchDateJul,BD,Tarsus,Skull,BW), all_vars(!is.na(.)))#new n=2323
+  filter_at(vars(Weight,HatchDateJulYear,BD,Tarsus,Skull,BW), all_vars(!is.na(.)))#new n=2323
 
 #Recount NAs
 countNAs <- sapply(df, function(x) sum(is.na(x)))
@@ -147,6 +147,10 @@ countNAs#still 3 NAs in name for nestlings named "NA"
 #Change "NA" name to "N_A" so R doesn't cause problems
 df <- df %>% 
   mutate(Name = coalesce(Name, "N_A"))
+
+#Recount NAs
+countNAs <- sapply(df, function(x) sum(is.na(x)))
+countNAs
 ```
 <br> 
 
@@ -157,12 +161,16 @@ summary(df)
 
 
 ```{r age filter}
-#filter out Weights < 160 
-df <- df %>% filter(Weight > 200)#new n=2297
+#filter out Weights < 200 
+df <- df %>% filter(Weight > 200)#new n=2296
 range(df$Weight)
 
 #filter between 24 and 30 days CalcAges
-df <- df %>% filter(between(FieldAge, 24,29))#new n=1919
+df <- df %>% filter(between(CalcAge, 24,29))#new n=2024
+range(df$CalcAge)
+
+#filter out FieldAges less than 24
+df <- df %>% filter(FieldAge > 23)#new n=1860
 range(df$FieldAge)
 
 liteWeights.df <- df %>% filter(between(Weight, 162, 301))

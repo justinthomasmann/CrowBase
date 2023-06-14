@@ -38,5 +38,65 @@ theme_set(theme_classic()) #default plots with no gridlines
 
 ## Nestling data from CrowBase (Filemaker database)
 
+The original data used for nestling analyses were exported from Filemaker as ["Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.xlsx"](https://github.com/justinthomasmann/CrowBase/blob/main/OldDocs/Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.xlsx) in February 2021 during JTM's employment as database manager. The first exploration of nestling morphometrics by JTM and ABC  using those data are documented in ["CB-NestlingsAndAdults.Rmd"](https://github.com/justinthomasmann/CrowBase/blob/main/CB-NestlingsAndAdults.Rmd).
+
+The file ["nestlingMorph.csv"](https://github.com/justinthomasmann/CrowBase/blob/main/nestlingMorph.csv) was created in April 2021 as a nestling-only subset of original Filemaker export. 
+
+```{r import nestlingMorph.csv}
+nestlingMorph.df <- read.csv("nestlingMorph.csv", h=T)#n=4081 nestlings, which agrees with FileMaker's number of nestlings
+summary(nestlingMorph.df)
+```
+
+
+```{r filter nestlingMorph.df by population and species}
+#arrange by year
+nestlingMorph.df <- nestlingMorph.df %>% 
+  arrange(year)
+#include only Ithaca data
+nestlingMorph.df <- filter(nestlingMorph.df, population=="Ithaca")#n=3923
+#remove fish crows
+nestlingMorph.df <- filter(nestlingMorph.df, species=="AMCR")#n=3919
+```
+
+
+```{r simplify nestlingMorph by dropping unused columns}
+nestlingMorph.df <- nestlingMorph.df %>% 
+  select(year, id, age, nestName, sex, tarsus, sevenPrimary, tailLength, calcAge, billNT, billD, billW, TEC, head, skull, wingChord, exp7Primary, mass, measurmentDate, hatchDate)
+```
+
+
+```{r count NAs in simplified nestlingMorph.df}
+countNAs <- sapply(nestlingMorph.df, function(x) sum(is.na(x)))
+countNAs
+```
+
+```{r nestlingMorph.df field age filter}
+nestlingMorph.FieldAgeFilter.df <- nestlingMorph.df %>% 
+  filter(age > 23)
+```
+
+There are 2083 nestlings with field ages greater than 23.
+
+
+```{r nestlingMorph.df calc age filter}
+nestlingMorph.CalcAgeFilter.df <- nestlingMorph.FieldAgeFilter.df %>% 
+  filter(between(calcAge, 24,29))
+```
+
+There are 1899 nestlings with calculated ages between 24 and 29.
+
+```{r import CrowNestlingClimate}
+df <- read.csv("FullNestlingDataset.csv", h=T)
+df2 <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=T)
+df2 <- df2 %>% 
+  select(ID,FieldAge,CalcAge,HatchDateJulYear,AllSex,BNT,BW,BD,TEC,UB,UBS,TBS,Skull,Tarsus,Weight) %>% 
+  relocate(HatchDateJulYear, .before = ID)
+
+fulljoin.df <- full_join(df,df2,by=c("HatchDateJulYear","ID","FieldAge","CalcAge","AllSex","BNT","BW","BD","TEC","UB","UBS","TBS","Skull","Tarsus","Weight"))
+
+NestlingData.df <- fulljoin.df %>% 
+  arrange(HatchDateJulYear)
+```
+
 
 
