@@ -170,7 +170,7 @@ df <- df %>% filter(between(CalcAge, 24,29))#new n=2024
 range(df$CalcAge)
 
 #filter out FieldAges less than 24
-df <- df %>% filter(FieldAge > 23)#new n=1860
+df <- df %>% filter(between(FieldAge, 24, 29))#new n=1860
 range(df$FieldAge)
 
 liteWeights.df <- df %>% filter(between(Weight, 162, 301))

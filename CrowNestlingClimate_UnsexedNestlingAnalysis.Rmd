@@ -40,7 +40,7 @@ theme_set(theme_classic()) #default plots with no gridlines
 
 ```{r dataframe}
 df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
-#n=1863 nestlings, 41 variables
+#n=1863 nestlings, 41 variables 
 ```
 <br>
 

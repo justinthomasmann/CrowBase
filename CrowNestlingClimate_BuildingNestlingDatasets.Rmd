@@ -47,8 +47,8 @@ The original data used for nestling analyses were exported from Filemaker as ["N
 FMExport.df <- read.csv("OldDocs/Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.csv", h=TRUE)
 summary(FMExport.df)
 ```
-<br>
 
+<br>
 
 ```{r create a FMNestling.df}
 #only American crow nestlings from Ithaca (n=3924)
@@ -60,7 +60,6 @@ FMNestling.df <- FMExport.df %>%
   rename(sex=sexSummary)
 ```
 
-
 ```{r count NAs in FMNestling.df}
 sapply(FMNestling.df, function(x) sum(is.na(x)))
 ```
@@ -71,13 +70,11 @@ FMNestling.Duplicates.df <- FMNestling.df %>%
   arrange(year,id)
 ```
 
-
 ```{r age filtered FMNestling.df}
 FMNestling.AgeFilter.df <- FMNestling.df %>% 
   filter(age > 23) %>% 
   filter(between(calcAge, 24,29))
 ```
-
 
 The file ["nestlingMorph.csv"](https://github.com/justinthomasmann/CrowBase/blob/main/nestlingMorph.csv) was created in April 2021 as a nestling-only subset (lifestage = "nestling") of the original Filemaker export that's linked above.
 
@@ -105,7 +102,6 @@ nestlingMorph.Duplicates.df <- nestlingMorph.df %>%
   arrange(year,id)
 ```
 
-
 ```{r count NAs in simplified nestlingMorph.df}
 countNAs <- sapply(nestlingMorph.df, function(x) sum(is.na(x)))
 countNAs
@@ -116,18 +112,16 @@ nestlingMorph.AgeFilter.df <- nestlingMorph.df %>%
   filter(age > 23) %>% 
   filter(between(calcAge, 24,29))
 ```
-<br>
 
+<br>
 
 ```{r anti_join nestlingMorph.AgeFilter.df and FMNestling.AgeFilter.df}
 nestlingMorph.AntiJoin.df <- anti_join(nestlingMorph.AgeFilter.df,FMNestling.AgeFilter.df,by="id")
 ```
 
-
 ```{r anti_join nestlingMorph.AgeFilter.df and FMNestling.AgeFilter.df}
 FMNestling.AntiJoin.df <- anti_join(FMNestling.AgeFilter.df,nestlingMorph.AgeFilter.df,by="id")
 ```
-
 
 ```{r import CrowNestlingClimate}
 df <- read.csv("FullNestlingDataset.csv", h=T)
@@ -147,7 +141,6 @@ NestlingData.df <- fulljoin.df %>%
 NestlingData.df <- read.csv("CleanedNestlingData_061423.csv", h=TRUE)
 ```
 
-
 ```{r excluded nestlings}
 #trim some kids with impossible measurements (per Anne)
 NestlingData.df <- NestlingData.df %>% 
@@ -155,12 +148,9 @@ NestlingData.df <- NestlingData.df %>%
   filter(between(CalcAge,24,29)) #1946
 ```
 
-
 ```{r excluding runts per Anne}
 NestlingData.df <- NestlingData.df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17","L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00","doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06","doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07","doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07","FE WCRI18","DOA RGBY00","X0 YFER00","dead fledgling USGS16", "EN WKAY05"))#new n=1942
 ```
-
-
 
 ```{r removing duplicates}
 duplicates.df <- NestlingData.df %>% group_by(ID) %>% filter(n()>1)
@@ -170,14 +160,11 @@ duplicates.df <- duplicates.df %>%  group_by(HatchDateJulYear) %>% arrange(ID, F
 NestlingData.df <- NestlingData.df %>%  group_by(HatchDateJulYear) %>% arrange(ID, FieldAge) %>% dplyr::distinct(ID, .keep_all = TRUE)
 ```
 
-
 ```{r count NAs}
 #Count NAs
 sapply(NestlingData.df, function(x) sum(is.na(x)))
 ```
 
-
 ```{r import CleanedNestlingData_061423.csv}
 CleanedNestlings.df <- read.csv("CleanedNestlingData_061423.csv", h=TRUE)
 ```
-
