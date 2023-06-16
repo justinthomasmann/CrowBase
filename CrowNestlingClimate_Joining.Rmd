@@ -14,7 +14,7 @@ library(dplyr)
 ## Dataframes for nestlings and climate metrics
 
 ```{r df}
-nestlings.df <- read.csv("CleanedNestlingData_061423.csv", h=TRUE)# 1954
+nestlings.df <- read.csv("CleanedNestlings_FullMorphometrics_6.16.23.csv", h=TRUE)# 2098
 climate.df <- read.csv("ClimateMetrics_ForJoining.csv", h=TRUE)
 ```
 
@@ -27,12 +27,16 @@ df <- df %>%
 
 #trim some kids with impossible measurements (per Anne)
 df <- df %>% 
-  filter(Tarsus < 70) %>% 
-  filter(CalcAge > 23.9)
+  filter(Tarsus < 70) %>% #Tarsus must be > 70
+  filter(CalcAge > 23.9) %>% #CalcAge must be > 23.9
+  filter(Weight > 200) #Weight must be > 200
+
+# New n=2085
+
+df <- df %>% 
+  relocate(c(Year,NestName), .before = "ID")
 
 
-#New n=1864 nestlings
-
-# write.csv(df, "CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv",
+# write.csv(df, "CrowNestlingClimate_NestlingsCleaned&ClimateJoined_6.16.23.csv",
 #          row.names = F)
 ```

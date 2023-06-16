@@ -39,8 +39,13 @@ theme_set(theme_classic()) #default plots with no gridlines
 ## Nestling Data and Climate metrics
 
 ```{r dataframe}
-df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
-#n=1863 nestlings, 41 variables 
+df <- read.csv("CrowNestlingClimate_NestlingsCleaned&ClimateJoined_6.16.23.csv", h=TRUE)
+#n=2085 nestlings, 42 variables
+
+df <- df %>% filter(ID!="0 WCRI14") #Field error in TEC measurement
+df <- df %>% filter(ID!="8V YEFE13") #Field error in TEC measurement
+df <- df %>% filter(ID!="FX MCUN08") #Runt
+df <- df %>% filter(ID!="0D CCPL02") #Field error in TEC measurement
 ```
 <br>
 
@@ -52,10 +57,10 @@ Subtract each value from the mean (center) and divide it by the standard deviati
 
 ```{r scaling}
 #categorical data  
-categorical.df <- df[,1:9]
+categorical.df <- df[,1:7]
 
 #continuous data
-continuous.df <- df[,10:41]
+continuous.df <- df[,8:42]
 
 #scale continuous data
 #?scale()
@@ -63,7 +68,7 @@ scaled.mat <- scale(continuous.df, center = TRUE, scale = TRUE)
 
 #join unscaled and scaled data
 scaled.df <- cbind(categorical.df,scaled.mat)
-scaled.df$UBSWeightRatio <- scaled.df$UBS/scaled.df$Weight
+#scaled.df$UBSWeightRatio <- scaled.df$UBS/scaled.df$Weight
 ```
 
 <br>
@@ -169,34 +174,6 @@ WeightbyPrecip.plot
 ```
 
 
-```{r UBSbyMin.plot}
-UBSbyMin.plot <- ggplot(data = df, aes(x = MinC8_22, y = UBS))+
-  geom_point(shape = 1)+
-  geom_smooth(method = "lm", fill = "#1E88E5", color = "#1E88E5", alpha = 0.2)+
-  ylab("Upper Bill Surface Area (mm^2)")+
-  xlab("Mean minimum temperature (C) days 8-22")
-UBSbyMin.plot
-#cowplot::save_plot("Plots/UBSbyMin.plot.png", UBSbyMin.plot, base_height = 4, base_width = 7)
-```
-
-```{r UBSWeightRatiobyMin.plot}
-UBSWeightRatiobyMin.plot <- ggplot(data = scaled.df, aes(x = MinC8_22, y = UBSWeightRatio))+
-  geom_point(shape = 1)+
-  geom_smooth(method = "lm", fill = "#D81B60", color = "#D81B60", alpha = 0.2)+
-  scale_y_continuous(limits = c(-5,5))+
-  ylab("Upper Bill Surface Area (mm^2)")+
-  xlab("Mean minimum temperature (C) days 8-22")
-UBSWeightRatiobyMin.plot
-#cowplot::save_plot("Plots/WeightbyMin.plot.png", WeightbyMin.plot, base_height = 4, base_width = 7)
-```
-
-
-```{r USBWeightRatiobyMin.mdl}
-MinC8_22.UBSWR.mdl <- lm(UBSWeightRatio ~ MinC8_22 * PrecipSum8_22, data = scaled.df, na.action = "na.fail")
-summary(MinC8_22.UBSWR.mdl)
-```
-
-
 ## Upper Bill Surface Area (UBS)
 
 ```{r UBS.mdl}
@@ -212,12 +189,13 @@ UBS.pred
 
 ```{r UBS climate metric best model plot}
 UBSbyMin.plot <- ggplot(data = UBS.pred, aes(x,predicted))+
-  geom_point(data = scaled.df, aes(x=MinC8_22, y=UBS), shape = 1)+
+  geom_point(data = scaled.df, aes(x=MinC8_22, y=UBS, labels=ID), shape = 1)+
   geom_line(color = "#1E88E5", size = 0.7)+
   geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#1E88E5", alpha = 0.2)+
   ylab("Upper bill surface area (mm^2) scaled")+
   xlab("Mean minimum temperature (C) scaled")
 UBSbyMin.plot
+ggplotly(UBSbyMin.plot)
 #cowplot::save_plot("Plots/UBSbyMin.plot.png", UBSbyMin.plot, base_height = 4, base_width = 6)
 ```
 
@@ -287,7 +265,7 @@ BDbyMin.plot
 BDInter.plot <- plot_model(MinC8_22.BD.mdl, type = "int", mdrt.values = "quart")+
   scale_color_manual(name="Precipitation Quartiles",
                     values=c("#D81B60","#FFC107","#1E88E5"),
-                    breaks =  c(-0.75,-0.26,0.58),
+                    breaks =  c(-0.76,-0.22,0.53),
                     labels=c("Lower","Median","Upper"))+
   scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
   ggtitle("")+
@@ -298,7 +276,7 @@ BDInter.plot <- plot_model(MinC8_22.BD.mdl, type = "int", mdrt.values = "quart")
           axis.title.x = element_text(size = 14),
           axis.text.y = element_text(size = 12),
           axis.title.y = element_text(size = 14),
-          legend.position = c(0.5,0.95))
+          legend.position = c(0.25,0.85))
 BDInter.plot
 #cowplot::save_plot("Plots/BDbyMin.plot.png", BDbyMin.plot, base_height = 4, base_width = 6)
 ```
@@ -336,7 +314,7 @@ BD.fplot
 
 
 ```{r BD.wrap}
-BD.wrap <- ggarrange(BD.fplot,BDbyMin.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
+BD.wrap <- ggarrange(BD.fplot,BDInter.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
 cowplot::save_plot("Plots/BD.wrap.png", BD.wrap, base_height = 5, base_width = 12)
 ```
 
