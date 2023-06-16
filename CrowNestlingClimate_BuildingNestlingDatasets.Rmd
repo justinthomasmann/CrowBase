@@ -185,25 +185,54 @@ CNC.df <- CNC.df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::d
 summary(duplicated(CNC.df$ID))#no more duplicates
 ```
 
+```{r filter nestlings with NA field age}
+CNC.NAFieldAge <- CNC.df %>% filter(is.na(AgeField))
+```
+
+
 ```{r excluded nestlings in CNC.df}
 #trim some kids with impossible measurements (per Anne)
 CNC.df <- CNC.df %>% 
   filter(Tarsus < 70) %>% 
-  filter(between(CalcAge,24,29)) #1946
+  filter(between(CalcAge,24,29)) %>% #n=2058
+  filter(between(AgeField, 24,29)) %>% #n=1811 This filter drops individuals that have NA for field age
+  arrange(Year, NestName)
+
+CNC.df <- rbind(CNC.df,CNC.NAFieldAge) #n=1973
+CNC.df <- CNC.df %>% filter(between(CalcAge, 24,29)) #n=1969
+summary(duplicated(CNC.df$ID)) #no duplicates
 ```
 
 ```{r excluding runts per Anne}
-CNC.df <- CNC.df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17","L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00","doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06","doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07","doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07","FE WCRI18","DOA RGBY00","X0 YFER00","dead fledgling USGS16", "EN WKAY05"))#new n=1942
+CNC.df <- CNC.df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17","L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00","doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06","doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07","doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07","FE WCRI18","DOA RGBY00","X0 YFER00","dead fledgling USGS16", "EN WKAY05"))#new n=1949
+```
+
+
+```{r renaming CNC.df variables for joining}
+CNC.df <- CNC.df %>% 
+  rename(FieldAge=AgeField,BNT=BillNT,BW=BillWidth,BD=BillDepth,UB=UpperBill,UBS=UBillSurface,TBS=TotBillSurface)
 ```
 
 
 ```{r simplify CNC.df for joining}
-CNC.df <- CNC.df %>% select(ID,NestName,Year,Head,WingChord,Primary7,TailLength)
+CNC.df <- CNC.df %>% select(ID,NestName,CalcAge,FieldAge,HatchDateJulYear,AllSex,BNT,TEC,BW,BD,UB,UBS,TBS,Tarsus,Year,Head,WingChord,Primary7,TailLength,Weight,Skull)
 ```
 
 
 ```{r join CleanedNestlings.df with CNC morphometrics}
-CleanedNestlings.df <- left_join(CleanedNestlings.df,CNC.df, by="ID")
+CleanedNestlings.df <- full_join(CleanedNestlings.df,CNC.df, by=c("ID","CalcAge","FieldAge","HatchDateJulYear","AllSex","BNT","TEC","BW","BD","UB","UBS","TBS","Tarsus","Weight","Skull"))
+
+CleanedNestlings.df <- CleanedNestlings.df %>% 
+  arrange(HatchDateJulYear)
+
+summary(is.na(CleanedNestlings.df))
+```
+
+
+```{r remove NAs in required vectors}
+#Remove NAs
+CleanedNestlings.df <- CleanedNestlings.df %>% 
+  filter_at(vars(Weight,BW), all_vars(!is.na(.)))#new n=2098
 ```
 
 
