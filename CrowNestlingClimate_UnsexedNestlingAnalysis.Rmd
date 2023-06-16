@@ -269,8 +269,8 @@ BDInter.plot <- plot_model(MinC8_22.BD.mdl, type = "int", mdrt.values = "quart")
                     labels=c("Lower","Median","Upper"))+
   scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
   ggtitle("")+
-  xlab("Scaled minimum temperature")+
-  ylab("Scaled upper bill size")+
+  xlab("Minimum temperature (C) scaled")+
+  ylab("Bill depth (mm) scaled")+
   theme(plot.title = element_text(size = 16),
           axis.text.x = element_text(size = 12),
           axis.title.x = element_text(size = 14),
@@ -344,6 +344,26 @@ UBbyMin.plot
 #cowplot::save_plot("Plots/UBbyMin.plot.png", UBbyMin.plot, base_height = 4, base_width = 6)
 ```
 
+```{r UB interaction plot}
+UBInter.plot <- plot_model(MinC8_22.UB.mdl, type = "int", mdrt.values = "quart")+
+  scale_color_manual(name="Precipitation Quartiles",
+                    values=c("#D81B60","#FFC107","#1E88E5"),
+                    breaks =  c(-0.76,-0.22,0.53),
+                    labels=c("Lower","Median","Upper"))+
+  scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
+  ggtitle("")+
+  xlab("Minimum temperature (C) scaled")+
+  ylab("Upper bill (mm) scaled")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = c(0.4,0.2))
+UBInter.plot
+#cowplot::save_plot("Plots/UBInter.plot.png", BDbyMin.plot, base_height = 4, base_width = 6)
+```
+
 ```{r UB MinC8_22.mdl fplot.df}
 UB.df <- tidy(MinC8_22.UB.mdl, quick = FALSE)
   ci <- as_tibble(confint(MinC8_22.UB.mdl))
@@ -375,7 +395,7 @@ UB.fplot
 
 
 ```{r UB.wrap}
-UB.wrap <- ggarrange(UB.fplot,UBbyMin.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
+UB.wrap <- ggarrange(UB.fplot,UBInter.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
 cowplot::save_plot("Plots/UB.wrap.png", UB.wrap, base_height = 5, base_width = 12)
 ```
 
@@ -434,9 +454,9 @@ Tarsus.fplot
 ```
 
 
-```{r UB.wrap}
-UB.wrap <- ggarrange(UB.fplot,UBbyMin.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
-cowplot::save_plot("Plots/UB.wrap.png", UB.wrap, base_height = 5, base_width = 12)
+```{r Tarsus.wrap}
+Tarsus.wrap <- ggarrange(Tarsus.fplot,TarsusbyPrecip.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
+cowplot::save_plot("Plots/Tarsus.wrap.png", Tarsus.wrap, base_height = 5, base_width = 12)
 ```
 
 
