@@ -101,7 +101,7 @@ duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)#46 duplicate nestling IDs
 df <- df %>% filter(!NestName=="SEPG04")#4 nestlings (new n=2359)
 
 #Keeping second measurement for GYMN08 per Anne's request
-df <- subset(df, NestName!="GYMN08" | BandDateJul!="126")#new n=2357
+df <- subset(df, NestName!="GYMN08" | BandDateJulYear!="2008126")#new n=2357
 
 #Update duplicate IDs (new n=38)
 duplicates.df <- df %>% group_by(ID) %>% filter(n()>1)

@@ -166,5 +166,49 @@ sapply(NestlingData.df, function(x) sum(is.na(x)))
 ```
 
 ```{r import CleanedNestlingData_061423.csv}
-CleanedNestlings.df <- read.csv("CleanedNestlingData_061423.csv", h=TRUE)
+CleanedNestlings.df <- read.csv("CleanedNestlingData_061423.csv", h=TRUE) 
 ```
+
+```{r import CrowNestlingClimate.csv}
+CNC.df <- read.csv("CrowNestlingClimate.csv", h=TRUE)#n=2394
+```
+
+```{r deal with CNC.df duplicates}
+#Deleting SPEG04 per Anne's request
+CNC.df <- CNC.df %>% filter(!NestName=="SEPG04")#5 obs (new n=2389)
+
+#Keeping second measurement for GYMN08 per Anne's request
+CNC.df <- subset(CNC.df, NestName!="GYMN08" | BandDateJul!="126")#new n=2387
+
+CNC.df <- CNC.df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#2367
+
+summary(duplicated(CNC.df$ID))#no more duplicates
+```
+
+```{r excluded nestlings in CNC.df}
+#trim some kids with impossible measurements (per Anne)
+CNC.df <- CNC.df %>% 
+  filter(Tarsus < 70) %>% 
+  filter(between(CalcAge,24,29)) #1946
+```
+
+```{r excluding runts per Anne}
+CNC.df <- CNC.df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17","L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00","doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06","doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07","doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07","FE WCRI18","DOA RGBY00","X0 YFER00","dead fledgling USGS16", "EN WKAY05"))#new n=1942
+```
+
+
+```{r simplify CNC.df for joining}
+CNC.df <- CNC.df %>% select(ID,NestName,Year,Head,WingChord,Primary7,TailLength)
+```
+
+
+```{r join CleanedNestlings.df with CNC morphometrics}
+CleanedNestlings.df <- left_join(CleanedNestlings.df,CNC.df, by="ID")
+```
+
+
+```{r write CleanedNestlings_FullMorphometrics_6.16.23.csv}
+#write.csv(CleanedNestlings.df, "CleanedNestlings_FullMorphometrics_6.16.23.csv", row.names = F)
+```
+
+
