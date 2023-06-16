@@ -37,6 +37,46 @@
 \makeatother
 \usepackage{xcolor}
 \usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
 \usepackage{graphicx}
 \makeatletter
 \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
@@ -68,7 +108,7 @@
 
 \title{Building Nestling Datasets}
 \author{Justin Mann}
-\date{2023-06-12}
+\date{2023-06-15}
 
 \begin{document}
 \maketitle
@@ -89,5 +129,144 @@ The file
 \href{https://github.com/justinthomasmann/CrowBase/blob/main/nestlingMorph.csv}{``nestlingMorph.csv''}
 was created in April 2021 as a nestling-only subset of original
 Filemaker export.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{nestlingMorph.df }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"nestlingMorph.csv"}\NormalTok{, }\AttributeTok{h=}\NormalTok{T)}\CommentTok{\#n=4081 nestlings, which agrees with FileMaker\textquotesingle{}s number of nestlings}
+\FunctionTok{summary}\NormalTok{(nestlingMorph.df)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  nestlingMeasurementID      year       population          species         
+##  Min.   :1006          Min.   :1989   Length:4081        Length:4081       
+##  1st Qu.:2026          1st Qu.:1995   Class :character   Class :character  
+##  Median :3047          Median :2001   Mode  :character   Mode  :character  
+##  Mean   :3099          Mean   :2002                                        
+##  3rd Qu.:4072          3rd Qu.:2009                                        
+##  Max.   :6228          Max.   :2018                                        
+##                                                                            
+##   lifeStage              id                 age              nest          
+##  Length:4081        Length:4081        Min.   :   0.00   Length:4081       
+##  Class :character   Class :character   1st Qu.:  13.00   Class :character  
+##  Mode  :character   Mode  :character   Median :  24.00   Mode  :character  
+##                                        Mean   :  22.34                     
+##                                        3rd Qu.:  27.00                     
+##                                        Max.   :1459.00                     
+##                                        NA's   :265                         
+##    nestName             sex                tarsus       sevenPrimary     
+##  Length:4081        Length:4081        Min.   : 0.00   Min.   :    0.00  
+##  Class :character   Class :character   1st Qu.:41.80   1st Qu.:   18.25  
+##  Mode  :character   Mode  :character   Median :56.80   Median :   93.00  
+##                                        Mean   :48.88   Mean   :   82.24  
+##                                        3rd Qu.:59.85   3rd Qu.:  117.00  
+##                                        Max.   :75.00   Max.   :14550.00  
+##                                        NA's   :18      NA's   :91        
+##    tailLength        calcAge             billNT            billD     
+##  Min.   :  0.00   Min.   :    0.00   Min.   :-0.1224   Min.   : 0.0  
+##  1st Qu.:  5.00   1st Qu.:   13.00   1st Qu.:15.4000   1st Qu.:10.8  
+##  Median : 45.00   Median :   24.96   Median :21.1000   Median :12.3  
+##  Mean   : 41.42   Mean   :   29.91   Mean   :18.8220   Mean   :11.6  
+##  3rd Qu.: 64.00   3rd Qu.:   26.30   3rd Qu.:23.0000   3rd Qu.:13.1  
+##  Max.   :183.00   Max.   :29344.26   Max.   :41.0000   Max.   :19.3  
+##  NA's   :112      NA's   :265        NA's   :31        NA's   :42    
+##      billW            TEC             head           skull      
+##  Min.   : 0.00   Min.   : 0.00   Min.   : 0.00   Min.   :13.70  
+##  1st Qu.:11.60   1st Qu.:23.90   1st Qu.:58.80   1st Qu.:35.30  
+##  Median :12.50   Median :32.80   Median :73.30   Median :40.20  
+##  Mean   :11.99   Mean   :29.18   Mean   :66.21   Mean   :37.24  
+##  3rd Qu.:13.30   3rd Qu.:35.40   3rd Qu.:77.40   3rd Qu.:42.20  
+##  Max.   :71.70   Max.   :56.60   Max.   :98.80   Max.   :85.40  
+##  NA's   :42      NA's   :34      NA's   :28      NA's   :38     
+##    wingChord      exp7Primary           mass       measureNumber  
+##  Min.   :  0.0   Min.   :   0.00   Min.   :  0.0   Min.   :0.500  
+##  1st Qu.: 88.0   1st Qu.:  39.00   1st Qu.:180.0   1st Qu.:1.500  
+##  Median :154.0   Median :  56.00   Median :342.0   Median :3.000  
+##  Mean   :130.5   Mean   :  58.13   Mean   :281.9   Mean   :3.604  
+##  3rd Qu.:176.0   3rd Qu.:  73.00   3rd Qu.:395.0   3rd Qu.:5.000  
+##  Max.   :315.0   Max.   :2038.00   Max.   :541.0   Max.   :9.000  
+##  NA's   :346     NA's   :2387      NA's   :87      NA's   :865    
+##  measurmentDate     measurementJulDate  hatchDate         hatchDateJul      
+##  Length:4081        Length:4081        Length:4081        Length:4081       
+##  Class :character   Class :character   Class :character   Class :character  
+##  Mode  :character   Mode  :character   Mode  :character   Mode  :character  
+##                                                                             
+##                                                                             
+##                                                                             
+## 
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#arrange by year}
+\NormalTok{nestlingMorph.df }\OtherTok{\textless{}{-}}\NormalTok{ nestlingMorph.df }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{arrange}\NormalTok{(year)}
+\CommentTok{\#include only Ithaca data}
+\NormalTok{nestlingMorph.df }\OtherTok{\textless{}{-}} \FunctionTok{filter}\NormalTok{(nestlingMorph.df, population}\SpecialCharTok{==}\StringTok{"Ithaca"}\NormalTok{)}\CommentTok{\#n=3923}
+\CommentTok{\#remove fish crows}
+\NormalTok{nestlingMorph.df }\OtherTok{\textless{}{-}} \FunctionTok{filter}\NormalTok{(nestlingMorph.df, species}\SpecialCharTok{==}\StringTok{"AMCR"}\NormalTok{)}\CommentTok{\#n=3919}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{nestlingMorph.df }\OtherTok{\textless{}{-}}\NormalTok{ nestlingMorph.df }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{select}\NormalTok{(year, id, age, nestName, sex, tarsus, sevenPrimary, tailLength, calcAge, billNT, billD, billW, TEC, head, skull, wingChord, exp7Primary, mass, measurmentDate, hatchDate)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{countNAs }\OtherTok{\textless{}{-}} \FunctionTok{sapply}\NormalTok{(nestlingMorph.df, }\ControlFlowTok{function}\NormalTok{(x) }\FunctionTok{sum}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(x)))}
+\NormalTok{countNAs}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##           year             id            age       nestName            sex 
+##              0              0            225              0           2817 
+##         tarsus   sevenPrimary     tailLength        calcAge         billNT 
+##             18             65             85            225             30 
+##          billD          billW            TEC           head          skull 
+##             41             41             33             26             36 
+##      wingChord    exp7Primary           mass measurmentDate      hatchDate 
+##            306           2354             84              0              0
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{nestlingMorph.FieldAgeFilter.df }\OtherTok{\textless{}{-}}\NormalTok{ nestlingMorph.df }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{filter}\NormalTok{(age }\SpecialCharTok{\textgreater{}} \DecValTok{23}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+There are 2083 nestlings with field ages greater than 23.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{nestlingMorph.CalcAgeFilter.df }\OtherTok{\textless{}{-}}\NormalTok{ nestlingMorph.FieldAgeFilter.df }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{filter}\NormalTok{(}\FunctionTok{between}\NormalTok{(calcAge, }\DecValTok{24}\NormalTok{,}\DecValTok{29}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+There are 1899 nestlings with calculated ages between 24 and 29.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{df }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"FullNestlingDataset.csv"}\NormalTok{, }\AttributeTok{h=}\NormalTok{T)}
+\NormalTok{df2 }\OtherTok{\textless{}{-}} \FunctionTok{read.csv}\NormalTok{(}\StringTok{"CrowNestlingClimate\_AllNestlingsCleaned\&ClimateJoinedNEW.csv"}\NormalTok{, }\AttributeTok{h=}\NormalTok{T)}
+\NormalTok{df2 }\OtherTok{\textless{}{-}}\NormalTok{ df2 }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{select}\NormalTok{(ID,FieldAge,CalcAge,HatchDateJulYear,AllSex,BNT,BW,BD,TEC,UB,UBS,TBS,Skull,Tarsus,Weight) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{relocate}\NormalTok{(HatchDateJulYear, }\AttributeTok{.before =}\NormalTok{ ID)}
+
+\NormalTok{fulljoin.df }\OtherTok{\textless{}{-}} \FunctionTok{full\_join}\NormalTok{(df,df2,}\AttributeTok{by=}\FunctionTok{c}\NormalTok{(}\StringTok{"HatchDateJulYear"}\NormalTok{,}\StringTok{"ID"}\NormalTok{,}\StringTok{"FieldAge"}\NormalTok{,}\StringTok{"CalcAge"}\NormalTok{,}\StringTok{"AllSex"}\NormalTok{,}\StringTok{"BNT"}\NormalTok{,}\StringTok{"BW"}\NormalTok{,}\StringTok{"BD"}\NormalTok{,}\StringTok{"TEC"}\NormalTok{,}\StringTok{"UB"}\NormalTok{,}\StringTok{"UBS"}\NormalTok{,}\StringTok{"TBS"}\NormalTok{,}\StringTok{"Skull"}\NormalTok{,}\StringTok{"Tarsus"}\NormalTok{,}\StringTok{"Weight"}\NormalTok{))}
+
+\NormalTok{NestlingData.df }\OtherTok{\textless{}{-}}\NormalTok{ fulljoin.df }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{arrange}\NormalTok{(HatchDateJulYear)}
+
+\CommentTok{\#56write.csv(NestlingData.df, "CleanedNestlingData\_061423.csv", row.names = FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
 
 \end{document}

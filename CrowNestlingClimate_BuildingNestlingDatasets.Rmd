@@ -2,7 +2,7 @@
 title: "Building Nestling Datasets"
 author: "Justin Mann"
 date: "`r Sys.Date()`"
-output: pdf_document
+output: html_document
 ---
 
 ```{r libraries, include=FALSE}
@@ -34,34 +34,75 @@ library(ggfortify)#use autoplot() to visualize PCAs
 library(stpm)#stochastic process model
 theme_set(theme_classic()) #default plots with no gridlines
 ```
+
+# Building the nestling dataset
+
 <br>
 
 ## Nestling data from CrowBase (Filemaker database)
 
-The original data used for nestling analyses were exported from Filemaker as ["Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.xlsx"](https://github.com/justinthomasmann/CrowBase/blob/main/OldDocs/Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.xlsx) in February 2021 during JTM's employment as database manager. The first exploration of nestling morphometrics by JTM and ABC  using those data are documented in ["CB-NestlingsAndAdults.Rmd"](https://github.com/justinthomasmann/CrowBase/blob/main/CB-NestlingsAndAdults.Rmd).
+The original data used for nestling analyses were exported from Filemaker as ["Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.xlsx"](https://github.com/justinthomasmann/CrowBase/blob/main/OldDocs/Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.xlsx) in February 2021 during JTM's employment as database manager. The first exploration of nestling morphometrics by JTM and ABC using those data are documented in ["CB-NestlingsAndAdults.Rmd"](https://github.com/justinthomasmann/CrowBase/blob/main/CB-NestlingsAndAdults.Rmd).
 
-The file ["nestlingMorph.csv"](https://github.com/justinthomasmann/CrowBase/blob/main/nestlingMorph.csv) was created in April 2021 as a nestling-only subset of original Filemaker export. 
+```{r import Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.xlsx}
+FMExport.df <- read.csv("OldDocs/Nestlings1989-2018_no2011_WITH_AdultMeasurements_2001-2015.csv", h=TRUE)
+summary(FMExport.df)
+```
+<br>
+
+
+```{r create a FMNestling.df}
+#only American crow nestlings from Ithaca (n=3924)
+FMNestling.df <- FMExport.df %>% 
+  filter(lifeStage=="nestling") %>% 
+  filter(population=="Ithaca") %>%
+  filter(species=="AMCR") %>% 
+  select(year,id,age,sexSummary,tarsus,sevenPrimary,tailLength,calcAge,billNT,billD,billW,TEC,head,skull,wingChord,exp7Primary,weight,measurmentDate,hatchDate) %>% 
+  rename(sex=sexSummary)
+```
+
+
+```{r count NAs in FMNestling.df}
+sapply(FMNestling.df, function(x) sum(is.na(x)))
+```
+
+```{r duplicate IDs in FMNestling.df}
+FMNestling.Duplicates.df <- FMNestling.df %>% 
+  group_by(id) %>% filter(n()>1) %>% 
+  arrange(year,id)
+```
+
+
+```{r age filtered FMNestling.df}
+FMNestling.AgeFilter.df <- FMNestling.df %>% 
+  filter(age > 23) %>% 
+  filter(between(calcAge, 24,29))
+```
+
+
+The file ["nestlingMorph.csv"](https://github.com/justinthomasmann/CrowBase/blob/main/nestlingMorph.csv) was created in April 2021 as a nestling-only subset (lifestage = "nestling") of the original Filemaker export that's linked above.
 
 ```{r import nestlingMorph.csv}
-nestlingMorph.df <- read.csv("nestlingMorph.csv", h=T)#n=4081 nestlings, which agrees with FileMaker's number of nestlings
+nestlingMorph.df <- read.csv("nestlingMorph.csv", h=T)#n=4081 nestlings
 summary(nestlingMorph.df)
 ```
 
-
 ```{r filter nestlingMorph.df by population and species}
-#arrange by year
+#only American crow nestlings from Ithaca (n=3919)
 nestlingMorph.df <- nestlingMorph.df %>% 
-  arrange(year)
-#include only Ithaca data
-nestlingMorph.df <- filter(nestlingMorph.df, population=="Ithaca")#n=3923
-#remove fish crows
-nestlingMorph.df <- filter(nestlingMorph.df, species=="AMCR")#n=3919
+  filter(population=="Ithaca") %>%
+  filter(species=="AMCR") %>% 
+  rename(weight=mass)
 ```
 
-
-```{r simplify nestlingMorph by dropping unused columns}
+```{r drop unused columns}
 nestlingMorph.df <- nestlingMorph.df %>% 
-  select(year, id, age, nestName, sex, tarsus, sevenPrimary, tailLength, calcAge, billNT, billD, billW, TEC, head, skull, wingChord, exp7Primary, mass, measurmentDate, hatchDate)
+  select(year, id, age, sex, tarsus, sevenPrimary, tailLength, calcAge, billNT, billD, billW, TEC, head, skull, wingChord, exp7Primary, weight, measurmentDate, hatchDate)
+```
+
+```{r duplicate IDs in nestlingMorph.df}
+nestlingMorph.Duplicates.df <- nestlingMorph.df %>% 
+  group_by(id) %>% filter(n()>1) %>% 
+  arrange(year,id)
 ```
 
 
@@ -70,20 +111,23 @@ countNAs <- sapply(nestlingMorph.df, function(x) sum(is.na(x)))
 countNAs
 ```
 
-```{r nestlingMorph.df field age filter}
-nestlingMorph.FieldAgeFilter.df <- nestlingMorph.df %>% 
-  filter(age > 23)
-```
-
-There are 2083 nestlings with field ages greater than 23.
-
-
-```{r nestlingMorph.df calc age filter}
-nestlingMorph.CalcAgeFilter.df <- nestlingMorph.FieldAgeFilter.df %>% 
+```{r age filtered nestlingMorph.df}
+nestlingMorph.AgeFilter.df <- nestlingMorph.df %>% 
+  filter(age > 23) %>% 
   filter(between(calcAge, 24,29))
 ```
+<br>
 
-There are 1899 nestlings with calculated ages between 24 and 29.
+
+```{r anti_join nestlingMorph.AgeFilter.df and FMNestling.AgeFilter.df}
+nestlingMorph.AntiJoin.df <- anti_join(nestlingMorph.AgeFilter.df,FMNestling.AgeFilter.df,by="id")
+```
+
+
+```{r anti_join nestlingMorph.AgeFilter.df and FMNestling.AgeFilter.df}
+FMNestling.AntiJoin.df <- anti_join(FMNestling.AgeFilter.df,nestlingMorph.AgeFilter.df,by="id")
+```
+
 
 ```{r import CrowNestlingClimate}
 df <- read.csv("FullNestlingDataset.csv", h=T)
@@ -96,7 +140,44 @@ fulljoin.df <- full_join(df,df2,by=c("HatchDateJulYear","ID","FieldAge","CalcAge
 
 NestlingData.df <- fulljoin.df %>% 
   arrange(HatchDateJulYear)
+
+#write.csv(NestlingData.df, "CleanedNestlingData_061423.csv", row.names = FALSE) 
+#n = 1954
+
+NestlingData.df <- read.csv("CleanedNestlingData_061423.csv", h=TRUE)
 ```
 
 
+```{r excluded nestlings}
+#trim some kids with impossible measurements (per Anne)
+NestlingData.df <- NestlingData.df %>% 
+  filter(Tarsus < 70) %>% 
+  filter(between(CalcAge,24,29)) #1946
+```
+
+
+```{r excluding runts per Anne}
+NestlingData.df <- NestlingData.df %>% filter(!ID %in% c("FFW-S DRIN02","B3 WINK98","GL JSUP05","Q4 CARE11","JC NDYC17","L-2 KRUM93","orange SWEG91","SWB-W BURP03","3 PINW00","4 PINW00","doa SEPG04","2-r HORC04","doa CLAR05","doa HOMC05","doa JUDD06","doa1 KAYS06","doa2 KAYS06","doa3 KAYS06","doa1 BROT07","doa2 BROT07","doa1 NMUR07","doa2 NMUR07","doa3 NMUR07","doa4 NMUR07","doa5 NMUR07","FE WCRI18","DOA RGBY00","X0 YFER00","dead fledgling USGS16", "EN WKAY05"))#new n=1942
+```
+
+
+
+```{r removing duplicates}
+duplicates.df <- NestlingData.df %>% group_by(ID) %>% filter(n()>1)
+
+duplicates.df <- duplicates.df %>%  group_by(HatchDateJulYear) %>% arrange(ID, FieldAge) %>% dplyr::distinct(ID, .keep_all = TRUE)
+
+NestlingData.df <- NestlingData.df %>%  group_by(HatchDateJulYear) %>% arrange(ID, FieldAge) %>% dplyr::distinct(ID, .keep_all = TRUE)
+```
+
+
+```{r count NAs}
+#Count NAs
+sapply(NestlingData.df, function(x) sum(is.na(x)))
+```
+
+
+```{r import CleanedNestlingData_061423.csv}
+CleanedNestlings.df <- read.csv("CleanedNestlingData_061423.csv", h=TRUE)
+```
 
