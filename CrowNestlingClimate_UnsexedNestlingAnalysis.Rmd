@@ -81,6 +81,8 @@ df <- TestJoin.df %>% filter(is.na(Decision))
 #check number removed from df
 2082-153 #correct, df n=1929
 
+#drop Decision column (no longer needed)
+df <- df %>% select(-Decision)
 ```
 
 ## Normalize Continuous Data
