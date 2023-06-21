@@ -15,7 +15,7 @@ library(sjPlot) #plot_model & tab_model (blue = #377EB8)
 library(ggpubr) #ggarrange for plot wraps
 library(lmerTest) #lmerTest::step
 library(ggeffects) #ggpredict
-library(plotly) #ggplotly() to make interactive plots with scroll over ids
+#library(plotly) #ggplotly() to make interactive plots with scroll over ids
 library(MuMIn) #dredge() for unsupervised model selection
 library(AICcmodavg) #aictab() for AICc model comparisons
 library(DHARMa) #model validation functions
@@ -35,7 +35,7 @@ library(stpm)#stochastic process model
 theme_set(theme_classic()) #default plots with no gridlines
 ```
 
-<br>
+
 
 ## Nestling Data and Climate metrics
 
@@ -105,7 +105,7 @@ scaled.df <- cbind(categorical.df,scaled.mat)
 #scaled.df$UBSWeightRatio <- scaled.df$UBS/scaled.df$Weight
 ```
 
-<br>
+
 
 Summarize the unscaled data
 
@@ -119,7 +119,7 @@ Summarize the scaled data
 summary(scaled.df)
 ```
 
-<br>
+
 
 ```{r data frame with only sexed nestlings}
 #Males Scaled
@@ -138,7 +138,17 @@ B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
 B.df <- rbind(F.df,M.df)
 ```
 
-<br>
+
+```{r WeightAge.plot}
+WeightAge.plot <- ggplot(data = df, aes(x = CalcAge, y = Weight))+
+  geom_point(shape = 1)+
+  geom_smooth()+
+  ylab("Weight (g)")+
+  xlab("Nestling Age")
+WeightAge.plot
+cowplot::save_plot("Plots/WeightAge.plot.png", WeightAge.plot, base_height = 4, base_width = 7)
+```
+
 
 ## How is nestling weight affected by minimum temperature and precipitation?
 
@@ -199,15 +209,7 @@ Weight.wrap <- ggarrange(Weight.fplot,WeightbyMin.plot, ncol = 2, labels = c("A"
 cowplot::save_plot("Plots/Weight.wrap.png", Weight.wrap, base_height = 5, base_width = 12)
 ```
 
-```{r WeightbyPrecip.plot}
-WeightbyPrecip.plot <- ggplot(data = df, aes(x = PrecipSum8_22, y = Weight))+
-  geom_point(shape = 1)+
-  geom_smooth()+
-  ylab("Weight (g)")+
-  xlab("Summed precipitation (cm)")
-WeightbyPrecip.plot
-#cowplot::save_plot("Plots/WeightbyPrecip.plot.png", WeightbyPrecip.plot, base_height = 4, base_width = 7)
-```
+
 
 ## Upper Bill Surface Area (UBS)
 
@@ -229,7 +231,6 @@ UBSbyMin.plot <- ggplot(data = UBS.pred, aes(x,predicted))+
   ylab("Upper bill surface area (mm^2) scaled")+
   xlab("Mean minimum temperature (C) scaled")
 UBSbyMin.plot
-ggplotly(UBSbyMin.plot)
 #cowplot::save_plot("Plots/UBSbyMin.plot.png", UBSbyMin.plot, base_height = 4, base_width = 6)
 ```
 
@@ -268,6 +269,67 @@ UBS.wrap <- ggarrange(UBS.fplot,UBSbyMin.plot, ncol = 2, labels = c("A","B"), wi
 cowplot::save_plot("Plots/UBS.wrap.png", UBS.wrap, base_height = 5, base_width = 12)
 ```
 
+
+## Upper Bill Surface Area (UBS) by sex
+
+```{r UBSSex.mdl}
+MinC8_22.UBSSex.mdl <- lm(UBS ~ AllSex + MinC8_22 * PrecipSum8_22 + Weight, data = B.scaled.df)
+summary(MinC8_22.UBSSex.mdl)
+```
+
+```{r UBSSex climate time period best model predition}
+UBSSex.pred <- ggpredict(MinC8_22.UBSSex.mdl, type = "fe", terms = ~MinC8_22)
+UBSSex.pred
+```
+
+```{r UBSSex climate metric best model plot}
+UBSbyMin.plot <- ggplot(data = B.scaled.df, aes(x=MinC8_22, y=UBS/sqrt(Weight), color=AllSex))+
+  geom_point(shape = 1)+
+  geom_smooth(alpha = 0.2)+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  labs(color = "Sex")
+  # ylab("Upper bill surface area (mm^2) scaled")+
+  # xlab("Mean minimum temperature (C) scaled")
+UBSbyMin.plot
+#cowplot::save_plot("Plots/UBSbyMin.plot.png", UBSbyMin.plot, base_height = 4, base_width = 6)
+```
+
+```{r UBS MinC8_22.mdl fplot.df}
+UBS.df <- tidy(MinC8_22.UBS.mdl, quick = FALSE)
+  ci <- as_tibble(confint(MinC8_22.UBS.mdl))
+  UBS.df$ci.lower <- ci$`2.5 %`
+  UBS.df$ci.upper <- ci$`97.5 %`
+  UBS.df$Metric <- "Upper bill surface area"
+  UBS.df <- UBS.df[-1,]
+```
+
+```{r UBS.fplot}
+UBS.fplot <- ggplot(data = UBS.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper), color = "black", size=1, width=0.3)+
+    geom_point(aes(x=term,y=estimate), color = "black", shape = 16, size = 3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    scale_y_continuous(limits = c(-0.3,0.7))+
+    #ggtitle("Parameters affecting upper bill surface area")+
+    ylab("Parameter estimate")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(15,15,15,15))
+UBS.fplot
+#cowplot::save_plot("Plots/UBS.fplot.png", UBS.fplot, base_height = 4, base_width = 7)
+```
+
+```{r UBS.wrap}
+UBS.wrap <- ggarrange(UBS.fplot,UBSbyMin.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
+cowplot::save_plot("Plots/UBS.wrap.png", UBS.wrap, base_height = 5, base_width = 12)
+```
+
+
 ## Bill Depth
 
 ```{r BD.mdl}
@@ -295,7 +357,7 @@ BDbyMin.plot
 BDInter.plot <- plot_model(MinC8_22.BD.mdl, type = "int", mdrt.values = "quart")+
   scale_color_manual(name="Precipitation Quartiles",
                     values=c("#D81B60","#FFC107","#1E88E5"),
-                    breaks =  c(-0.76,-0.22,0.53),
+                    breaks =  c(-0.77,-0.22,0.54),
                     labels=c("Lower","Median","Upper"))+
   scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
   ggtitle("")+
@@ -353,7 +415,6 @@ MinC8_22.UB.mdl <- lm(UB ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df, 
 summary(MinC8_22.UB.mdl)
 ```
 
-## Need to add interaction plot!!!
 
 ```{r UB climate time period best model predition}
 UB.pred <- ggpredict(MinC8_22.UB.mdl, type = "fe", terms = ~PrecipSum8_22)
@@ -375,7 +436,7 @@ UBbyMin.plot
 UBInter.plot <- plot_model(MinC8_22.UB.mdl, type = "int", mdrt.values = "quart")+
   scale_color_manual(name="Precipitation Quartiles",
                     values=c("#D81B60","#FFC107","#1E88E5"),
-                    breaks =  c(-0.76,-0.22,0.53),
+                    breaks =  c(-0.77,-0.22,0.54),
                     labels=c("Lower","Median","Upper"))+
   scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
   ggtitle("")+
@@ -434,17 +495,24 @@ summary(MinC8_22.Tarsus.mdl)
 
 ```{r Tarsus climate time period best model predition}
 Tarsus.pred <- ggpredict(MinC8_22.Tarsus.mdl, type = "fe", terms = ~PrecipSum8_22)
-UB.pred
+Tarsus.pred
 ```
 
 ```{r Tarsus climate metric best model plot}
-TarsusbyPrecip.plot <- ggplot(data = UB.pred, aes(x,predicted))+
-  geom_point(data = scaled.df, aes(x=PrecipSum8_22, y=UB), shape = 1)+
-  geom_line(color = "#1E88E5", size = 0.7)+
-  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#1E88E5", alpha = 0.2)+
+TarsusPrecipSex.plot <- ggplot(data = B.scaled.df, aes(x=PrecipSum8_22, y=Tarsus, color=AllSex))+
+  geom_point(shape = 1)+
+  geom_smooth(alpha = 0.2)+
+  scale_color_manual(values = c("#009E73","#E69F00"), labels = c("Female","Male"))+
+  labs(color = "Sex")+
   ylab("Tarsus (mm) scaled")+
-  xlab("Summed precipitation (cm) scaled")
-TarsusbyPrecip.plot
+  xlab("Summed precipitation (cm) scaled")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = c(0.8,0.15))
+TarsusPrecipSex.plot
 #cowplot::save_plot("Plots/UBbyMin.plot.png", UBbyMin.plot, base_height = 4, base_width = 6)
 ```
 
@@ -478,9 +546,11 @@ Tarsus.fplot
 ```
 
 ```{r Tarsus.wrap}
-Tarsus.wrap <- ggarrange(Tarsus.fplot,TarsusbyPrecip.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
+Tarsus.wrap <- ggarrange(Tarsus.fplot,TarsusPrecipSex.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
 cowplot::save_plot("Plots/Tarsus.wrap.png", Tarsus.wrap, base_height = 5, base_width = 12)
 ```
+
+
 
 ## Skull
 
@@ -577,7 +647,7 @@ ggplotly(TBSbyMin.plot)
 TBSInter.plot <- plot_model(MinC8_22.TBS.mdl, type = "int", mdrt.values = "quart")+
   scale_color_manual(name="Precipitation Quartiles",
                     values=c("#D81B60","#FFC107","#1E88E5"),
-                    breaks =  c(-0.76,-0.22,0.53),
+                    breaks =  c(-0.77,-0.22,0.54),
                     labels=c("Lower","Median","Upper"))+
   scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
   ggtitle("")+
@@ -628,6 +698,88 @@ TBS.wrap <- ggarrange(TBS.fplot,TBSInter.plot, ncol = 2, labels = c("A","B"), wi
 cowplot::save_plot("Plots/TBS.wrap.png", TBS.wrap, base_height = 5, base_width = 12)
 ```
 
+
+
+## Bill nares to tip
+
+```{r BNT.mdl}
+MinC8_22.BNT.mdl <- lm(BNT ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df, na.action = "na.fail")
+summary(MinC8_22.BNT.mdl)
+```
+
+```{r BNT climate time period best model predition}
+BNT.pred <- ggpredict(MinC8_22.BNT.mdl, type = "fe", terms = ~MinC8_22)
+BNT.pred
+```
+
+```{r BNT climate metric best model plot}
+BNTbyMin.plot <- ggplot(data = BNT.pred, aes(x,predicted))+
+  geom_point(data = scaled.df, aes(x=MinC8_22, y=BNT, labels=ID), shape = 1)+
+  geom_line(color = "#1E88E5", size = 0.7)+
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#1E88E5", alpha = 0.2)+
+  ylab("Bill nares to tip (mm) scaled")+
+  xlab("Mean minimum temperature (C) scaled")
+BNTbyMin.plot
+#ggplotly(BNTbyMin.plot)
+#cowplot::save_plot("Plots/BNTbyMin.plot.png", BNTbyMin.plot, base_height = 4, base_width = 6)
+```
+
+```{r BNT interaction plot}
+BNTInter.plot <- plot_model(MinC8_22.BNT.mdl, type = "int", mdrt.values = "quart")+
+  scale_color_manual(name="Precipitation Quartiles",
+                    values=c("#D81B60","#FFC107","#1E88E5"),
+                    breaks =  c(-0.77,-0.22,0.54),
+                    labels=c("Lower","Median","Upper"))+
+  scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
+  ggtitle("")+
+  xlab("Minimum temperature (C) scaled")+
+  ylab("Bill nares to tip (mm) scaled")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = c(0.3,0.8))
+BNTInter.plot
+#cowplot::save_plot("Plots/BNTInter.plot.png", BNTInter.plot, base_height = 4, base_width = 6)
+```
+
+```{r BNT MinC8_22.mdl fplot.df}
+BNT.df <- tidy(MinC8_22.BNT.mdl, quick = FALSE)
+  ci <- as_tibble(confint(MinC8_22.BNT.mdl))
+  BNT.df$ci.lower <- ci$`2.5 %`
+  BNT.df$ci.upper <- ci$`97.5 %`
+  BNT.df$Metric <- "Bill nares to tip"
+  BNT.df <- BNT.df[-1,]
+```
+
+```{r BNT.fplot}
+BNT.fplot <- ggplot(data = BNT.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper), color = "black", size=1, width=0.3)+
+    geom_point(aes(x=term,y=estimate), color = "black", shape = 16, size = 3)+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    scale_y_continuous(limits = c(-0.3,0.7))+
+    #ggtitle("")+
+    ylab("Parameter estimate")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "none",
+          plot.margin = margin(15,15,15,15))
+BNT.fplot
+#cowplot::save_plot("Plots/BNT.fplot.png", BNT.fplot, base_height = 4, base_width = 7)
+```
+
+```{r BNT.wrap}
+BNT.wrap <- ggarrange(BNT.fplot,BNTbyMin.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
+cowplot::save_plot("Plots/BNT.wrap.png", BNT.wrap, base_height = 5, base_width = 12)
+```
+
+
 #\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|OLD CODE\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|\|
 
 ## Unsupervised model selection
@@ -650,7 +802,7 @@ BD12_22ModNames <- c('MinC','MaxC','GDD10CSum')
 aictab(cand.set = BD12_22Mods, modnames = BD12_22ModNames, sort = TRUE)
 ```
 
-<br>
+
 
 MinC Model fits the data best; GDD is second best. But the delta AICc is 11.28 between the top two models. Comparing the model summaries below, MinC and Precip have slightly higher estimates but also a slightly higher std. errors.
 
@@ -658,7 +810,7 @@ MinC Model fits the data best; GDD is second best. But the delta AICc is 11.28 b
 summary(MinC.BD.mdl)
 ```
 
-<br>
+
 
 Using MinC as the best fit metric from above, here we'll look at whether days 1-11, 12-22, 6-19, or 8-22 differ in how they fit the data.
 
@@ -683,7 +835,7 @@ aictab(cand.set = BDTimeMods, modnames = BDTimeModNames, sort = TRUE)
 summary(MinC8_22.BD.mdl)
 ```
 
-<br>
+
 
 ```{r BD MinC8_22.mdl fplot.df}
 BD.df <- tidy(MinC8_22.BD.mdl, quick = FALSE)
@@ -807,7 +959,6 @@ aictab(cand.set = BW12_22Mods, modnames = BWTime2ModNames, sort = TRUE)
 summary(MinC.BW.mdl)
 ```
 
-<br>
 
 Using MinC as the best fit metric from above, here we'll look at whether days 1-11, 12-22, 6-19, or 8-22 differ in how they fit the data.
 
@@ -832,7 +983,7 @@ aictab(cand.set = BWTimeMods, modnames = BWTimeModNames, sort = TRUE)
 summary(MinC8_22.BW.mdl)
 ```
 
-<br>
+
 
 ```{r BW MinC8_22.mdl fplot.df}
 BW.df <- tidy(MinC8_22.BW.mdl, quick = FALSE)
@@ -880,7 +1031,7 @@ TEC12_22ModNames <- c('MinC','MaxC','GDD10C')
 aictab(cand.set = TEC12_22Mods, modnames = TEC12_22ModNames, sort = TRUE)
 ```
 
-<br>
+
 
 ```{r TEC best model summary}
 summary(MinC.TEC.mdl)
@@ -905,7 +1056,7 @@ TECTimeModNames <- c('MinC1_11','MinC12_22','MinC6_19',"MinC8_22")
 aictab(cand.set = TECTimeMods, modnames = TECTimeModNames, sort = TRUE)
 ```
 
-<br>
+
 
 ## BNT Comparisons
 
@@ -923,7 +1074,7 @@ BNT12_22ModNames <- c('MinC','MaxC','GDD10C')
 aictab(cand.set = BNT12_22Mods, modnames = BNT12_22ModNames, sort = TRUE)
 ```
 
-<br>
+
 
 ```{r BNT best model summary}
 summary(MinC.BNT.mdl)
@@ -948,7 +1099,7 @@ BNTTimeModNames <- c('MinC1_11','MinC12_22','MinC6_19',"MinC8_22")
 aictab(cand.set = BNTTimeMods, modnames = BNTTimeModNames, sort = TRUE)
 ```
 
-<br>
+
 
 ## Upper Bill Model Comparisons
 
@@ -970,7 +1121,7 @@ aictab(cand.set = UB12_22Mods, modnames = UBTime2ModNames, sort = TRUE)
 summary(MinC.UB.mdl)
 ```
 
-<br>
+
 
 Using MinC as the best fit metric from above, here we'll look at whether days 1-11, 12-22, 6-19, or 8-22 differ in how they fit the data.
 
@@ -995,7 +1146,7 @@ aictab(cand.set = UBTimeMods, modnames = UBTimeModNames, sort = TRUE)
 summary(MinC8_22.UB.mdl)
 ```
 
-<br>
+
 
 ```{r UB interaction plot}
 plot_model(MinC6_19.UB.mdl, type = "int", mdrt.values = "meansd")
@@ -1024,7 +1175,7 @@ BDGDDIncub.plot <- plot(BDIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIncu
 #BDGDDIncub.plot
 ```
 
-<br>
+
 
 A Frequentist Bill Depth GDD Time 1 model to compare with the Bayesian version
 
@@ -1033,7 +1184,7 @@ BDTime1.scaled.mdl <- lm(data = scaled.df, BD ~ GDDSum1_11 * PrecipSum1_11 + Wei
 summary(BDTime1.scaled.mdl)
 ```
 
-<br>
+
 
 Bayesian Bill Depth GDD Time 1 model
 
@@ -1054,7 +1205,7 @@ BDGDDTime1.plot <- plot(BDTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Wei
 #BDGDDTime1.plot
 ```
 
-<br>
+
 
 Bayesian Bill Depth GDD Time 2
 
@@ -1075,7 +1226,7 @@ BDGDDTime2.plot <- plot(BDTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","W
 #BDGDDTime2.plot
 ```
 
-<br>
+
 
 Arrange the Bill Depth model plots
 
@@ -1084,7 +1235,6 @@ BDModelPlots.wrap <- ggarrange(BDGDDIncub.plot,BDGDDTime1.plot,BDGDDTime2.plot, 
 annotate_figure(BDModelPlots.wrap, top = "Bill Depth Models")
 ```
 
-<br>
 
 Plot the interaction between GDD and Precip during incubation
 
@@ -1105,7 +1255,7 @@ BDGDDIncubInter.plot <- BDGDDIncubInter.plot +
 #BDGDDIncubInter.plot
 ```
 
-<br>
+
 
 Plot the interaction between GDD and Precip during Time 2
 
@@ -1126,7 +1276,6 @@ BDGDDTime2Inter.plot <- BDGDDTime2Inter.plot +
 #BDGDDTime2Inter.plot
 ```
 
-<br>
 
 Arrange interaction plots
 
@@ -1135,7 +1284,7 @@ BDInterPlots.wrap <- ggarrange(BDGDDIncubInter.plot,BDGDDTime2Inter.plot, ncol =
 annotate_figure(BDInterPlots.wrap, top = "Bill Depth Interaction Models")
 ```
 
-<br>
+
 
 ## Upper Bill Models
 
@@ -1158,7 +1307,7 @@ UBGDDIncub.plot <- plot(UBIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIncu
 #UBGDDIncub.plot
 ```
 
-<br>
+
 
 Bayesian Upper Bill GDD Time 1 model
 
@@ -1179,7 +1328,7 @@ UBGDDTime1.plot <- plot(UBTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","Wei
 #UBGDDTime1.plot
 ```
 
-<br>
+
 
 Bayesian Upper Bill GDD Time 2
 
@@ -1200,7 +1349,7 @@ UBGDDTime2.plot <- plot(UBTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22","W
 #UBGDDTime2.plot
 ```
 
-<br>
+
 
 Arrange the Upper Bill model plots
 
@@ -1209,7 +1358,7 @@ UBModelPlots.wrap <- ggarrange(UBGDDIncub.plot,UBGDDTime1.plot,UBGDDTime2.plot, 
 annotate_figure(UBModelPlots.wrap, top = "Upper Bill Models")
 ```
 
-<br>
+
 
 ## Upper Bill Surface Area Models
 
@@ -1232,7 +1381,7 @@ UBSGDDIncub.plot <- plot(UBSIncub.bmdl, pars = c("GDDSumIncubation","PrecipSumIn
 #UBSGDDIncub.plot
 ```
 
-<br>
+
 
 Bayesian Upper Bill Surface Area GDD Time 1 model
 
@@ -1253,7 +1402,7 @@ UBSGDDTime1.plot <- plot(UBSTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_11","W
 #UBSGDDTime1.plot
 ```
 
-<br>
+
 
 Bayesian Upper Bill Surface Area GDD Time 2
 
@@ -1274,7 +1423,7 @@ UBSGDDTime2.plot <- plot(UBSTime2.bmdl, pars = c("GDDSum12_22","PrecipSum12_22",
 #UBSGDDTime2.plot
 ```
 
-<br>
+
 
 Arrange the Upper Bill Surface Area model plots
 
@@ -1283,7 +1432,7 @@ UBSModelPlots.wrap <- ggarrange(UBSGDDIncub.plot,UBSGDDTime1.plot,UBSGDDTime2.pl
 annotate_figure(UBSModelPlots.wrap, top = "Upper Bill Surface Area Models")
 ```
 
-<br>
+
 
 ## Tarsus Models
 
@@ -1306,7 +1455,7 @@ TarsusGDDIncub.plot <- plot(TarsusIncub.bmdl, pars = c("GDDSumIncubation","Preci
 #TarsusGDDIncub.plot
 ```
 
-<br>
+
 
 Bayesian Tarsus GDD Time 1 model
 
@@ -1327,7 +1476,7 @@ TarsusGDDTime1.plot <- plot(TarsusTime1.bmdl, pars = c("GDDSum1_11","PrecipSum1_
 #TarsusGDDTime1.plot
 ```
 
-<br>
+
 
 Bayesian Tarsus GDD Time 2
 
@@ -1348,7 +1497,7 @@ TarsusGDDTime2.plot <- plot(TarsusTime2.bmdl, pars = c("GDDSum12_22","PrecipSum1
 #TarsusGDDTime2.plot
 ```
 
-<br>
+
 
 Arrange the Tarsus model plots
 
@@ -1357,4 +1506,4 @@ TarsusModelPlots.wrap <-ggarrange(TarsusGDDIncub.plot,TarsusGDDTime1.plot,Tarsus
 annotate_figure(TarsusModelPlots.wrap, top = "Tarsus Models")
 ```
 
-<br>
+
