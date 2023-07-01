@@ -44,7 +44,7 @@ df <- read.csv("CrowNestlingClimate_NestlingsCleaned&ClimateJoined_6.16.23.csv",
 #n=2085 nestlings, 42 variables
 ```
 
-A few exclusions, nestlings with abnormal measurements
+Exclusions, nestlings with abnormal measurements 
 ```{r exclude abnormal measures}
 df <- df %>% filter(ID!="0 WCRI14") #Field error in TEC measurement
 df <- df %>% filter(ID!="8V YEFE13") #Field error in TEC measurement
@@ -58,11 +58,13 @@ df <- df %>% filter(ID!="0D CCPL02") #Field error in TEC measurement
 See [CrowNestlingClimateAllMeasures-Exclusions_WOSJun23A](https://github.com/justinthomasmann/CrowBase/blob/main/CrowNestlingClimateAllMeasures-Exclusions_WOSJun23A.xlsx)
 
 ```{r Exclusions.df}
-Exclusions.df <- read.csv("CrowNestlingClimateAllMeasures-Exclusions_WOSJun23A.csv", h=TRUE)
+Decisions.df <- read.csv("CrowNestlingClimateAllMeasures-Exclusions_WOSJun23A.csv", h=TRUE)
 
-Exclusions.df <- Exclusions.df %>% 
+Exclusions.df <- Decisions.df %>% 
   filter(Decision==1) %>% 
   select(Decision,ID) 
+
+Decisions.df <- Decisions.df %>% filter(Decision > 1)
 ```
 
 ```{r join Exclusions.df with df}
