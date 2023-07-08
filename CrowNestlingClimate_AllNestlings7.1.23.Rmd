@@ -1,0 +1,81 @@
+---
+title: "Comparing 7.1.23 nestling data with Anne's WOS exclusions spreadsheet"
+author: "Justin Mann"
+date: "2023-07-01"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(broom) #tidy() to create tibbles from model summaries
+library(car) #vif (variance inflation factor for measuring covariance)
+library(cowplot)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange for plot wraps
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+#library(plotly) #ggplotly() to make interactive plots with scroll over ids
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa) #model validation functions
+library(DescTools) #Entropy() and MutInf()
+
+#Libraries for Bayesian Models
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+library(loo) #use loo() to compare fits between bayesian models
+
+#Clustering libraries
+library(umap)
+library(tsne)
+library(ggfortify)#use autoplot() to visualize PCAs
+library(stpm)#stochastic process model
+theme_set(theme_classic()) #default plots with no gridlines
+```
+
+```{r dataframe}
+df <- read.csv("CrowNestlingClimate_NestlingsCleaned&ClimateJoined_7.1.23.csv", h=TRUE)
+#n=1927 nestlings, 42 variables
+
+summary(duplicated(df$ID))#no duplicates
+```
+
+```{r Decisions.df}
+Decisions.df <- read.csv("CrowNestlingClimateAllMeasures-Exclusions_WOSJun23A.csv", h=TRUE) #n=2394
+
+#Remove nestlings marked by Anne for exclusion (i.e. Decision = 1)
+Decisions.df <- Decisions.df %>% filter(Decision > 1) #n=1971
+
+#Find duplicate IDs 
+duplicates.df <- Decisions.df %>% group_by(ID) %>% filter(n()>1)
+
+#Keeping second measurement for GYMN08 per Anne's request
+Decisions.df <- subset(Decisions.df, NestName!="GYMN08" | MeasurementDateJulYear!="2008126")#new n=1970
+
+
+#Code check on duplicates.df: Sort remaining duplicates.df by year and CalcAge and only retain the first (youngest) observation
+duplicates.df <- duplicates.df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=7
+
+#Sort remaining duplicates.df by year and CalcAge and only retain the first (youngest) observation
+Decisions.df <- Decisions.df %>%  group_by(Year) %>% arrange(NestName, CalcAge) %>% dplyr::distinct(ID, .keep_all = TRUE)#new n=1964 (6 fewer than above, so code works)
+
+summary(duplicated(Decisions.df$ID))#no more duplicates
+
+#write.csv(Decisions.df, "CrowNestlingClimate_MorphometricData_1989-2018.csv", row.names = FALSE)
+```
+
+```{r}
+AntiJoin1.df <- anti_join(df,Decisions.df, by="ID") #only includes 2019-2022
+
+AntiJoin2.df <- anti_join(Decisions.df,df, by="ID") #includes 119 nestlings cleared by Anne as correctly in the 24-29 day age range based on tail and feather measurements.
+
+#AntiJoin2.dups.df <- AntiJoin2.df %>% group_by(ID) %>% filter(n()>1) #there were two duplicates (SPEG04). Anne wants the first measurement retained
+#removing the second measurements 
+
+
+
+```
+
+

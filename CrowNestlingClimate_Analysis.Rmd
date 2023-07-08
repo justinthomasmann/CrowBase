@@ -1,0 +1,221 @@
+---
+title: "AMCR Nestling Morphology and Weather"
+author: "Justin Mann"
+date: "2023-07-04"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(broom) #tidy() to create tibbles from model summaries
+library(car) #vif (variance inflation factor for measuring covariance)
+library(cowplot)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange for plot wraps
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+#library(plotly) #ggplotly() to make interactive plots with scroll over ids
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa) #model validation functions
+library(DescTools) #Entropy() and MutInf()
+
+theme_set(theme_classic()) #default plots with no gridlines
+```
+
+```{r colorblind accessible pallet}
+colorBlindPal  <- c("#000000", "#E69F00", "#56B4E9", "#009E73", 
+                       "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+
+
+## Nestling Data
+
+```{r nestling dataframe}
+nestling.df <- read.csv("CrowNestlingClimate_MorphometricData.csv", h=TRUE)
+#n=2040 nestlings
+
+nestling.df$Sex[nestling.df$Sex == ''] <- NA #replace empty strings with NA
+nestling.df <- nestling.df %>% replace_na(list(Sex = "U")) #replace NAs in Sex with "U" 
+
+nestling.df$Sex <- as.factor(nestling.df$Sex) #coerce as factor
+nestling.df <- nestling.df[,-26] #drop condition vector
+nestling.df <- nestling.df %>% #move vectors, prep for scaling
+  relocate(CalcAge, .after = CalcAgeInteger) %>% 
+  relocate(HatchDateJulYear, .after = MeasurementDateJulYear) %>% 
+  relocate(Sex, .after = ID)
+```
+
+```{r}
+pairs(nestling.df[,c(11:21,25)])
+```
+
+
+```{r summarize nestling data}
+summary(nestling.df)
+```
+
+```{r climate dataframe}
+climate.df <- read.csv("ClimateMetrics_ForJoining.csv", h=TRUE)
+```
+
+```{r summarize climate data}
+summary(climate.df)
+```
+
+```{r join climate and nestling data}
+df <- left_join(nestling.df,climate.df, by = "HatchDateJulYear")
+df <- df %>% 
+  rename(HatchDate=Date) %>% 
+  relocate(HatchDate, .before = HatchDateJulYear)
+```
+
+```{r last minute exclusions}
+df <- df %>% filter(ID!="0 WCRI14") #Field error in TEC measurement
+df <- df %>% filter(ID!="8V YEFE13") #Field error in TEC measurement
+df <- df %>% filter(ID!="0D CCPL02") #Field error in TEC measurement
+```
+
+## Normalize Continuous Data
+
+Subtract each value from the mean (center) and divide it by the standard deviation
+
+```{r scaling}
+#categorical data  
+categorical.df <- df[,1:11]
+
+#continuous data
+continuous.df <- df[,12:46]
+
+#scale continuous data
+#?scale()
+scaled.mat <- scale(continuous.df, center = TRUE, scale = TRUE)
+
+#join unscaled and scaled data
+scaled.df <- cbind(categorical.df,scaled.mat)
+```
+
+```{r sexes data frames}
+#Males scaled
+M.scaled.df <- subset(scaled.df, Sex=="M")
+#Males unscaled
+M.df <- subset(df, Sex=="M")
+
+#Females scaled
+F.scaled.df <- subset(scaled.df, Sex=="F")
+#Females unscaled
+F.df <- subset(df, Sex=="F")
+
+#Sex unknown scaled
+U.scaled.df <- subset(scaled.df, Sex=="U")
+#Sex unknown unscaled
+U.df <- subset(df, Sex=="U")
+
+#Both sexes scaled
+B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
+#Both sexes unscaled
+B.df <- rbind(F.df,M.df)
+```
+
+```{r WeightAge.plot}
+WeightAge.plot <- ggplot(data = df, aes(x = CalcAge, y = Weight, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method = "lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="Sex",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unknown"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Weight (g)")+
+  xlab("Nestling age (days)")
+WeightAge.plot
+#cowplot::save_plot("Plots/WeightAge.plot.png", WeightAge.plot, base_height = 4, base_width = 7)
+```
+
+```{r WeightMinC.plot}
+WeightMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = Weight, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="Sex",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unknown"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Weight (g)")+
+  xlab("Average minimum temperature (C)")
+WeightMinC.plot
+#cowplot::save_plot("Plots/WeightAge.plot.png", WeightAge.plot, base_height = 4, base_width = 7)
+```
+
+```{r M.Weight.mdl}
+M.Weight.mdl <- lm(Weight ~ MinC8_22 * PrecipSum8_22, data = M.scaled.df)
+summary(M.Weight.mdl)
+```
+
+```{r F.Weight.mdl}
+F.Weight.mdl <- lm(Weight ~ MinC8_22 * PrecipSum8_22, data = F.scaled.df)
+summary(F.Weight.mdl)
+```
+
+```{r A.Weight.mdl}
+A.Weight.mdl <- lm(Weight ~ MinC8_22 * PrecipSum8_22, data = scaled.df)
+summary(A.Weight.mdl)
+```
+
+```{r Weight.dfs for fplot}
+M.Weight.df <- tidy(M.Weight.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.Weight.mdl))
+  M.Weight.df$ci.lower <- ci$`2.5 %`
+  M.Weight.df$ci.upper <- ci$`97.5 %`
+  M.Weight.df$Dataset <- "Male"
+  M.Weight.df$Metric <- "Weight"
+  M.Weight.df <- M.Weight.df[-1,]
+
+F.Weight.df <- tidy(F.Weight.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.Weight.mdl))
+  F.Weight.df$ci.lower <- ci$`2.5 %`
+  F.Weight.df$ci.upper <- ci$`97.5 %`
+  F.Weight.df$Dataset <- "Female"
+  F.Weight.df$Metric <- "Weight"
+  F.Weight.df <- F.Weight.df[-1,]
+
+A.Weight.df <- tidy(A.Weight.mdl, quick = FALSE)
+  ci <- as_tibble(confint(A.Weight.mdl))
+  A.Weight.df$ci.lower <- ci$`2.5 %`
+  A.Weight.df$ci.upper <- ci$`97.5 %`
+  A.Weight.df$Dataset <- "All"
+  A.Weight.df$Metric <- "Weight"
+  A.Weight.df <- A.Weight.df[-1,]
+  
+Weight.df <- rbind(M.Weight.df, F.Weight.df, A.Weight.df)
+```
+
+```{r Weight.fplot}
+Weight.fplot <- ggplot(data = Weight.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper, color=Dataset),
+                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
+    geom_point(aes(x=term,y=estimate, color=Dataset), 
+               shape = 16, size = 3, position=position_dodge(width=0.4))+
+    scale_color_manual(name="", values=c("#000000","#E69F00","#56B4E9"),
+                    labels=c("All","Female","Male"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip"))+
+    #scale_y_continuous(limits = c(-0.3,0.25), breaks = c(-0.25,0,0.25))+
+    #ggtitle("Parameters affecting nestling weight")+
+    ylab("Parameter estimate")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+Weight.fplot
+#cowplot::save_plot("Plots/Weight.fplot.png", Weight.fplot, base_height = 4, base_width = 7)
+```
+
+```{r Weight.wrap}
+Weight.wrap <- ggarrange(Weight.fplot,WeightMinC.plot, ncol = 2, labels = c("A","B"), widths = c(1.3,1.7))
+cowplot::save_plot("PaperPlots/Weight.wrap.png", Weight.wrap, base_height = 5, base_width = 12)
+Weight.wrap
+```

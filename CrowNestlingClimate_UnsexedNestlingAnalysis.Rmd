@@ -87,6 +87,11 @@ df <- TestJoin.df %>% filter(is.na(Decision))
 df <- df %>% select(-Decision)
 ```
 
+```{r write CrowNestlingClimate_NestlingsCleaned&ClimateJoined_7.1.23.csv}
+#write.csv(df, "CrowNestlingClimate_NestlingsCleaned&ClimateJoined_7.1.23.csv", row.names = FALSE)
+```
+
+
 ## Normalize Continuous Data
 
 Subtract each value from the mean (center) and divide it by the standard deviation
