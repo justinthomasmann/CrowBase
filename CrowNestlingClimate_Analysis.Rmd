@@ -75,6 +75,14 @@ df <- df %>%
 df <- df %>% filter(ID!="0 WCRI14") #Field error in TEC measurement
 df <- df %>% filter(ID!="8V YEFE13") #Field error in TEC measurement
 df <- df %>% filter(ID!="0D CCPL02") #Field error in TEC measurement
+df <- df %>% filter(ID!="Q4 CARE11") #error in measurement
+df <- df %>% filter(ID!="JC NDYC17") #error in measurement
+df <- df %>% filter(ID!="L-2 KRUM93") #error in measurement
+df <- df %>% filter(ID!="3 PINW00") #injured nestling, unreliable weight
+df <- df %>% filter(ID!="DOA RGBY00") #partly predated
+df <- df %>% filter(ID!="doa HOMC05") #error in weight measurement
+df <- df %>% filter(ID!="doa JUDD06") #partly predated
+df <- df %>% filter(ID!="doa1 BROT07") #error in measurement
 ```
 
 ## Normalize Continuous Data
