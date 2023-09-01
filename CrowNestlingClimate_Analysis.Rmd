@@ -21,6 +21,13 @@ library(AICcmodavg) #aictab() for AICc model comparisons
 library(DHARMa) #model validation functions
 library(DescTools) #Entropy() and MutInf()
 
+#Libraries for Bayesian Models
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+library(loo) #use loo() to compare fits between bayesian models
+library(broom.mixed) #rstanarm_tidiers() for tidying stan model summaries
+
 theme_set(theme_classic()) #default plots with no gridlines
 ```
 
@@ -273,7 +280,7 @@ TarsusMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = Tarsus, color = Sex))
   geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
   scale_color_manual(name="Sex",
                     values=c("#E69F00","#56B4E9","#000000"),
-                    labels=c("Female","Male","Unknown"))+
+                    labels=c("Female","Male","Unsexed"))+
   scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
   ylab("Tarsus (mm)")+
   xlab("Average minimum temperature (C)")+
@@ -290,48 +297,74 @@ TarsusMinC.plot
 
 ### Male Tarsus Model
 
+```{r M.Tarsus.bmdl}
+M.Tarsus.bmdl <- stan_glm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = M.scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+print(summary(M.Tarsus.bmdl), digits = 3)
+#plot(M.Tarsus.bmdl)
+```
+
 ```{r M.Tarsus.mdl}
-M.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
-summary(M.Tarsus.mdl)
+# M.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+# summary(M.Tarsus.mdl)
 ```
 
 ### Female Tarsus Model
-
-```{r F.Tarsus.mdl}
-F.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
-summary(F.Tarsus.mdl)
+```{r F.Tarsus.bmdl}
+F.Tarsus.bmdl <- stan_glm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = F.scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+print(summary(F.Tarsus.bmdl), digits = 3)
+#plot(F.Tarsus.bmdl)
 ```
 
+```{r F.Tarsus.mdl}
+# F.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+# summary(F.Tarsus.mdl)
+```
+
+
 ### All Nestlings Tarsus Model
+```{r A.Tarsus.bmdl}
+A.Tarsus.bmdl <- stan_glm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+print(summary(A.Tarsus.bmdl), digits = 3)
+#plot(A.Tarsus.bmdl)
+```
 
 ```{r A.Tarsus.mdl}
-A.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
-summary(A.Tarsus.mdl)
+# A.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+# summary(A.Tarsus.mdl)
 ```
 
 ### Data frames for Tarsus Forest Plot
 
 ```{r Tarsus.dfs for fplot}
-M.Tarsus.df <- tidy(M.Tarsus.mdl, quick = FALSE)
-  ci <- as_tibble(confint(M.Tarsus.mdl))
-  M.Tarsus.df$ci.lower <- ci$`2.5 %`
-  M.Tarsus.df$ci.upper <- ci$`97.5 %`
+M.Tarsus.df <- tidy(M.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, looic = TRUE)
+  M.Tarsus.df <- M.Tarsus.df[-1,]
   M.Tarsus.df$Dataset <- "Male"
   M.Tarsus.df$Metric <- "Tarsus"
-  M.Tarsus.df <- M.Tarsus.df[-1,]
 
-F.Tarsus.df <- tidy(F.Tarsus.mdl, quick = FALSE)
-  ci <- as_tibble(confint(F.Tarsus.mdl))
-  F.Tarsus.df$ci.lower <- ci$`2.5 %`
-  F.Tarsus.df$ci.upper <- ci$`97.5 %`
+F.Tarsus.df <- tidy(F.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, looic = TRUE)
   F.Tarsus.df$Dataset <- "Female"
   F.Tarsus.df$Metric <- "Tarsus"
   F.Tarsus.df <- F.Tarsus.df[-1,]
 
-A.Tarsus.df <- tidy(A.Tarsus.mdl, quick = FALSE)
-  ci <- as_tibble(confint(A.Tarsus.mdl))
-  A.Tarsus.df$ci.lower <- ci$`2.5 %`
-  A.Tarsus.df$ci.upper <- ci$`97.5 %`
+A.Tarsus.df <- tidy(A.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, looic = TRUE)
   A.Tarsus.df$Dataset <- "All"
   A.Tarsus.df$Metric <- "Tarsus"
   A.Tarsus.df <- A.Tarsus.df[-1,]
@@ -343,14 +376,14 @@ Tarsus.df <- rbind(M.Tarsus.df, F.Tarsus.df, A.Tarsus.df)
 
 ```{r Tarsus.fplot}
 Tarsus.fplot <- ggplot(data = Tarsus.df)+
-    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper, color=Dataset),
+    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high, color=Dataset),
                   linewidth=1, width=0.3, position=position_dodge(width=0.4))+
     geom_point(aes(x=term,y=estimate, color=Dataset), 
                shape = 16, size = 3, position=position_dodge(width=0.4))+
     scale_color_manual(name="", values=c("#000000","#E69F00","#56B4E9"),
                     labels=c("All","Female","Male"))+
     coord_flip()+
-    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
     scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
     #scale_y_continuous(limits = c(-0.3,0.25), breaks = c(-0.25,0,0.25))+
     #ggtitle("")+
@@ -374,7 +407,20 @@ cowplot::save_plot("PaperPlots/Tarsus.wrap.png", Tarsus.wrap, base_height = 5, b
 #Tarsus.wrap
 ```
 
+```{r M.Tarsus.pred}
+M.Tarsus.pred <- ggpredict(M.Tarsus.bmdl, terms = c("MinC8_22","PrecipSum8_22"), ppd = TRUE)
+```
 
+```{r M.Tarsus.ME.plot}
+M.Tarsus.ME.plot <- ggplot(data = M.Tarsus.pred, aes(x,predicted))+
+  geom_point(data = M.scaled.df, aes(x=MinC8_22, y=Tarsus), shape = 1)+
+  geom_line(color = "#009E73", size = 0.7)+
+  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#009E73", alpha = 0.2)+
+  ylab("Tarsus (mm) scaled")+
+  xlab("Minimum temperature (C) scaled")
+M.Tarsus.ME.plot
+# cowplot::save_plot("Plots/BDbyMin.plot.png", BDbyMin.plot, base_height = 4, base_width = 6)
+```
 ## Nestling Bill Depth
 
 ### Bill Depth by Minimum Temperature Plot
@@ -385,7 +431,7 @@ BDMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = BD, color = Sex))+
   geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
   scale_color_manual(name="Sex",
                     values=c("#E69F00","#56B4E9","#000000"),
-                    labels=c("Female","Male","Unknown"))+
+                    labels=c("Female","Male","Unsexed"))+
   scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
   ylab("Bill depth (mm)")+
   xlab("Average minimum temperature (C)")+
