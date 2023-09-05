@@ -36,61 +36,13 @@ colorBlindPal  <- c("#000000", "#E69F00", "#56B4E9", "#009E73",
                        "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 ```
 
-## Nestling Data
+## Inport Data
 
-```{r nestling dataframe}
-nestling.df <- read.csv("CrowNestlingClimate_MorphometricData.csv", h=TRUE)
-#n=2040 nestlings
-
-nestling.df$Sex[nestling.df$Sex == ''] <- NA #replace empty strings with NA
-nestling.df <- nestling.df %>% replace_na(list(Sex = "U")) #replace NAs in Sex with "U" 
-
-nestling.df$Sex <- as.factor(nestling.df$Sex) #coerce as factor
-nestling.df <- nestling.df[,-26] #drop condition vector
-nestling.df <- nestling.df %>% #move vectors, prep for scaling
-  relocate(CalcAge, .after = CalcAgeInteger) %>% 
-  relocate(HatchDateJulYear, .after = MeasurementDateJulYear) %>% 
-  relocate(Sex, .after = ID)
+```{r unscaled data}
+df <- read.csv("CrowNestlingClimate_UnscaledData_7.8.23.csv", h=TRUE)
+# n=2030 nestlings
 ```
 
-```{r summarize nestling data}
-summary(nestling.df)
-```
-
-## Climate Data
-
-```{r climate dataframe}
-climate.df <- read.csv("ClimateMetrics_ForJoining.csv", h=TRUE)
-```
-
-```{r summarize climate data}
-summary(climate.df)
-```
-
-## Join Climate and Nestling Data
-
-```{r join climate and nestling data}
-df <- left_join(nestling.df,climate.df, by = "HatchDateJulYear")
-df <- df %>% 
-  rename(HatchDate=Date) %>% 
-  relocate(HatchDate, .before = HatchDateJulYear)
-```
-
-## Exclusions
-
-```{r last minute exclusions}
-df <- df %>% filter(ID!="0 WCRI14") #Field error in TEC measurement
-df <- df %>% filter(ID!="8V YEFE13") #Field error in TEC measurement
-df <- df %>% filter(ID!="0D CCPL02") #Field error in TEC measurement
-df <- df %>% filter(ID!="Q4 CARE11") #error in measurement
-df <- df %>% filter(ID!="JC NDYC17") #error in measurement
-df <- df %>% filter(ID!="L-2 KRUM93") #error in measurement
-df <- df %>% filter(ID!="3 PINW00") #injured nestling, unreliable weight
-df <- df %>% filter(ID!="DOA RGBY00") #partly predated
-df <- df %>% filter(ID!="doa HOMC05") #error in weight measurement
-df <- df %>% filter(ID!="doa JUDD06") #partly predated
-df <- df %>% filter(ID!="doa1 BROT07") #error in measurement
-```
 
 ## Data Scaling
 
@@ -125,9 +77,9 @@ F.scaled.df <- subset(scaled.df, Sex=="F")
 #Females unscaled
 F.df <- subset(df, Sex=="F")
 
-#Sex unknown scaled
+#Unsexed scaled
 U.scaled.df <- subset(scaled.df, Sex=="U")
-#Sex unknown unscaled
+#Unsexed unscaled
 U.df <- subset(df, Sex=="U")
 
 #Both sexes scaled
@@ -136,10 +88,6 @@ B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
 B.df <- rbind(F.df,M.df)
 ```
 
-```{r write scaled and unscaled csv}
-# write.csv(df, "CrowNestlingClimate_UnscaledData_7.8.23.csv", row.names = FALSE)
-#write.csv(scaled.df, "CrowNestlingClimate_ScaledData_7.8.23.csv", row.names = FALSE)
-```
 
 ## Weight by Age Plot
 
@@ -351,43 +299,45 @@ print(summary(A.Tarsus.bmdl), digits = 3)
 # summary(A.Tarsus.mdl)
 ```
 
-### Data frames for Tarsus Forest Plot
+
+### Data frames for Tarsus Forest Plots
 
 ```{r Tarsus.dfs for fplot}
-M.Tarsus.df <- tidy(M.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, looic = TRUE)
+M.Tarsus.df <- tidy(M.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
   M.Tarsus.df <- M.Tarsus.df[-1,]
   M.Tarsus.df$Dataset <- "Male"
   M.Tarsus.df$Metric <- "Tarsus"
 
-F.Tarsus.df <- tidy(F.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, looic = TRUE)
+F.Tarsus.df <- tidy(F.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
   F.Tarsus.df$Dataset <- "Female"
   F.Tarsus.df$Metric <- "Tarsus"
   F.Tarsus.df <- F.Tarsus.df[-1,]
 
-A.Tarsus.df <- tidy(A.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, looic = TRUE)
+A.Tarsus.df <- tidy(A.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
   A.Tarsus.df$Dataset <- "All"
   A.Tarsus.df$Metric <- "Tarsus"
   A.Tarsus.df <- A.Tarsus.df[-1,]
   
-Tarsus.df <- rbind(M.Tarsus.df, F.Tarsus.df, A.Tarsus.df)
+B.Tarsus.df <- rbind(M.Tarsus.df, F.Tarsus.df)
+A.Tarsus.df <- rbind(M.Tarsus.df, F.Tarsus.df, A.Tarsus.df)
 ```
 
 ### Tarsus Forest Plot
 
-```{r Tarsus.fplot}
-Tarsus.fplot <- ggplot(data = Tarsus.df)+
+```{r B.Tarsus.fplot}
+B.Tarsus.fplot <- ggplot(data = B.Tarsus.df)+
     geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high, color=Dataset),
                   linewidth=1, width=0.3, position=position_dodge(width=0.4))+
     geom_point(aes(x=term,y=estimate, color=Dataset), 
                shape = 16, size = 3, position=position_dodge(width=0.4))+
-    scale_color_manual(name="", values=c("#000000","#E69F00","#56B4E9"),
-                    labels=c("All","Female","Male"))+
+    scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
+                    labels=c("Female","Male"))+
     coord_flip()+
     geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
     scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
     #scale_y_continuous(limits = c(-0.3,0.25), breaks = c(-0.25,0,0.25))+
     #ggtitle("")+
-    ylab("Parameter estimate")+
+    ylab("Parameter Effect")+
     theme(plot.title = element_text(size = 16),
           axis.text.x = element_text(size = 12),
           axis.title.x = element_text(size = 14),
@@ -395,32 +345,66 @@ Tarsus.fplot <- ggplot(data = Tarsus.df)+
           axis.title.y = element_blank(),
           legend.position = "top",
           plot.margin = margin(15,15,15,15))
-Tarsus.fplot
-#cowplot::save_plot("Plots/Tarsus.fplot.png", Tarsus.fplot, base_height = 4, base_width = 7)
+B.Tarsus.fplot
+#cowplot::save_plot("Plots/B.Tarsus.fplot.png", B.Tarsus.fplot, base_height = 4, base_width = 7)
+
+#annotation: Points are coefficient posterior medians. Error bars are 90% posterior uncertainty intervals.
 ```
+
+
+
+```{r Tarsus.pred}
+M.Tarsus.pred <- ggpredict(M.Tarsus.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+M.Tarsus.pred$Sex <- "M"
+
+F.Tarsus.pred <- ggpredict(F.Tarsus.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+F.Tarsus.pred$Sex <- "F"
+
+A.Tarsus.pred <- ggpredict(A.Tarsus.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+A.Tarsus.pred$Sex <- "A"
+
+B.Tarsus.pred.df <- rbind(M.Tarsus.pred, F.Tarsus.pred)
+A.Tarsus.pred.df <- rbind(M.Tarsus.pred, F.Tarsus.pred, A.Tarsus.pred)
+```
+
+
+
+```{r B.Tarsus.ME.plot}
+B.Tarsus.ME.plot <- ggplot(data = B.Tarsus.pred.df, aes(x,predicted), color = Sex, fill = Sex)+
+  geom_point(data = B.scaled.df, aes(x=MinC8_22, y=Tarsus, color = Sex), shape = 1)+
+  geom_line(aes(color = Sex), size = 0.7)+
+  geom_ribbon(data = B.Tarsus.pred.df, aes(ymin=conf.low, ymax=conf.high, fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
+                    labels=c("Female","Male"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9"), guide = "none")+
+  ylab("Tarsus (mm) scaled")+
+  xlab("Minimum temperature (C) scaled")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+B.Tarsus.ME.plot
+# cowplot::save_plot("Plots/BDbyMin.plot.png", BDbyMin.plot, base_height = 4, base_width = 6)
+
+#annotation: Lines are the predicted conditional effects of temperature on tarsus length. Ribbons represent the posterior predictive distribution. 
+
+#The posterior predictive distribution is the distribution of the outcome implied by the model after having used the observed data to update our beliefs about the unknown parameters. The posterior predictive distribution conditions on the observed outcome data in hand to update beliefs about the unknowns and the variation in the resulting distribution of predictions reflects the remaining uncertainty in our beliefs about the unknowns. <https://mc-stan.org/rstanarm/articles/rstanarm.html>
+```
+
 
 ### Tarsus Plots Wrapped
 
 ```{r Tarsus.wrap}
-Tarsus.wrap <- ggarrange(Tarsus.fplot,TarsusMinC.plot, ncol = 2, labels = c("A","B"), widths = c(1.7,1.3))
-cowplot::save_plot("PaperPlots/Tarsus.wrap.png", Tarsus.wrap, base_height = 5, base_width = 12)
-#Tarsus.wrap
+B.Tarsus.wrap <- ggarrange(B.Tarsus.fplot, B.Tarsus.ME.plot, ncol = 2, labels = c("A","B"), widths = c(1.4,1.6))
+cowplot::save_plot("PaperPlots/B.Tarsus.wrap.png", B.Tarsus.wrap, base_height = 5, base_width = 12)
+B.Tarsus.wrap
 ```
 
-```{r M.Tarsus.pred}
-M.Tarsus.pred <- ggpredict(M.Tarsus.bmdl, terms = c("MinC8_22","PrecipSum8_22"), ppd = TRUE)
-```
 
-```{r M.Tarsus.ME.plot}
-M.Tarsus.ME.plot <- ggplot(data = M.Tarsus.pred, aes(x,predicted))+
-  geom_point(data = M.scaled.df, aes(x=MinC8_22, y=Tarsus), shape = 1)+
-  geom_line(color = "#009E73", size = 0.7)+
-  geom_ribbon(aes(ymin=conf.low,ymax=conf.high), fill = "#009E73", alpha = 0.2)+
-  ylab("Tarsus (mm) scaled")+
-  xlab("Minimum temperature (C) scaled")
-M.Tarsus.ME.plot
-# cowplot::save_plot("Plots/BDbyMin.plot.png", BDbyMin.plot, base_height = 4, base_width = 6)
-```
+
 ## Nestling Bill Depth
 
 ### Bill Depth by Minimum Temperature Plot
