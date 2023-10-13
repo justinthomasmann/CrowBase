@@ -20,26 +20,27 @@ library(ggpubr)
 The goal is to identify the window of time that best explains variation in nestling morphometrics. In the context of our project, this program will detect the post-hatch time period ('window' of days) over which our nestling's bills are most responsive to climatic conditions. Mathematically, it's simply running the same model, with every possible sequence of days inside a user-defined window of time, and then comparing AIC values across all models.
 
 ```{r climwin packaged data}
-egC.df <- MassClimate
-egB.df <- Mass 
+# egC.df <- MassClimate
+# egB.df <- Mass 
 ```
 <br>
 
-Anne has identified some more dubious nestlings. Waiting to hear back about which nestlings to remove, so the following analyses are just prototypes and could change. 
+ 
 
 ```{r our data}
 #Nestling data sheet with updated climate metrics
-df <- read.csv("CrowNestlingClimate_AllNestlingsCleaned&ClimateJoinedNEW.csv", h=TRUE)
+df <- read.csv("CrowNestlingClimate_UnscaledData_7.8.23.csv", h=TRUE)
 
 #coerce our date vector to an R date
-df$Date <- as.Date(df$Date)
+# df$Date <- as.Date(df$MeasurementDate)
 
 #create a date that is 22 days post-hatch (climwin is built to look backwards from a specified date, not forwards)
-df$PostHatch22Date <- df$Date + 22
+df$HatchDatePlus22JulYear <- df$HatchDateJulYear + 22
 
 #move variables in prep for scaling
-df <- df %>% 
-  relocate(PostHatch22Date, .after = Date)
+df <- df %>%
+  relocate(HatchDatePlus22JulYear, .after = HatchDateJulYear)
+write.csv(df, "")
 
 #our climate data for 1989-2022
 clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
@@ -57,8 +58,8 @@ R's scale function subtracts each value from the mean (centers) and divide it by
 
 #Nestlings:
 #separate categorical and continous data
-categorical.df <- df[,1:10]
-continuous.df <- df[,11:40]
+categorical.df <- df[,1:12]
+continuous.df <- df[,13:47]
 
 #scale continuous data
 scaled.mat <- scale(continuous.df, center = TRUE, scale = TRUE)
@@ -67,7 +68,7 @@ scaled.mat <- scale(continuous.df, center = TRUE, scale = TRUE)
 scaled.df <- cbind(categorical.df,scaled.mat)
 
 #data frame with only nestling data
-nestl.scaled.df <- scaled.df[,1:22]
+nestl.scaled.df <- scaled.df[,1:27]
 
 #Climate:
 #scale continuous 
@@ -94,7 +95,9 @@ clim.scaled.df$cDate <- str_remove(clim.scaled.df$cDate, "^0+")
 clim.scaled.df <- clim.scaled.df %>% 
   relocate(cDate, .after = Date)
 
-nestl.scaled.df$PostHatch22Date <- as.Date(nestl.scaled.df$PostHatch22Date, format = "%m/%d/%Y")
+nestl.scaled.df$HatchDatePlus22 <-  
+
+as.Date(nestl.scaled.df$HatchDatePlus22JulYear, format = "%m/%d/%Y")
 nestl.scaled.df$bDate <- format(strptime(nestl.scaled.df$PostHatch22Date, format = "%Y-%m-%d"), "%d/%m/%Y") 
 
 #remove leading zero
