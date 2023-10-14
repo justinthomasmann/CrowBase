@@ -1093,7 +1093,7 @@ F.UBS.Inter.plot <- plot_model(F.UBS.bmdl, type = "int", mdrt.values = "quart")+
           axis.title.x = element_text(size = 14),
           axis.text.y = element_text(size = 12),
           axis.title.y = element_text(size = 14),
-          legend.position = c(0.2,0.9))
+          legend.position = "none")
 F.UBS.Inter.plot
 ```
 
@@ -1328,7 +1328,7 @@ F.BNT.Inter.plot <- plot_model(F.BNT.bmdl, type = "int", mdrt.values = "quart")+
           axis.title.x = element_text(size = 14),
           axis.text.y = element_text(size = 12),
           axis.title.y = element_text(size = 14),
-          legend.position = c(0.2,0.9))
+          legend.position = "none")
 F.BNT.Inter.plot
 ```
 
@@ -1361,7 +1361,7 @@ M.BNT.CE.plot
 
 ```{r BNT.InterCE.wrap}
 BNT.InterCE.wrap <- ggarrange(F.BNT.Inter.plot, M.BNT.CE.plot, ncol = 1)
-BNT.InterCE.wrap <- annotate_figure(BNT.InterCE.wrap, left = text_grob('Bill nares to tip (mm) scaled', rot = 90, size = 14))
+BNT.InterCE.wrap <- annotate_figure(BNT.InterCE.wrap, left = text_grob('Bill nares to tip scaled (mm)', rot = 90, size = 14))
 cowplot::save_plot("PaperPlots/BNT.InterCE.wrap.png", BNT.InterCE.wrap, base_height = 6, base_width = 6)
 BNT.InterCE.wrap
 ```
@@ -1377,7 +1377,7 @@ cowplot::save_plot("PaperPlots/fplot.wrap.png", fplot.wrap, base_height = 8, bas
 ```{r fplots wrapped}
 BillPlots.wrap <- ggarrange(UB.Inter.wrap,B.BD.CE.plot,BNT.InterCE.wrap,UBS.InterCE.wrap, ncol = 2, nrow = 2)
 BillPlots.wrap <- annotate_figure(BillPlots.wrap, bottom = text_grob("Average minimum temperature scaled (C)", size = 14))
-cowplot::save_plot("PaperPlots/BillPlots.wrap.png", BillPlots.wrap, base_height = 12, base_width = 12)
+cowplot::save_plot("PaperPlots/BillPlots.wrap.png", BillPlots.wrap, base_height = 15, base_width = 12)
 ```
 
 
