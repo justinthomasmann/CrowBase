@@ -88,6 +88,10 @@ B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
 B.df <- rbind(F.df,M.df)
 ```
 
+```{r day range model comparison}
+Days1_11
+```
+
 
 ## Weight by Age Plot
 
