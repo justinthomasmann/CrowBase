@@ -40,7 +40,20 @@ df$HatchDatePlus22JulYear <- df$HatchDateJulYear + 22
 #move variables in prep for scaling
 df <- df %>%
   relocate(HatchDatePlus22JulYear, .after = HatchDateJulYear)
-write.csv(df, "")
+
+# Function to convert Julian days to calendar dates
+julian_to_date <- function(julian_days) {
+  # Extract year and day of year from Julian days
+  year <- as.numeric(substr(julian_days, 1, 4))
+  day_of_year <- as.numeric(substr(julian_days, 5, 7))
+  
+  # Convert Julian days to calendar dates
+  date <- as.Date(paste0(year, "-01-01")) + as.difftime(day_of_year - 1, units = "days")
+  return(date)
+}
+
+# Convert Julian days to calendar dates
+calendar_dates <- julian_to_date(julian_days)
 
 #our climate data for 1989-2022
 clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
