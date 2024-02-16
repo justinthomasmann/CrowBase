@@ -20,6 +20,7 @@ library(MuMIn) #dredge() for unsupervised model selection
 library(AICcmodavg) #aictab() for AICc model comparisons
 library(DHARMa) #model validation functions
 library(DescTools) #Entropy() and MutInf()
+library(lubridate) #Date conversions for weather data
 
 #Libraries for Bayesian Models
 library(rstanarm) #stan models
@@ -72,13 +73,18 @@ fplot <- function(metric) {
 }
 ```
 
-## Import Data
+## Import Nestling Data
 
 ```{r unscaled data}
 df <- read.csv("CrowNestlingClimate_UnscaledData_7.8.23.csv", h=TRUE)
 # n=2030 nestlings
 ```
 
+## Import Weather Data
+
+```{r clim.df}
+clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
+```
 
 ## Data Scaling
 
@@ -124,6 +130,43 @@ B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
 B.df <- rbind(F.df,M.df)
 ```
 
+## Summarizing Weather across Years
+
+```{r breedingClim.df}
+clim.df$Date <- as.Date(clim.df$Date)
+clim.df$Month <- lubridate::month(clim.df$Date)
+clim.df <- clim.df %>% 
+  relocate(Month, .after = Year)
+breedingClim.df <- clim.df %>% #filtering weather data to include only 12 March-30 June
+  filter(between(Month, 3,6)) %>% 
+  filter(between(JulDay, 60,181))
+```
+
+## Plotting median minimum temperature and precipitation across years
+```{r plot median min temp}
+median(breedingClim.df$MinC, na.rm=TRUE)
+min.plot <- ggplot(data = breedingClim.df, aes(x=as.factor(Year), y=MinC))+
+  geom_boxplot()+
+  geom_hline(yintercept = 1.67, color = "red", linetype = "dotted", linewidth = 1)+
+  ylab("Minimum Temperature (C)")+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r plot precip}
+median(breedingClim.df$PrecipCM, na.rm=TRUE)
+precip.plot <- ggplot(data = clim.df, aes(x=as.factor(Year), y=PrecipCM))+
+  geom_boxplot()+
+  geom_hline(yintercept = 0.025, color = "red", linetype = "dotted", size = 1)+
+  ylab("Precipitation (cm)")+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r wrap climate plots}
+BreedingClimate.wrap <- ggarrange(max.plot,min.plot,precip.plot, ncol = 1)
+#cowplot::save_plot("Plots/BreedingClimate.wrap.png", BreedingClimate.wrap, base_height = 8, base_width = 6)
+```
 ## Weight by Age Plot
 
 ```{r WeightAge.plot}
