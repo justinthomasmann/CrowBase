@@ -528,171 +528,68 @@ UBSMinC.plot
 
 ### Male UBS Model
 
-```{r M.UBS.bmdl}
-M.UBS.bmdl <- stan_glm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, 
-                          data = M.scaled.df,
-                              family = gaussian(),
-                              algorithm = "sampling",
-                              prior = student_t(df = 7, 0, 5), 
-                              prior_intercept = student_t(df = 7, 0, 5),
-                              chains = 10, iter = 10000, cores = 2, seed = 666)
-#print(summary(M.UBS.bmdl), digits = 3)
-#plot(M.UBS.bmdl)
-```
-
 ```{r M.UBS.mdl}
-# M.UBS.mdl <- lm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
-# summary(M.UBS.mdl)
+M.UBS.mdl <- lm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+summary(M.UBS.mdl)
 ```
 
 ### Female UBS Model
 
-```{r F.UBS.bmdl}
-F.UBS.bmdl <- stan_glm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, 
-                          data = F.scaled.df,
-                              family = gaussian(),
-                              algorithm = "sampling",
-                              prior = student_t(df = 7, 0, 5), 
-                              prior_intercept = student_t(df = 7, 0, 5),
-                              chains = 10, iter = 10000, cores = 2, seed = 666)
-#print(summary(F.UBS.bmdl), digits = 3)
-#plot(F.UBS.bmdl)
-```
-
 ```{r F.UBS.mdl}
-# F.UBS.mdl <- lm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
-# summary(F.UBS.mdl)
+F.UBS.mdl <- lm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+summary(F.UBS.mdl)
 ```
 
 ### All Nestlings UBS Model
 
-```{r A.UBS.bmdl}
-A.UBS.bmdl <- stan_glm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, 
-                          data = scaled.df,
-                              family = gaussian(),
-                              algorithm = "sampling",
-                              prior = student_t(df = 7, 0, 5), 
-                              prior_intercept = student_t(df = 7, 0, 5),
-                              chains = 10, iter = 10000, cores = 2, seed = 666)
-#print(summary(A.UBS.bmdl), digits = 3)
-#plot(A.UBS.bmdl)
-```
-
 ```{r A.UBS.mdl}
-# A.UBS.mdl <- lm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
-# summary(A.UBS.mdl)
+A.UBS.mdl <- lm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.UBS.mdl)
 ```
 
 ### Data frames for UBS Forest Plot
 
 ```{r UBS.dfs for fplot}
-M.UBS.df <- tidy(M.UBS.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
-  M.UBS.df$Dataset <- "Male"
-  M.UBS.df$Metric <- "UB"
-  M.UBS.df <- M.UBS.df[-1,]
-  
-F.UBS.df <- tidy(F.UBS.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
-  F.UBS.df$Dataset <- "Female"
-  F.UBS.df$Metric <- "UB"
-  F.UBS.df <- F.UBS.df[-1,]
+M.UBS.df <- fplot_df(M.UBS.mdl, "Male", "UBS")
+F.UBS.df <- fplot_df(F.UBS.mdl, "Female", "UBS")
+A.UBS.df <- fplot_df(A.UBS.mdl, "All", "UBS")
 
-A.UBS.df <- tidy(A.UBS.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
-  A.UBS.df$Dataset <- "All"
-  A.UBS.df$Metric <- "UB"
-  A.UBS.df <- A.UBS.df[-1,]
-  
-B.UBS.df <- rbind(M.UBS.df, F.UBS.df)
+UBS.df <- rbind(M.UBS.df, F.UBS.df, A.UBS.df)
 ```
 
 ### UBS Forest Plot
 
-```{r B.UBS.fplot}
-B.UBS.fplot <- ggplot(data = B.UBS.df)+
-    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high, color=Dataset),
-                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
-    geom_point(aes(x=term,y=estimate, color=Dataset), 
-               shape = 16, size = 3, position=position_dodge(width=0.4))+
-    scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
-                    labels=c("Female","Male"))+
-    coord_flip()+
-    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
-    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
-    ylab("Parameter effect")+
-    theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 14),
-          axis.title.x = element_blank(),
-          axis.text.y = element_blank(),
-          axis.title.y = element_blank(),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-B.UBS.fplot
-
-#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
+```{r UBS.fplot}
+UBS.fplot <- fplot(UBS.df)
+UBS.fplot
+#cowplot::save_plot("Plots/UBS.fplot.png", UBS.fplot, base_height = 4, base_width = 7)
 ```
 
-###UBS Interaction plot (Female)
-```{r F.UBS. interaction plot}
-F.UBS.Inter.plot <- plot_model(F.UBS.bmdl, type = "int", mdrt.values = "quart")+
+###UBS Interaction plot 
+```{r UBS. interaction plot}
+UBS.Inter.plot <- plot_model(A.UBS.mdl, type = "int", mdrt.values = "quart")+
   scale_color_manual(name="Precipitation levels",
                     values=c("#D81B60","#FFC107","#1E88E5"),
                     labels=c("Low","Median","High"))+
   scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
-  ggtitle("Females")+
-  xlab("")+
-  ylab("")+
+  ggtitle("")+
+  xlab("Average minimum temperature (C) scaled")+
+  ylab("Upper bill surface area (mm^2) scaled")+
   theme(plot.title = element_text(size = 14, hjust = 0.5),
           axis.text.x = element_text(size = 12),
           axis.title.x = element_text(size = 14),
           axis.text.y = element_text(size = 12),
           axis.title.y = element_text(size = 14),
-          legend.position = "none")
-F.UBS.Inter.plot
+          legend.position = c(0.2,0.8))
+UBS.Inter.plot
 ```
 
-```{r UBS.pred}
-M.UBS.pred <- ggpredict(M.UBS.bmdl, terms = c("MinC8_22"), ppd = TRUE)
-M.UBS.pred$Sex <- "M"
-
-F.UBS.pred <- ggpredict(F.UBS.bmdl, terms = c("MinC8_22"), ppd = TRUE)
-F.UBS.pred$Sex <- "F"
-
-A.UBS.pred <- ggpredict(A.UBS.bmdl, terms = c("MinC8_22"), ppd = TRUE)
-A.UBS.pred$Sex <- "A"
-
-B.UBS.pred.df <- rbind(M.UBS.pred, F.UBS.pred)
-```
-
-###UBS by Min Temp (Male)
-```{r B.UBS.CE.plot}
-M.UBS.CE.plot <- ggplot(data = M.UBS.pred, aes(x,predicted))+
-  #geom_point(data = M.scaled.df, aes(x=MinC8_22, y=UBS), shape = 1)+
-  geom_line(size = 0.7, color = "#56B4E9")+
-  geom_ribbon(data = M.UBS.pred, aes(ymin=conf.low, ymax=conf.high, fill = Sex), alpha = 0.2)+
-  scale_color_manual(name="", values="#56B4E9",guide = "none")+
-  scale_fill_manual(values = "#56B4E9", guide = "none")+
-  ggtitle("Males")+
-  ylab("")+
-  xlab("Average minimum temperature (C) scaled")+
-  theme(plot.title = element_text(size = 14, hjust = 0.5),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_blank(),
-          axis.text.y = element_text(size = 12),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-M.UBS.CE.plot
-
-#annotation: Lines are the predicted conditional effects of temperature on tarsus length. Ribbons represent the posterior predictive distribution. 
-
-#The posterior predictive distribution is the distribution of the outcome implied by the model after having used the observed data to update our beliefs about the unknown parameters. The posterior predictive distribution conditions on the observed outcome data in hand to update beliefs about the unknowns and the variation in the resulting distribution of predictions reflects the remaining uncertainty in our beliefs about the unknowns. <https://mc-stan.org/rstanarm/articles/rstanarm.html>
-```
 ### UBS Plots Wrapped
 
-```{r UBS.InterCE.wrap}
-UBS.InterCE.wrap <- ggarrange(F.UBS.Inter.plot, M.UBS.CE.plot, ncol = 1)
-UBS.InterCE.wrap <- annotate_figure(UBS.InterCE.wrap, left = text_grob(bquote('Upper bill surface area scaled '~(mm^2)), rot = 90, size = 14))
-cowplot::save_plot("PaperPlots/UBS.InterCE.wrap.png", UBS.InterCE.wrap, base_height = 6, base_width = 6)
-UBS.InterCE.wrap
+```{r UBS.wrap}
+UBS.wrap <- ggarrange(UBS.Inter.plot, UBS.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+suppressWarnings(print(UBS.wrap))
+cowplot::save_plot("PaperPlots/UBS.wrap.png", UBS.wrap, base_height = 5, base_width = 10)
 ```
 
 
