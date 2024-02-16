@@ -60,7 +60,7 @@ fplot <- function(metric) {
                            labels = c("All", "Female", "Male")) +
         coord_flip() +
         geom_hline(yintercept = 0, color = "red", size = 1, linetype = "dotted") +
-        scale_x_discrete(labels = c("Min Temp", "Min Temp * Precip", "Precip")) +
+        scale_x_discrete(labels = c("Min Temp", "Min Temp * Precip", "Precip","Weight")) +
         ylab("Parameter estimate") +
         theme(plot.title = element_text(size = 16),
               axis.text.x = element_text(size = 12),
@@ -266,151 +266,27 @@ summary(A.Tarsus.mdl)
 ### Data frames for Tarsus Forest Plots
 
 ```{r Tarsus.dfs for fplot}
-M.Tarsus.df <- tidy(M.Tarsus.mdl, quick = FALSE)
-  ci <- as_tibble(confint(M.Tarsus.mdl))
-  M.Tarsus.df$ci.lower <- ci$`2.5 %`
-  M.Tarsus.df$ci.upper <- ci$`97.5 %`
-  M.Tarsus.df$Dataset <- "Male"
-  M.Tarsus.df$Metric <- "Tarsus"
-  M.Tarsus.df <- M.Tarsus.df[-1,]
+M.Tarsus.df <- fplot_df(M.Tarsus.mdl, "Male", "Tarsus")
+F.Tarsus.df <- fplot_df(F.Tarsus.mdl, "Female", "Tarsus")
+A.Tarsus.df <- fplot_df(A.Tarsus.mdl, "All", "Tarsus")
 
-F.Tarsus.df <- tidy(F.Tarsus.mdl, quick = FALSE)
-  ci <- as_tibble(confint(F.Tarsus.mdl))
-  F.Tarsus.df$ci.lower <- ci$`2.5 %`
-  F.Tarsus.df$ci.upper <- ci$`97.5 %`
-  F.Tarsus.df$Dataset <- "Female"
-  F.Tarsus.df$Metric <- "Tarsus"
-  F.Tarsus.df <- F.Tarsus.df[-1,]
-
-A.Tarsus.df <- tidy(A.Tarsus.mdl, quick = FALSE)
-  ci <- as_tibble(confint(A.Tarsus.mdl))
-  A.Tarsus.df$ci.lower <- ci$`2.5 %`
-  A.Tarsus.df$ci.upper <- ci$`97.5 %`
-  A.Tarsus.df$Dataset <- "All"
-  A.Tarsus.df$Metric <- "Tarsus"
-  A.Tarsus.df <- A.Tarsus.df[-1,]
-  
 Tarsus.df <- rbind(M.Tarsus.df, F.Tarsus.df, A.Tarsus.df)
 ```
 
 ### Tarsus Forest Plot
 
-```{r B.Tarsus.fplot}
-B.Tarsus.fplot <- ggplot(data = B.Tarsus.df)+
-    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high, color=Dataset),
-                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
-    geom_point(aes(x=term,y=estimate, color=Dataset), 
-               shape = 16, size = 3, position=position_dodge(width=0.4))+
-    scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
-                    labels=c("Female","Male"))+
-    coord_flip()+
-    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
-    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
-    #scale_y_continuous(limits = c(-0.3,0.25), breaks = c(-0.25,0,0.25))+
-    #ggtitle("")+
-    ylab("Parameter effect")+
-    theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_blank(),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-B.Tarsus.fplot
-#cowplot::save_plot("Plots/B.Tarsus.fplot.png", B.Tarsus.fplot, base_height = 4, base_width = 7)
-
-#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
-```
-
-```{r A.Tarsus.fplot}
-A.Tarsus.fplot <- ggplot(data = A.Tarsus.df)+
-    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high),
-                  linewidth=1, width=0.3)+
-    geom_point(aes(x=term,y=estimate), 
-               shape = 16, size = 3)+
-    scale_color_manual(name="", values="#000000")+
-    coord_flip()+
-    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
-    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
-    ylab("Parameter effect")+
-    theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_blank(),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-A.Tarsus.fplot
-#cowplot::save_plot("Plots/B.Tarsus.fplot.png", B.Tarsus.fplot, base_height = 4, base_width = 7)
-
-#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
-```
-
-
-```{r Tarsus.pred}
-M.Tarsus.pred <- ggpredict(M.Tarsus.bmdl, terms = c("MinC8_22"), ppd = TRUE)
-M.Tarsus.pred$Sex <- "M"
-
-F.Tarsus.pred <- ggpredict(F.Tarsus.bmdl, terms = c("MinC8_22"), ppd = TRUE)
-F.Tarsus.pred$Sex <- "F"
-
-A.Tarsus.pred <- ggpredict(A.Tarsus.bmdl, terms = c("MinC8_22"), ppd = TRUE)
-A.Tarsus.pred$Sex <- "A"
-
-B.Tarsus.pred.df <- rbind(M.Tarsus.pred, F.Tarsus.pred)
-```
-
-
-
-```{r B.Tarsus.CE.plot}
-B.Tarsus.CE.plot <- ggplot(data = B.Tarsus.pred.df, aes(x,predicted), color = Sex, fill = Sex)+
-  geom_point(data = B.scaled.df, aes(x=MinC8_22, y=Tarsus, color = Sex), shape = 1)+
-  geom_line(aes(color = Sex), size = 0.7)+
-  geom_ribbon(data = B.Tarsus.pred.df, aes(ymin=conf.low, ymax=conf.high, fill = Sex), alpha = 0.2)+
-  scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
-                    labels=c("Female","Male"))+
-  scale_fill_manual(values = c("#E69F00","#56B4E9"), guide = "none")+
-  ylab("Tarsus (mm) scaled")+
-  xlab("Minimum temperature (C) scaled")+
-  theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-suppressWarnings(print(B.Tarsus.CE.plot))
-
-#annotation: Lines are the predicted conditional effects of temperature on tarsus length. Ribbons represent the posterior predictive distribution. 
-
-#The posterior predictive distribution is the distribution of the outcome implied by the model after having used the observed data to update our beliefs about the unknown parameters. The posterior predictive distribution conditions on the observed outcome data in hand to update beliefs about the unknowns and the variation in the resulting distribution of predictions reflects the remaining uncertainty in our beliefs about the unknowns. <https://mc-stan.org/rstanarm/articles/rstanarm.html>
-```
-
-```{r A.Tarsus.CE.plot}
-A.Tarsus.CE.plot <- ggplot(data = A.Tarsus.pred, aes(x,predicted))+
-  geom_point(data = scaled.df, aes(x=MinC8_22, y=Tarsus), shape = 1)+
-  geom_line(size = 0.7)+
-  geom_ribbon(data = A.Tarsus.pred, aes(ymin=conf.low, ymax=conf.high), alpha = 0.2)+
-  scale_color_manual(name="", values="#000000")+
-  scale_fill_manual(values = "#000000", guide = "none")+
-  ylab("Tarsus (mm) scaled")+
-  xlab("Minimum temperature (C) scaled")+
-  theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-A.Tarsus.CE.plot
+```{r Tarsus.fplot}
+Tarsus.fplot <- fplot(Tarsus.df)
+Tarsus.fplot
+#cowplot::save_plot("Plots/Tarsus.fplot.png", Tarsus.fplot, base_height = 4, base_width = 7)
 ```
 
 ### Tarsus Plots Wrapped
 
 ```{r Tarsus.wrap}
-B.Tarsus.wrap <- ggarrange(B.Tarsus.CE.plot, B.Tarsus.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+Tarsus.wrap <- ggarrange(TarsusMinC.plot, Tarsus.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
 # cowplot::save_plot("PaperPlots/B.Tarsus.wrap.png", B.Tarsus.wrap, base_height = 5, base_width = 12)
-suppressWarnings(print(B.Tarsus.wrap))
+suppressWarnings(print(Tarsus.wrap))
 ```
 
 ```{r A.Tarsus.wrap}
