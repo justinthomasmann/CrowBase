@@ -290,11 +290,6 @@ cowplot::save_plot("PaperPlots/Tarsus.wrap.png", Tarsus.wrap, base_height = 5, b
 ```
 
 
-
-
-
-
-
 ## Nestling Bill Depth
 
 ### Bill Depth by Minimum Temperature Plot
@@ -303,7 +298,7 @@ cowplot::save_plot("PaperPlots/Tarsus.wrap.png", Tarsus.wrap, base_height = 5, b
 BDMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = BD, color = Sex))+
   geom_jitter(width = 0.2, shape = 1, size = 1.8)+
   geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
-  scale_color_manual(name="Sex",
+  scale_color_manual(name="",
                     values=c("#E69F00","#56B4E9","#000000"),
                     labels=c("Female","Male","Unsexed"))+
   scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
@@ -322,193 +317,56 @@ BDMinC.plot
 
 ### Male Bill Depth Model
 
-```{r M.BD.bmdl}
-M.BD.bmdl <- stan_glm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, 
-                          data = M.scaled.df,
-                              family = gaussian(),
-                              algorithm = "sampling",
-                              prior = student_t(df = 7, 0, 5), 
-                              prior_intercept = student_t(df = 7, 0, 5),
-                              chains = 10, iter = 10000, cores = 2, seed = 666)
-#print(summary(M.BD.bmdl), digits = 3)
-#plot(M.BD.bmdl)
-```
-
 ```{r M.BD.mdl}
-# M.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
-# summary(M.BD.mdl)
+M.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+summary(M.BD.mdl)
 ```
 
 
 ### Female Bill Depth Model
 
-
-```{r F.BD.bmdl}
-F.BD.bmdl <- stan_glm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, 
-                          data = F.scaled.df,
-                              family = gaussian(),
-                              algorithm = "sampling",
-                              prior = student_t(df = 7, 0, 5), 
-                              prior_intercept = student_t(df = 7, 0, 5),
-                              chains = 10, iter = 10000, cores = 2, seed = 666)
-# print(summary(F.BD.bmdl), digits = 3)
-# plot(F.BD.bmdl)
-```
-
 ```{r F.BD.mdl}
-# F.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
-# summary(F.BD.mdl)
+F.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+summary(F.BD.mdl)
 ```
 
 ### All Nestlings Bill Depth Model
 
-```{r A.BD.bmdl}
-A.BD.bmdl <- stan_glm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, 
-                          data = scaled.df,
-                              family = gaussian(),
-                              algorithm = "sampling",
-                              prior = student_t(df = 7, 0, 5), 
-                              prior_intercept = student_t(df = 7, 0, 5),
-                              chains = 10, iter = 10000, cores = 2, seed = 666)
-# print(summary(A.BD.bmdl), digits = 3)
-# plot(A.BD.bmdl)
-```
-
 ```{r A.BD.mdl}
-# A.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
-# summary(A.BD.mdl)
+A.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.BD.mdl)
 ```
 
-### Data frames for Bill Depth Forest Plot
+### Data frames for Bill Depth Forest Plots
 
 ```{r BD.dfs for fplot}
-M.BD.df <- tidy(M.BD.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
-  M.BD.df$Dataset <- "Male"
-  M.BD.df$Metric <- "BD"
-  M.BD.df <- M.BD.df[-1,]
+M.BD.df <- fplot_df(M.BD.mdl, "Male", "BD")
+F.BD.df <- fplot_df(F.BD.mdl, "Female", "BD")
+A.BD.df <- fplot_df(A.BD.mdl, "All", "BD")
 
-F.BD.df <- tidy(F.BD.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
-  F.BD.df$Dataset <- "Female"
-  F.BD.df$Metric <- "BD"
-  F.BD.df <- F.BD.df[-1,]
-
-A.BD.df <- tidy(A.BD.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
-  A.BD.df$Dataset <- "All"
-  A.BD.df$Metric <- "BD"
-  A.BD.df <- A.BD.df[-1,]
-  
-B.BD.df <- rbind(M.BD.df, F.BD.df)
+BD.df <- rbind(M.BD.df, F.BD.df, A.BD.df)
 ```
+
+### BD Forest Plot
+
+```{r BD.fplot}
+BD.fplot <- fplot(BD.df)
+BD.fplot
+#cowplot::save_plot("Plots/BD.fplot.png", BD.fplot, base_height = 4, base_width = 7)
+```
+
+### BD Plots Wrapped
+
+```{r BD.wrap}
+BD.wrap <- ggarrange(BDMinC.plot, BD.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+suppressWarnings(print(BD.wrap))
+cowplot::save_plot("PaperPlots/BD.wrap.png", BD.wrap, base_height = 5, base_width = 10)
+```
+
 
 ### Bill Depth Forest Plot
 
-```{r B.BD.fplot}
-B.BD.fplot <- ggplot(data = B.BD.df)+
-    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high, color=Dataset),
-                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
-    geom_point(aes(x=term,y=estimate, color=Dataset), 
-               shape = 16, size = 3, position=position_dodge(width=0.4))+
-    scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
-                    labels=c("Female","Male"))+
-    coord_flip()+
-    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
-    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
-    ylab("Parameter effect")+
-    theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 14),
-          axis.title.x = element_blank(),
-          axis.text.y = element_blank(),
-          axis.title.y = element_blank(),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-B.BD.fplot
-#cowplot::save_plot("Plots/B.BD.fplot.png", B.BD.fplot, base_height = 4, base_width = 7)
 
-#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
-```
-
-
-```{r A.BD.fplot}
-A.BD.fplot <- ggplot(data = A.BD.df)+
-    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high),
-                  linewidth=1, width=0.3)+
-    geom_point(aes(x=term,y=estimate), 
-               shape = 16, size = 3)+
-    scale_color_manual(name="", values="#000000")+
-    coord_flip()+
-    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
-    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
-    ylab("Parameter effect")+
-    theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_blank(),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-A.BD.fplot
-
-#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
-```
-
-```{r BD.pred}
-M.BD.pred <- ggpredict(M.BD.bmdl, terms = c("MinC8_22"), ppd = TRUE)
-M.BD.pred$Sex <- "M"
-
-F.BD.pred <- ggpredict(F.BD.bmdl, terms = c("MinC8_22"), ppd = TRUE)
-F.BD.pred$Sex <- "F"
-
-A.BD.pred <- ggpredict(A.BD.bmdl, terms = c("MinC8_22"), ppd = TRUE)
-A.BD.pred$Sex <- "A"
-
-B.BD.pred.df <- rbind(M.BD.pred, F.BD.pred)
-```
-
-
-```{r B.BD.CE.plot}
-B.BD.CE.plot <- ggplot(data = B.BD.pred.df, aes(x,predicted), color = Sex, fill = Sex)+
-  #geom_point(data = B.scaled.df, aes(x=MinC8_22, y=BD, color = Sex), shape = 1)+
-  geom_line(aes(color = Sex), size = 0.7)+
-  geom_ribbon(data = B.BD.pred.df, aes(ymin=conf.low, ymax=conf.high, fill = Sex), alpha = 0.2)+
-  scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
-                    labels=c("Female","Male"))+
-  scale_fill_manual(values = c("#E69F00","#56B4E9"), guide = "none")+
-  ylab("Bill depth scaled (mm)")+
-  xlab("Average minimum temperature (C) scaled")+
-  theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_blank(),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-B.BD.CE.plot
-
-#annotation: Lines are the predicted conditional effects of temperature on tarsus length. Ribbons represent the posterior predictive distribution. 
-
-#The posterior predictive distribution is the distribution of the outcome implied by the model after having used the observed data to update our beliefs about the unknown parameters. The posterior predictive distribution conditions on the observed outcome data in hand to update beliefs about the unknowns and the variation in the resulting distribution of predictions reflects the remaining uncertainty in our beliefs about the unknowns. <https://mc-stan.org/rstanarm/articles/rstanarm.html>
-```
-
-###All nestlings BD CE Plot
-
-```{r A.BD.CE.plot}
-A.BD.CE.plot <- ggplot(data = A.BD.pred, aes(x,predicted))+
-  geom_point(data = scaled.df, aes(x=MinC8_22, y=BD), shape = 1)+
-  geom_line(size = 0.7)+
-  geom_ribbon(data = A.BD.pred, aes(ymin=conf.low, ymax=conf.high), alpha = 0.2)+
-  scale_color_manual(name="", values="#000000")+
-  scale_fill_manual(values = "#000000", guide = "none")+
-  ylab("Bill depth (mm) scaled")+
-  xlab("Minimum temperature (C) scaled")+
-  theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-A.BD.CE.plot
-```
 
 ### BD Plots Wrapped
 
