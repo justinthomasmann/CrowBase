@@ -1,0 +1,1726 @@
+---
+title: "Nestling morphology responds to yearly fluctuations in temperature and precipitation"
+author: "Justin Mann"
+date: "2023-07-04"
+output: html_document
+---
+
+```{r libraries, include=FALSE}
+library(tidyverse)
+library(broom) #tidy() to create tibbles from model summaries
+library(car) #vif (variance inflation factor for measuring covariance)
+library(cowplot)
+library(lme4) #frequentist models  
+library(sjPlot) #plot_model & tab_model (blue = #377EB8)
+library(ggpubr) #ggarrange for plot wraps
+library(lmerTest) #lmerTest::step
+library(ggeffects) #ggpredict
+#library(plotly) #ggplotly() to make interactive plots with scroll over ids
+library(MuMIn) #dredge() for unsupervised model selection
+library(AICcmodavg) #aictab() for AICc model comparisons
+library(DHARMa) #model validation functions
+library(DescTools) #Entropy() and MutInf()
+
+
+#Libraries for Bayesian Models
+library(rstanarm) #stan models
+library(shinystan) #stan model evaluation
+#launch_shinystan_demo()
+library(loo) #use loo() to compare fits between bayesian models
+library(broom.mixed) #rstanarm_tidiers() for tidying stan model summaries
+library(bayesplot)
+
+theme_set(theme_classic()) #default plots with no gridlines
+```
+
+```{r colorblind accessible pallet}
+colorBlindPal  <- c("#000000", "#E69F00", "#56B4E9", "#009E73", 
+                       "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+
+## Inport Data
+
+```{r unscaled data}
+df <- read.csv("CrowNestlingClimate_UnscaledData_7.8.23.csv", h=TRUE)
+# n=2030 nestlings
+```
+
+
+## Data Scaling
+
+### Normalize Continuous Data
+Subtract each value from the mean (center) and divide it by the standard deviation
+
+```{r scaling}
+#categorical data  
+categorical.df <- df[,1:11]
+
+#continuous data
+continuous.df <- df[,12:46]
+
+#scale continuous data
+#?scale()
+scaled.mat <- scale(continuous.df, center = TRUE, scale = TRUE)
+
+#join unscaled and scaled data
+scaled.df <- cbind(categorical.df,scaled.mat)
+```
+
+## Data frames for males, females and unknown sex
+
+```{r sexes data frames}
+#Males scaled
+M.scaled.df <- subset(scaled.df, Sex=="M")
+#Males unscaled
+M.df <- subset(df, Sex=="M")
+
+#Females scaled
+F.scaled.df <- subset(scaled.df, Sex=="F")
+#Females unscaled
+F.df <- subset(df, Sex=="F")
+
+#Unsexed scaled
+U.scaled.df <- subset(scaled.df, Sex=="U")
+#Unsexed unscaled
+U.df <- subset(df, Sex=="U")
+
+#Both sexes scaled
+B.scaled.df <- rbind(F.scaled.df,M.scaled.df)
+#Both sexes unscaled
+B.df <- rbind(F.df,M.df)
+```
+
+
+## Weight by Age Plot
+
+```{r WeightAge.plot}
+WeightAge.plot <- ggplot(data = df, aes(x = CalcAge, y = Weight, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method = "lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="Sex",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unsexed"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Weight (g)")+
+  xlab("Nestling age (days)")
+suppressWarnings(print(WeightAge.plot))
+#cowplot::save_plot("Plots/WeightAge.plot.png", WeightAge.plot, base_height = 4, base_width = 7)
+```
+
+
+## Nestling Weight
+
+### Weight by Minimum Temperature Plot
+```{r WeightMinC.plot}
+WeightMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = Weight, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", level=0.95, aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unsexed"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Weight (g)")+
+  xlab("Average minimum temperature (C)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+suppressWarnings(print(WeightMinC.plot))
+#cowplot::save_plot("Plots/WeightMinC.plot.png", WeightMinC.plot, base_height = 4, base_width = 7)
+```
+### Male Weight model
+```{r M.Weight.mdl}
+M.Weight.mdl <- lm(Weight ~ MinC8_22 * PrecipSum8_22,
+                   data = M.scaled.df)
+summary(M.Weight.mdl)
+```
+
+### Female Weight Model
+```{r F.Weight.mdl}
+F.Weight.mdl <- lm(Weight ~ MinC8_22 * PrecipSum8_22,
+                   data = F.scaled.df)
+summary(F.Weight.mdl)
+```
+
+### All nestlings Weight Model
+```{r A.Weight.mdl}
+A.Weight.mdl <- lm(Weight ~ MinC8_22 * PrecipSum8_22,
+                   data = scaled.df)
+summary(A.Weight.mdl)
+```
+```{r Weight.dfs for fplot}
+M.Weight.df <- tidy(M.Weight.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.Weight.mdl))
+  M.Weight.df$ci.lower <- ci$`2.5 %`
+  M.Weight.df$ci.upper <- ci$`97.5 %`
+  M.Weight.df$Dataset <- "Male"
+  M.Weight.df$Metric <- "Weight"
+  M.Weight.df <- M.Weight.df[-1,]
+
+F.Weight.df <- tidy(F.Weight.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.Weight.mdl))
+  F.Weight.df$ci.lower <- ci$`2.5 %`
+  F.Weight.df$ci.upper <- ci$`97.5 %`
+  F.Weight.df$Dataset <- "Female"
+  F.Weight.df$Metric <- "Weight"
+  F.Weight.df <- F.Weight.df[-1,]
+
+A.Weight.df <- tidy(A.Weight.mdl, quick = FALSE)
+  ci <- as_tibble(confint(A.Weight.mdl))
+  A.Weight.df$ci.lower <- ci$`2.5 %`
+  A.Weight.df$ci.upper <- ci$`97.5 %`
+  A.Weight.df$Dataset <- "All"
+  A.Weight.df$Metric <- "Weight"
+  A.Weight.df <- A.Weight.df[-1,]
+  
+Weight.df <- rbind(M.Weight.df, F.Weight.df, A.Weight.df)
+```
+
+
+### Tarsus Forest Plot
+
+```{r Weight.fplot}
+Weight.df$Dataset <- factor(Weight.df$Dataset, levels = c("Female","Male","All"))
+
+Weight.fplot <- ggplot(data = Weight.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper, color=Dataset),
+                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
+    geom_point(aes(x=term,y=estimate, color=Dataset), 
+               shape = 16, size = 3, position=position_dodge(width=0.4))+
+    scale_color_manual(name="", values=c("#E69F00","#56B4E9","black"),
+                    labels=c("Female","Male","All"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip"))+
+    #scale_y_continuous(limits = c(-0.3,0.25), breaks = c(-0.25,0,0.25))+
+    #ggtitle("")+
+    ylab("Parameter effect")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+Weight.fplot
+#cowplot::save_plot("Plots/B.Tarsus.fplot.png", B.Tarsus.fplot, base_height = 4, base_width = 7)
+
+#annotation: Points are model parameter estimates. Error bars are 95% confidence intervals.
+```
+
+
+### Weight plots wrapped
+```{r Weight.wrap}
+Weight.wrap <- ggarrange(WeightMinC.plot, Weight.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+Weight.wrap
+
+cowplot::save_plot("PaperPlots/Weight.wrap.png", Weight.wrap, base_height = 5, base_width = 10)
+```
+
+
+## Nestling Tarsus 
+
+### Male Tarsus Model
+```{r M.Tarsus.bmdl}
+# M.Tarsus.bmdl <- stan_glm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, 
+#                           data = M.scaled.df,
+#                               family = gaussian(),
+#                               algorithm = "sampling",
+#                               prior = student_t(df = 7, 0, 5), 
+#                               prior_intercept = student_t(df = 7, 0, 5),
+#                               chains = 10, iter = 5000, cores = 2, seed = 666)
+# print(summary(M.Tarsus.bmdl), digits = 3)
+# launch_shinystan(M.Tarsus.bmdl)
+# M.Tarsus.bmdl.posterior <- as.matrix(M.Tarsus.bmdl)
+# plot(M.Tarsus.bmdl)
+```
+
+```{r M.Tarsus.mdl}
+M.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+summary(M.Tarsus.mdl)
+```
+
+### Female Tarsus Model
+```{r F.Tarsus.bmdl}
+# F.Tarsus.bmdl <- stan_glm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, 
+#                           data = F.scaled.df,
+#                               family = gaussian(),
+#                               algorithm = "sampling",
+#                               prior = student_t(df = 7, 0, 5), 
+#                               prior_intercept = student_t(df = 7, 0, 5),
+#                               chains = 10, iter = 10000, cores = 2, seed = 666)
+# print(summary(F.Tarsus.bmdl), digits = 3)
+# plot(F.Tarsus.bmdl)
+```
+
+```{r F.Tarsus.mdl}
+F.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+summary(F.Tarsus.mdl)
+```
+
+
+### All Nestlings Tarsus Model
+```{r A.Tarsus.bmdl}
+# A.Tarsus.bmdl <- stan_glm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, 
+#                           data = scaled.df,
+#                               family = gaussian(),
+#                               algorithm = "sampling",
+#                               prior = student_t(df = 7, 0, 5), 
+#                               prior_intercept = student_t(df = 7, 0, 5),
+#                               chains = 10, iter = 10000, cores = 2, seed = 666)
+# print(summary(A.Tarsus.bmdl), digits = 3)
+# plot(A.Tarsus.bmdl)
+```
+
+```{r A.Tarsus.mdl}
+A.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.Tarsus.mdl)
+```
+
+
+### Data frames for Tarsus Forest Plots
+
+```{r Tarsus.dfs for fplot Bayesian}
+# M.Tarsus.df <- tidy(M.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+#   M.Tarsus.df <- M.Tarsus.df[-1,]
+#   M.Tarsus.df$Dataset <- "Male"
+#   M.Tarsus.df$Metric <- "Tarsus"
+# 
+# F.Tarsus.df <- tidy(F.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+#   F.Tarsus.df$Dataset <- "Female"
+#   F.Tarsus.df$Metric <- "Tarsus"
+#   F.Tarsus.df <- F.Tarsus.df[-1,]
+# 
+# A.Tarsus.df <- tidy(A.Tarsus.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+#   A.Tarsus.df$Dataset <- "All"
+#   A.Tarsus.df$Metric <- "Tarsus"
+#   A.Tarsus.df <- A.Tarsus.df[-1,]
+#   
+# B.Tarsus.df <- rbind(M.Tarsus.df, F.Tarsus.df)
+```
+
+```{r Tarsus.dfs for fplot}
+M.Tarsus.df <- tidy(M.Tarsus.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.Tarsus.mdl))
+  M.Tarsus.df$ci.lower <- ci$`2.5 %`
+  M.Tarsus.df$ci.upper <- ci$`97.5 %`
+  M.Tarsus.df$Dataset <- "Male"
+  M.Tarsus.df$Metric <- "Tarsus"
+  M.Tarsus.df <- M.Tarsus.df[-1,]
+
+F.Tarsus.df <- tidy(F.Tarsus.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.Tarsus.mdl))
+  F.Tarsus.df$ci.lower <- ci$`2.5 %`
+  F.Tarsus.df$ci.upper <- ci$`97.5 %`
+  F.Tarsus.df$Dataset <- "Female"
+  F.Tarsus.df$Metric <- "Tarsus"
+  F.Tarsus.df <- F.Tarsus.df[-1,]
+
+A.Tarsus.df <- tidy(A.Tarsus.mdl, quick = FALSE)
+  ci <- as_tibble(confint(A.Tarsus.mdl))
+  A.Tarsus.df$ci.lower <- ci$`2.5 %`
+  A.Tarsus.df$ci.upper <- ci$`97.5 %`
+  A.Tarsus.df$Dataset <- "All"
+  A.Tarsus.df$Metric <- "Tarsus"
+  A.Tarsus.df <- A.Tarsus.df[-1,]
+  
+Tarsus.df <- rbind(M.Tarsus.df, F.Tarsus.df, A.Tarsus.df)
+```
+
+### Tarsus Forest Plot
+
+```{r B.Tarsus.fplot}
+B.Tarsus.fplot <- ggplot(data = B.Tarsus.df)+
+    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high, color=Dataset),
+                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
+    geom_point(aes(x=term,y=estimate, color=Dataset), 
+               shape = 16, size = 3, position=position_dodge(width=0.4))+
+    scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
+                    labels=c("Female","Male"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    #scale_y_continuous(limits = c(-0.3,0.25), breaks = c(-0.25,0,0.25))+
+    #ggtitle("")+
+    ylab("Parameter effect")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+B.Tarsus.fplot
+#cowplot::save_plot("Plots/B.Tarsus.fplot.png", B.Tarsus.fplot, base_height = 4, base_width = 7)
+
+#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
+```
+
+```{r A.Tarsus.fplot}
+A.Tarsus.fplot <- ggplot(data = A.Tarsus.df)+
+    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high),
+                  linewidth=1, width=0.3)+
+    geom_point(aes(x=term,y=estimate), 
+               shape = 16, size = 3)+
+    scale_color_manual(name="", values="#000000")+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    ylab("Parameter effect")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+A.Tarsus.fplot
+#cowplot::save_plot("Plots/B.Tarsus.fplot.png", B.Tarsus.fplot, base_height = 4, base_width = 7)
+
+#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
+```
+
+
+```{r Tarsus.pred}
+M.Tarsus.pred <- ggpredict(M.Tarsus.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+M.Tarsus.pred$Sex <- "M"
+
+F.Tarsus.pred <- ggpredict(F.Tarsus.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+F.Tarsus.pred$Sex <- "F"
+
+A.Tarsus.pred <- ggpredict(A.Tarsus.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+A.Tarsus.pred$Sex <- "A"
+
+B.Tarsus.pred.df <- rbind(M.Tarsus.pred, F.Tarsus.pred)
+```
+
+
+
+```{r B.Tarsus.CE.plot}
+B.Tarsus.CE.plot <- ggplot(data = B.Tarsus.pred.df, aes(x,predicted), color = Sex, fill = Sex)+
+  geom_point(data = B.scaled.df, aes(x=MinC8_22, y=Tarsus, color = Sex), shape = 1)+
+  geom_line(aes(color = Sex), size = 0.7)+
+  geom_ribbon(data = B.Tarsus.pred.df, aes(ymin=conf.low, ymax=conf.high, fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
+                    labels=c("Female","Male"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9"), guide = "none")+
+  ylab("Tarsus (mm) scaled")+
+  xlab("Minimum temperature (C) scaled")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+suppressWarnings(print(B.Tarsus.CE.plot))
+
+#annotation: Lines are the predicted conditional effects of temperature on tarsus length. Ribbons represent the posterior predictive distribution. 
+
+#The posterior predictive distribution is the distribution of the outcome implied by the model after having used the observed data to update our beliefs about the unknown parameters. The posterior predictive distribution conditions on the observed outcome data in hand to update beliefs about the unknowns and the variation in the resulting distribution of predictions reflects the remaining uncertainty in our beliefs about the unknowns. <https://mc-stan.org/rstanarm/articles/rstanarm.html>
+```
+
+```{r A.Tarsus.CE.plot}
+A.Tarsus.CE.plot <- ggplot(data = A.Tarsus.pred, aes(x,predicted))+
+  geom_point(data = scaled.df, aes(x=MinC8_22, y=Tarsus), shape = 1)+
+  geom_line(size = 0.7)+
+  geom_ribbon(data = A.Tarsus.pred, aes(ymin=conf.low, ymax=conf.high), alpha = 0.2)+
+  scale_color_manual(name="", values="#000000")+
+  scale_fill_manual(values = "#000000", guide = "none")+
+  ylab("Tarsus (mm) scaled")+
+  xlab("Minimum temperature (C) scaled")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+A.Tarsus.CE.plot
+```
+
+### Tarsus Plots Wrapped
+
+```{r Tarsus.wrap}
+B.Tarsus.wrap <- ggarrange(B.Tarsus.CE.plot, B.Tarsus.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+# cowplot::save_plot("PaperPlots/B.Tarsus.wrap.png", B.Tarsus.wrap, base_height = 5, base_width = 12)
+suppressWarnings(print(B.Tarsus.wrap))
+```
+
+```{r A.Tarsus.wrap}
+A.Tarsus.wrap <- ggarrange(A.Tarsus.CE.plot, A.Tarsus.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+# cowplot::save_plot("PaperPlots/A.Tarsus.wrap.png", A.Tarsus.wrap, base_height = 5, base_width = 12)
+suppressWarnings(print(A.Tarsus.wrap))
+```
+
+
+
+
+
+## Nestling Bill Depth
+
+### Bill Depth by Minimum Temperature Plot
+
+```{r BDMinC.plot}
+BDMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = BD, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="Sex",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unsexed"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Bill depth (mm)")+
+  xlab("Average minimum temperature (C)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+BDMinC.plot
+#cowplot::save_plot("Plots/BDMinC.plot.png", BDMinC.plot, base_height = 4, base_width = 7)
+```
+
+### Male Bill Depth Model
+
+```{r M.BD.bmdl}
+M.BD.bmdl <- stan_glm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = M.scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+#print(summary(M.BD.bmdl), digits = 3)
+#plot(M.BD.bmdl)
+```
+
+```{r M.BD.mdl}
+# M.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+# summary(M.BD.mdl)
+```
+
+
+### Female Bill Depth Model
+
+
+```{r F.BD.bmdl}
+F.BD.bmdl <- stan_glm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = F.scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+# print(summary(F.BD.bmdl), digits = 3)
+# plot(F.BD.bmdl)
+```
+
+```{r F.BD.mdl}
+# F.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+# summary(F.BD.mdl)
+```
+
+### All Nestlings Bill Depth Model
+
+```{r A.BD.bmdl}
+A.BD.bmdl <- stan_glm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+# print(summary(A.BD.bmdl), digits = 3)
+# plot(A.BD.bmdl)
+```
+
+```{r A.BD.mdl}
+# A.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+# summary(A.BD.mdl)
+```
+
+### Data frames for Bill Depth Forest Plot
+
+```{r BD.dfs for fplot}
+M.BD.df <- tidy(M.BD.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  M.BD.df$Dataset <- "Male"
+  M.BD.df$Metric <- "BD"
+  M.BD.df <- M.BD.df[-1,]
+
+F.BD.df <- tidy(F.BD.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  F.BD.df$Dataset <- "Female"
+  F.BD.df$Metric <- "BD"
+  F.BD.df <- F.BD.df[-1,]
+
+A.BD.df <- tidy(A.BD.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  A.BD.df$Dataset <- "All"
+  A.BD.df$Metric <- "BD"
+  A.BD.df <- A.BD.df[-1,]
+  
+B.BD.df <- rbind(M.BD.df, F.BD.df)
+```
+
+### Bill Depth Forest Plot
+
+```{r B.BD.fplot}
+B.BD.fplot <- ggplot(data = B.BD.df)+
+    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high, color=Dataset),
+                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
+    geom_point(aes(x=term,y=estimate, color=Dataset), 
+               shape = 16, size = 3, position=position_dodge(width=0.4))+
+    scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
+                    labels=c("Female","Male"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    ylab("Parameter effect")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 14),
+          axis.title.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+B.BD.fplot
+#cowplot::save_plot("Plots/B.BD.fplot.png", B.BD.fplot, base_height = 4, base_width = 7)
+
+#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
+```
+
+
+```{r A.BD.fplot}
+A.BD.fplot <- ggplot(data = A.BD.df)+
+    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high),
+                  linewidth=1, width=0.3)+
+    geom_point(aes(x=term,y=estimate), 
+               shape = 16, size = 3)+
+    scale_color_manual(name="", values="#000000")+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    ylab("Parameter effect")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+A.BD.fplot
+
+#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
+```
+
+```{r BD.pred}
+M.BD.pred <- ggpredict(M.BD.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+M.BD.pred$Sex <- "M"
+
+F.BD.pred <- ggpredict(F.BD.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+F.BD.pred$Sex <- "F"
+
+A.BD.pred <- ggpredict(A.BD.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+A.BD.pred$Sex <- "A"
+
+B.BD.pred.df <- rbind(M.BD.pred, F.BD.pred)
+```
+
+
+```{r B.BD.CE.plot}
+B.BD.CE.plot <- ggplot(data = B.BD.pred.df, aes(x,predicted), color = Sex, fill = Sex)+
+  #geom_point(data = B.scaled.df, aes(x=MinC8_22, y=BD, color = Sex), shape = 1)+
+  geom_line(aes(color = Sex), size = 0.7)+
+  geom_ribbon(data = B.BD.pred.df, aes(ymin=conf.low, ymax=conf.high, fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
+                    labels=c("Female","Male"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9"), guide = "none")+
+  ylab("Bill depth scaled (mm)")+
+  xlab("Average minimum temperature (C) scaled")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+B.BD.CE.plot
+
+#annotation: Lines are the predicted conditional effects of temperature on tarsus length. Ribbons represent the posterior predictive distribution. 
+
+#The posterior predictive distribution is the distribution of the outcome implied by the model after having used the observed data to update our beliefs about the unknown parameters. The posterior predictive distribution conditions on the observed outcome data in hand to update beliefs about the unknowns and the variation in the resulting distribution of predictions reflects the remaining uncertainty in our beliefs about the unknowns. <https://mc-stan.org/rstanarm/articles/rstanarm.html>
+```
+
+###All nestlings BD CE Plot
+
+```{r A.BD.CE.plot}
+A.BD.CE.plot <- ggplot(data = A.BD.pred, aes(x,predicted))+
+  geom_point(data = scaled.df, aes(x=MinC8_22, y=BD), shape = 1)+
+  geom_line(size = 0.7)+
+  geom_ribbon(data = A.BD.pred, aes(ymin=conf.low, ymax=conf.high), alpha = 0.2)+
+  scale_color_manual(name="", values="#000000")+
+  scale_fill_manual(values = "#000000", guide = "none")+
+  ylab("Bill depth (mm) scaled")+
+  xlab("Minimum temperature (C) scaled")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+A.BD.CE.plot
+```
+
+### BD Plots Wrapped
+
+```{r BD.wrap}
+B.BD.wrap <- ggarrange(B.BD.CE.plot, B.BD.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+# cowplot::save_plot("PaperPlots/B.BD.wrap.png", B.BD.wrap, base_height = 5, base_width = 12)
+B.BD.wrap
+```
+
+```{r A.BD.wrap}
+A.BD.wrap <- ggarrange(A.BD.CE.plot, A.BD.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+# cowplot::save_plot("PaperPlots/A.BD.wrap.png", A.BD.wrap, base_height = 5, base_width = 12)
+A.BD.wrap
+```
+
+
+
+## Nestling Upper Bill (UB) 
+
+### UB by Minimum Temperature Plot
+
+```{r UBMinC.plot}
+UBMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = UB, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="Sex",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unknown"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Upper bill (mm)")+
+  xlab("Average minimum temperature (C)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+UBMinC.plot
+#cowplot::save_plot("Plots/UBMinC.plot.png", UBMinC.plot, base_height = 4, base_width = 7)
+```
+
+### Male UB Model
+
+```{r M.UB.bmdl}
+M.UB.bmdl <- stan_glm(UB ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = M.scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+#print(summary(M.UB.bmdl), digits = 3)
+#plot(M.UB.bmdl)
+```
+
+```{r M.UB.mdl}
+# M.UB.mdl <- lm(UB ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+# summary(M.UB.mdl)
+```
+
+
+### Female UB Model
+
+```{r F.UB.bmdl}
+F.UB.bmdl <- stan_glm(UB ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = F.scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+# print(summary(F.UB.bmdl), digits = 3)
+# plot(F.UB.bmdl)
+```
+
+```{r F.UB.mdl}
+# F.UB.mdl <- lm(UB ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+# summary(F.UB.mdl)
+```
+
+
+### All Nestlings UB Model
+
+```{r A.UB.bmdl}
+A.UB.bmdl <- stan_glm(UB ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+# print(summary(A.UB.bmdl), digits = 3)
+# plot(A.UB.bmdl)
+```
+
+```{r A.UB.mdl}
+# A.UB.mdl <- lm(UB ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+# summary(A.UB.mdl)
+```
+
+### Data frames for UB Forest Plot
+
+```{r UB.dfs for fplot}
+M.UB.df <- tidy(M.UB.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  M.UB.df$Dataset <- "Male"
+  M.UB.df$Metric <- "UB"
+  M.UB.df <- M.UB.df[-1,]
+  
+F.UB.df <- tidy(F.UB.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  F.UB.df$Dataset <- "Female"
+  F.UB.df$Metric <- "UB"
+  F.UB.df <- F.UB.df[-1,]
+
+A.UB.df <- tidy(A.UB.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  A.UB.df$Dataset <- "All"
+  A.UB.df$Metric <- "UB"
+  A.UB.df <- A.UB.df[-1,]
+  
+B.UB.df <- rbind(M.UB.df, F.UB.df)
+```
+
+### UB Forest Plot
+
+```{r B.UB.fplot}
+B.UB.fplot <- ggplot(data = B.UB.df)+
+    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high, color=Dataset),
+                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
+    geom_point(aes(x=term,y=estimate, color=Dataset), 
+               shape = 16, size = 3, position=position_dodge(width=0.4))+
+    scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
+                    labels=c("Female","Male"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    ylab("Parameter effect")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 14),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+B.UB.fplot
+
+#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
+```
+
+```{r F.UB. interaction plot}
+F.UB.Inter.plot <- plot_model(F.UB.bmdl, type = "int", mdrt.values = "quart")+
+  scale_color_manual(name="Precipitation levels",
+                    values=c("#D81B60","#FFC107","#1E88E5"),
+                    labels=c("Low","Median","High"))+
+  scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
+  ggtitle("Females")+
+  xlab("")+
+  ylab("")+
+  theme(plot.title = element_text(size = 14, hjust = 0.5),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "none")
+F.UB.Inter.plot
+#cowplot::save_plot("Plots/BDbyMin.plot.png", BDbyMin.plot, base_height = 4, base_width = 6)
+```
+
+```{r M.UB. interaction plot}
+M.UB.Inter.plot <- plot_model(M.UB.bmdl, type = "int", mdrt.values = "quart")+
+  scale_color_manual(name="Precipitation levels",
+                    values=c("#D81B60","#FFC107","#1E88E5"),
+                    labels=c("Low","Median","High"))+
+  scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
+  ggtitle("Males")+
+  xlab("Average minimum temperature (C) scaled")+
+  ylab("")+
+  theme(plot.title = element_text(size = 14, hjust = 0.5),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = c(0.2,1))
+M.UB.Inter.plot
+```
+
+```{r UB.Inter.wrap}
+UB.Inter.wrap <- ggarrange(F.UB.Inter.plot, M.UB.Inter.plot, ncol = 1)+
+  theme(legend.position = c(0.5,0.5))
+UB.Inter.wrap <- annotate_figure(UB.Inter.wrap, left = text_grob("Upper bill scaled (mm)", size = 14, rot = 90))
+cowplot::save_plot("PaperPlots/UB.Inter.wrap.png", UB.Inter.wrap, base_height = 6, base_width = 6)
+UB.Inter.wrap
+```
+
+
+```{r A.UB.fplot}
+A.UB.fplot <- ggplot(data = A.UB.df)+
+    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high),
+                  linewidth=1, width=0.3)+
+    geom_point(aes(x=term,y=estimate), 
+               shape = 16, size = 3)+
+    scale_color_manual(name="", values="#000000")+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    ylab("Parameter effect")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+A.UB.fplot
+
+#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
+```
+
+```{r UB.pred}
+M.UB.pred <- ggpredict(M.UB.bmdl, terms = c("PrecipSum8_22"), ppd = TRUE)
+M.UB.pred$Sex <- "M"
+
+F.UB.pred <- ggpredict(F.UB.bmdl, terms = c("PrecipSum8_22"), ppd = TRUE)
+F.UB.pred$Sex <- "F"
+
+A.UB.pred <- ggpredict(A.UB.bmdl, terms = c("PrecipSum8_22"), ppd = TRUE)
+A.UB.pred$Sex <- "A"
+
+B.UB.pred.df <- rbind(M.UB.pred, F.UB.pred)
+```
+
+
+```{r B.UB.CE.plot}
+B.UB.CE.plot <- ggplot(data = B.UB.pred.df, aes(x,predicted), color = Sex, fill = Sex)+
+  geom_point(data = B.scaled.df, aes(x=PrecipSum8_22, y=UB, color = Sex), shape = 1)+
+  geom_line(aes(color = Sex), size = 0.7)+
+  geom_ribbon(data = B.UB.pred.df, aes(ymin=conf.low, ymax=conf.high, fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
+                    labels=c("Female","Male"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9"), guide = "none")+
+  ylab("Upper bill (mm) scaled")+
+  xlab("Summed precipitation (mm) scaled")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+B.UB.CE.plot
+
+#annotation: Lines are the predicted conditional effects of temperature on tarsus length. Ribbons represent the posterior predictive distribution. 
+
+#The posterior predictive distribution is the distribution of the outcome implied by the model after having used the observed data to update our beliefs about the unknown parameters. The posterior predictive distribution conditions on the observed outcome data in hand to update beliefs about the unknowns and the variation in the resulting distribution of predictions reflects the remaining uncertainty in our beliefs about the unknowns. <https://mc-stan.org/rstanarm/articles/rstanarm.html>
+```
+
+###All nestlings UB CE Plot
+
+```{r A.UB.CE.plot}
+A.UB.CE.plot <- ggplot(data = A.UB.pred, aes(x,predicted))+
+  geom_point(data = scaled.df, aes(x=MinC8_22, y=UB), shape = 1)+
+  geom_line(size = 0.7)+
+  geom_ribbon(data = A.UB.pred, aes(ymin=conf.low, ymax=conf.high), alpha = 0.2)+
+  scale_color_manual(name="", values="#000000")+
+  scale_fill_manual(values = "#000000", guide = "none")+
+  ylab("Upper bill (mm) scaled")+
+  xlab("Minimum temperature (C) scaled")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+A.UB.CE.plot
+```
+
+### UB Plots Wrapped
+
+```{r UB.wrap}
+B.UB.wrap <- ggarrange(UB.Inter.wrap, B.UB.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+#cowplot::save_plot("PaperPlots/B.UB.wrap.png", B.UB.wrap, base_height = 5, base_width = 12)
+B.UB.wrap
+```
+
+
+## Nestling Upper Bill Surface Area (UBS) 
+
+### UBS by Minimum Temperature Plot
+
+```{r UBSMinC.plot}
+UBSMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = UBS, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="Sex",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unknown"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  labs(x = "Average minimum temperature (C)", y = bquote('Upper bill surface area' ~(mm^2)))+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+UBSMinC.plot
+#cowplot::save_plot("Plots/UBSMinC.plot.png", UBSMinC.plot, base_height = 4, base_width = 7)
+```
+
+### Male UBS Model
+
+```{r M.UBS.bmdl}
+M.UBS.bmdl <- stan_glm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = M.scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+#print(summary(M.UBS.bmdl), digits = 3)
+#plot(M.UBS.bmdl)
+```
+
+```{r M.UBS.mdl}
+# M.UBS.mdl <- lm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+# summary(M.UBS.mdl)
+```
+
+### Female UBS Model
+
+```{r F.UBS.bmdl}
+F.UBS.bmdl <- stan_glm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = F.scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+#print(summary(F.UBS.bmdl), digits = 3)
+#plot(F.UBS.bmdl)
+```
+
+```{r F.UBS.mdl}
+# F.UBS.mdl <- lm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+# summary(F.UBS.mdl)
+```
+
+### All Nestlings UBS Model
+
+```{r A.UBS.bmdl}
+A.UBS.bmdl <- stan_glm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+#print(summary(A.UBS.bmdl), digits = 3)
+#plot(A.UBS.bmdl)
+```
+
+```{r A.UBS.mdl}
+# A.UBS.mdl <- lm(UBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+# summary(A.UBS.mdl)
+```
+
+### Data frames for UBS Forest Plot
+
+```{r UBS.dfs for fplot}
+M.UBS.df <- tidy(M.UBS.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  M.UBS.df$Dataset <- "Male"
+  M.UBS.df$Metric <- "UB"
+  M.UBS.df <- M.UBS.df[-1,]
+  
+F.UBS.df <- tidy(F.UBS.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  F.UBS.df$Dataset <- "Female"
+  F.UBS.df$Metric <- "UB"
+  F.UBS.df <- F.UBS.df[-1,]
+
+A.UBS.df <- tidy(A.UBS.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  A.UBS.df$Dataset <- "All"
+  A.UBS.df$Metric <- "UB"
+  A.UBS.df <- A.UBS.df[-1,]
+  
+B.UBS.df <- rbind(M.UBS.df, F.UBS.df)
+```
+
+### UBS Forest Plot
+
+```{r B.UBS.fplot}
+B.UBS.fplot <- ggplot(data = B.UBS.df)+
+    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high, color=Dataset),
+                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
+    geom_point(aes(x=term,y=estimate, color=Dataset), 
+               shape = 16, size = 3, position=position_dodge(width=0.4))+
+    scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
+                    labels=c("Female","Male"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    ylab("Parameter effect")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 14),
+          axis.title.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+B.UBS.fplot
+
+#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
+```
+
+###UBS Interaction plot (Female)
+```{r F.UBS. interaction plot}
+F.UBS.Inter.plot <- plot_model(F.UBS.bmdl, type = "int", mdrt.values = "quart")+
+  scale_color_manual(name="Precipitation levels",
+                    values=c("#D81B60","#FFC107","#1E88E5"),
+                    labels=c("Low","Median","High"))+
+  scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
+  ggtitle("Females")+
+  xlab("")+
+  ylab("")+
+  theme(plot.title = element_text(size = 14, hjust = 0.5),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "none")
+F.UBS.Inter.plot
+```
+
+```{r UBS.pred}
+M.UBS.pred <- ggpredict(M.UBS.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+M.UBS.pred$Sex <- "M"
+
+F.UBS.pred <- ggpredict(F.UBS.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+F.UBS.pred$Sex <- "F"
+
+A.UBS.pred <- ggpredict(A.UBS.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+A.UBS.pred$Sex <- "A"
+
+B.UBS.pred.df <- rbind(M.UBS.pred, F.UBS.pred)
+```
+
+###UBS by Min Temp (Male)
+```{r B.UBS.CE.plot}
+M.UBS.CE.plot <- ggplot(data = M.UBS.pred, aes(x,predicted))+
+  #geom_point(data = M.scaled.df, aes(x=MinC8_22, y=UBS), shape = 1)+
+  geom_line(size = 0.7, color = "#56B4E9")+
+  geom_ribbon(data = M.UBS.pred, aes(ymin=conf.low, ymax=conf.high, fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="", values="#56B4E9",guide = "none")+
+  scale_fill_manual(values = "#56B4E9", guide = "none")+
+  ggtitle("Males")+
+  ylab("")+
+  xlab("Average minimum temperature (C) scaled")+
+  theme(plot.title = element_text(size = 14, hjust = 0.5),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+M.UBS.CE.plot
+
+#annotation: Lines are the predicted conditional effects of temperature on tarsus length. Ribbons represent the posterior predictive distribution. 
+
+#The posterior predictive distribution is the distribution of the outcome implied by the model after having used the observed data to update our beliefs about the unknown parameters. The posterior predictive distribution conditions on the observed outcome data in hand to update beliefs about the unknowns and the variation in the resulting distribution of predictions reflects the remaining uncertainty in our beliefs about the unknowns. <https://mc-stan.org/rstanarm/articles/rstanarm.html>
+```
+### UBS Plots Wrapped
+
+```{r UBS.InterCE.wrap}
+UBS.InterCE.wrap <- ggarrange(F.UBS.Inter.plot, M.UBS.CE.plot, ncol = 1)
+UBS.InterCE.wrap <- annotate_figure(UBS.InterCE.wrap, left = text_grob(bquote('Upper bill surface area scaled '~(mm^2)), rot = 90, size = 14))
+cowplot::save_plot("PaperPlots/UBS.InterCE.wrap.png", UBS.InterCE.wrap, base_height = 6, base_width = 6)
+UBS.InterCE.wrap
+```
+
+
+```{r UBS.wrap}
+# UBS.wrap <- ggarrange(UBS.fplot,UBSMinC.plot, ncol = 2, labels = c("A","B"), widths = c(1.7,1.3))
+# cowplot::save_plot("PaperPlots/UBS.wrap.png", UBS.wrap, base_height = 5, base_width = 12)
+# UBS.wrap
+```
+
+
+## Nestling Bill Nares to Tip (BNT) 
+
+### BNT by Minimum Temperature Plot
+
+```{r BNTMinC.plot}
+BNTMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = BNT, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="Sex",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unknown"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Bill nares to tip (mm)")+
+  xlab("Average minimum temperature (C)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+BNTMinC.plot
+#cowplot::save_plot("Plots/BNTMinC.plot.png", BNTMinC.plot, base_height = 4, base_width = 7)
+```
+
+### Male BNT Model
+
+```{r M.BNT.bmdl}
+M.BNT.bmdl <- stan_glm(BNT ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = M.scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+#print(summary(M.BNT.bmdl), digits = 3)
+#plot(M.BNT.bmdl)
+```
+
+```{r M.BNT.mdl}
+# M.BNT.mdl <- lm(BNT ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+# summary(M.BNT.mdl)
+```
+
+### Female BNT Model
+
+```{r F.BNT.bmdl}
+F.BNT.bmdl <- stan_glm(BNT ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = F.scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+# print(summary(F.BNT.bmdl), digits = 3)
+# plot(F.BNT.bmdl)
+```
+
+```{r F.BNT.mdl}
+# F.BNT.mdl <- lm(BNT ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+# summary(F.BNT.mdl)
+```
+
+### All Nestlings BNT Model
+
+```{r A.BNT.bmdl}
+A.BNT.bmdl <- stan_glm(BNT ~ MinC8_22 * PrecipSum8_22 + Weight, 
+                          data = scaled.df,
+                              family = gaussian(),
+                              algorithm = "sampling",
+                              prior = student_t(df = 7, 0, 5), 
+                              prior_intercept = student_t(df = 7, 0, 5),
+                              chains = 10, iter = 10000, cores = 2, seed = 666)
+# print(summary(A.BNT.bmdl), digits = 3)
+# plot(A.BNT.bmdl)
+```
+
+### Data frames for BNT Forest Plot
+
+```{r BNT.dfs for fplot}
+M.BNT.df <- tidy(M.BNT.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  M.BNT.df$Dataset <- "Male"
+  M.BNT.df$Metric <- "BNT"
+  M.BNT.df <- M.BNT.df[-1,]
+
+F.BNT.df <- tidy(F.BNT.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  F.BNT.df$Dataset <- "Female"
+  F.BNT.df$Metric <- "BNT"
+  F.BNT.df <- F.BNT.df[-1,]
+
+A.BNT.df <- tidy(A.BNT.bmdl, quick = FALSE, conf.int = TRUE, conf.method = "HPDinterval", conf.level = 0.9, looic = TRUE)
+  A.BNT.df$Dataset <- "All"
+  A.BNT.df$Metric <- "BNT"
+  A.BNT.df <- A.BNT.df[-1,]
+  
+B.BNT.df <- rbind(M.BNT.df, F.BNT.df)
+```
+
+### BNT Forest Plot
+
+```{r B.BNT.fplot}
+B.BNT.fplot <- ggplot(data = B.BNT.df)+
+    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high, color=Dataset),
+                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
+    geom_point(aes(x=term,y=estimate, color=Dataset), 
+               shape = 16, size = 3, position=position_dodge(width=0.4))+
+    scale_color_manual(name="", values=c("#E69F00","#56B4E9"),
+                    labels=c("Female","Male"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    ylab("Parameter effect")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+B.BNT.fplot
+#cowplot::save_plot("Plots/B.BNT.fplot.png", B.BNT.fplot, base_height = 4, base_width = 7)
+
+#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
+```
+
+
+```{r A.BNT.fplot}
+A.BNT.fplot <- ggplot(data = A.BNT.df)+
+    geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high),
+                  linewidth=1, width=0.3)+
+    geom_point(aes(x=term,y=estimate), 
+               shape = 16, size = 3)+
+    scale_color_manual(name="", values="#000000")+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",linewidth=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    ylab("Parameter effect")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+A.BNT.fplot
+
+#annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
+```
+
+```{r BNT.pred}
+M.BNT.pred <- ggpredict(M.BD.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+M.BNT.pred$Sex <- "M"
+
+F.BNT.pred <- ggpredict(F.BD.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+F.BNT.pred$Sex <- "F"
+
+A.BNT.pred <- ggpredict(A.BD.bmdl, terms = c("MinC8_22"), ppd = TRUE)
+A.BNT.pred$Sex <- "A"
+
+B.BNT.pred.df <- rbind(M.BNT.pred, F.BNT.pred)
+```
+
+###BNT Interaction plot (Female)
+```{r F.BNT.Inter.plot}
+F.BNT.Inter.plot <- plot_model(F.BNT.bmdl, type = "int", mdrt.values = "quart")+
+  scale_color_manual(name="Precipitation levels",
+                    values=c("#D81B60","#FFC107","#1E88E5"),
+                    labels=c("Low","Median","High"))+
+  scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
+  ggtitle("Females")+
+  xlab("")+
+  ylab("")+
+  theme(plot.title = element_text(size = 14, hjust = 0.5),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "none")
+F.BNT.Inter.plot
+```
+
+###BNT by Min Temp (Male)
+```{r B.BNT.CE.plot}
+M.BNT.CE.plot <- ggplot(data = M.BNT.pred, aes(x,predicted))+
+  #geom_point(data = M.scaled.df, aes(x=MinC8_22, y=BNT), shape = 1)+
+  geom_line(size = 0.7, color = "#56B4E9")+
+  geom_ribbon(data = M.BNT.pred, aes(ymin=conf.low, ymax=conf.high, fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="", values="#56B4E9",guide = "none")+
+  scale_fill_manual(values = "#56B4E9", guide = "none")+
+  ggtitle("Males")+
+  ylab("")+
+  xlab("Average minimum temperature (C) scaled")+
+  theme(plot.title = element_text(size = 14, hjust = 0.5),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_blank(),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+M.BNT.CE.plot
+
+#annotation: Lines are the predicted conditional effects of temperature on tarsus length. Ribbons represent the posterior predictive distribution. 
+
+#The posterior predictive distribution is the distribution of the outcome implied by the model after having used the observed data to update our beliefs about the unknown parameters. The posterior predictive distribution conditions on the observed outcome data in hand to update beliefs about the unknowns and the variation in the resulting distribution of predictions reflects the remaining uncertainty in our beliefs about the unknowns. <https://mc-stan.org/rstanarm/articles/rstanarm.html>
+```
+
+### BNT Plots Wrapped
+
+```{r BNT.InterCE.wrap}
+BNT.InterCE.wrap <- ggarrange(F.BNT.Inter.plot, M.BNT.CE.plot, ncol = 1)
+BNT.InterCE.wrap <- annotate_figure(BNT.InterCE.wrap, left = text_grob('Bill nares to tip scaled (mm)', rot = 90, size = 14))
+cowplot::save_plot("PaperPlots/BNT.InterCE.wrap.png", BNT.InterCE.wrap, base_height = 6, base_width = 6)
+BNT.InterCE.wrap
+```
+
+##All bill metrics forest plots wrapped
+```{r fplots wrapped}
+fplot.wrap <- ggarrange(B.UB.fplot,B.BD.fplot,B.BNT.fplot,B.UBS.fplot, ncol = 2, nrow = 2, labels = c("                       UB", "  BD", "                      BNT", " UBS"), widths = c(1.3,1), common.legend = TRUE)
+fplot.wrap <- annotate_figure(fplot.wrap, bottom = text_grob("Model parameter effect", size = 14))
+cowplot::save_plot("PaperPlots/fplot.wrap.png", fplot.wrap, base_height = 8, base_width = 10)
+```
+
+##All bill metrics plots wrapped
+```{r fplots wrapped}
+BillPlots.wrap <- ggarrange(UB.Inter.wrap,B.BD.CE.plot,BNT.InterCE.wrap,UBS.InterCE.wrap, ncol = 2, nrow = 2)
+BillPlots.wrap <- annotate_figure(BillPlots.wrap, bottom = text_grob("Average minimum temperature scaled (C)", size = 14))
+cowplot::save_plot("PaperPlots/BillPlots.wrap.png", BillPlots.wrap, base_height = 15, base_width = 12)
+```
+
+
+
+
+## Nestling Total Bill Surface Area (TBS) 
+
+### TBS by Minimum Temperature Plot
+
+```{r TBSMinC.plot}
+TBSMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = TBS, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="Sex",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unknown"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  labs(x = "Average minimum temperature (C)", y = bquote('Total bill surface area' ~(mm^2)))+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+TBSMinC.plot
+#cowplot::save_plot("Plots/TBSMinC.plot.png", TBSMinC.plot, base_height = 4, base_width = 7)
+```
+
+### Male TBS Model
+
+```{r M.TBS.mdl}
+M.TBS.mdl <- lm(TBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+summary(M.TBS.mdl)
+```
+
+### Female TBS Model
+
+```{r F.TBS.mdl}
+F.TBS.mdl <- lm(TBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+summary(F.TBS.mdl)
+```
+
+### All Nestlings TBS Model
+
+```{r A.TBS.mdl}
+A.TBS.mdl <- lm(TBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.TBS.mdl)
+```
+
+### Data frames for TBS Forest Plot
+
+```{r TBS.dfs for fplot}
+M.TBS.df <- tidy(M.TBS.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.TBS.mdl))
+  M.TBS.df$ci.lower <- ci$`2.5 %`
+  M.TBS.df$ci.upper <- ci$`97.5 %`
+  M.TBS.df$Dataset <- "Male"
+  M.TBS.df$Metric <- "TBS"
+  M.TBS.df <- M.TBS.df[-1,]
+
+F.TBS.df <- tidy(F.TBS.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.TBS.mdl))
+  F.TBS.df$ci.lower <- ci$`2.5 %`
+  F.TBS.df$ci.upper <- ci$`97.5 %`
+  F.TBS.df$Dataset <- "Female"
+  F.TBS.df$Metric <- "TBS"
+  F.TBS.df <- F.TBS.df[-1,]
+
+A.TBS.df <- tidy(A.TBS.mdl, quick = FALSE)
+  ci <- as_tibble(confint(A.TBS.mdl))
+  A.TBS.df$ci.lower <- ci$`2.5 %`
+  A.TBS.df$ci.upper <- ci$`97.5 %`
+  A.TBS.df$Dataset <- "All"
+  A.TBS.df$Metric <- "TBS"
+  A.TBS.df <- A.TBS.df[-1,]
+  
+TBS.df <- rbind(M.TBS.df, F.TBS.df, A.TBS.df)
+```
+
+### TBS Forest Plot
+
+```{r TBS.fplot}
+TBS.fplot <- ggplot(data = TBS.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper, color=Dataset),
+                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
+    geom_point(aes(x=term,y=estimate, color=Dataset), 
+               shape = 16, size = 3, position=position_dodge(width=0.4))+
+    scale_color_manual(name="", values=c("#000000","#E69F00","#56B4E9"),
+                    labels=c("All","Female","Male"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    #scale_y_continuous(limits = c(-0.3,0.25), breaks = c(-0.25,0,0.25))+
+    #ggtitle("")+
+    ylab("Parameter estimate")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+TBS.fplot
+#cowplot::save_plot("Plots/TBS.fplot.png", TBS.fplot, base_height = 4, base_width = 7)
+```
+
+### TBS Plots Wrapped
+
+```{r TBS.wrap}
+TBS.wrap <- ggarrange(TBS.fplot,TBSMinC.plot, ncol = 2, labels = c("A","B"), widths = c(1.7,1.3))
+cowplot::save_plot("PaperPlots/TBS.wrap.png", TBS.wrap, base_height = 5, base_width = 12)
+#TBS.wrap
+```
+
+## Nestling Total Exposed Culmen (TEC) 
+
+### TEC by Minimum Temperature Plot
+
+```{r TECMinC.plot}
+TECMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = TEC, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="Sex",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unknown"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Total exposed culmen (mm)")+
+  xlab("Average minimum temperature (C)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+TECMinC.plot
+#cowplot::save_plot("Plots/TECMinC.plot.png", TECMinC.plot, base_height = 4, base_width = 7)
+```
+
+### Male TEC Model
+
+```{r M.TEC.mdl}
+M.TEC.mdl <- lm(TEC ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+summary(M.TEC.mdl)
+```
+
+### Female TEC Model
+
+```{r F.TEC.mdl}
+F.TEC.mdl <- lm(TEC ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+summary(F.TEC.mdl)
+```
+
+### All Nestlings TEC Model
+
+```{r A.TEC.mdl}
+A.TEC.mdl <- lm(TEC ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.TEC.mdl)
+```
+
+### Data frames for TEC Forest Plot
+
+```{r TEC.dfs for fplot}
+M.TEC.df <- tidy(M.TEC.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.TEC.mdl))
+  M.TEC.df$ci.lower <- ci$`2.5 %`
+  M.TEC.df$ci.upper <- ci$`97.5 %`
+  M.TEC.df$Dataset <- "Male"
+  M.TEC.df$Metric <- "TEC"
+  M.TEC.df <- M.TEC.df[-1,]
+
+F.TEC.df <- tidy(F.TEC.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.TEC.mdl))
+  F.TEC.df$ci.lower <- ci$`2.5 %`
+  F.TEC.df$ci.upper <- ci$`97.5 %`
+  F.TEC.df$Dataset <- "Female"
+  F.TEC.df$Metric <- "TEC"
+  F.TEC.df <- F.TEC.df[-1,]
+
+A.TEC.df <- tidy(A.TEC.mdl, quick = FALSE)
+  ci <- as_tibble(confint(A.TEC.mdl))
+  A.TEC.df$ci.lower <- ci$`2.5 %`
+  A.TEC.df$ci.upper <- ci$`97.5 %`
+  A.TEC.df$Dataset <- "All"
+  A.TEC.df$Metric <- "TEC"
+  A.TEC.df <- A.TEC.df[-1,]
+  
+TEC.df <- rbind(M.TEC.df, F.TEC.df, A.TEC.df)
+```
+
+### TEC Forest Plot
+
+```{r TEC.fplot}
+TEC.fplot <- ggplot(data = TEC.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper, color=Dataset),
+                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
+    geom_point(aes(x=term,y=estimate, color=Dataset), 
+               shape = 16, size = 3, position=position_dodge(width=0.4))+
+    scale_color_manual(name="", values=c("#000000","#E69F00","#56B4E9"),
+                    labels=c("All","Female","Male"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    #scale_y_continuous(limits = c(-0.3,0.25), breaks = c(-0.25,0,0.25))+
+    #ggtitle("")+
+    ylab("Parameter estimate")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+TEC.fplot
+#cowplot::save_plot("Plots/TEC.fplot.png", TEC.fplot, base_height = 4, base_width = 7)
+```
+
+### TEC Plots Wrapped
+
+```{r TEC.wrap}
+TEC.wrap <- ggarrange(TEC.fplot,TECMinC.plot, ncol = 2, labels = c("A","B"), widths = c(1.7,1.3))
+cowplot::save_plot("PaperPlots/TEC.wrap.png", TEC.wrap, base_height = 5, base_width = 12)
+#TEC.wrap
+```
+
+
+## Nestling Skull
+
+### Skull by Minimum Temperature Plot
+
+```{r SkullMinC.plot}
+SkullMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = Skull, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="Sex",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unknown"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  labs(x = "Average minimum temperature (C)", y = "Skull (mm)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+SkullMinC.plot
+#cowplot::save_plot("Plots/SkullMinC.plot.png", SkullMinC.plot, base_height = 4, base_width = 7)
+```
+
+### Male Skull Model
+
+```{r M.Skull.mdl}
+M.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+summary(M.Skull.mdl)
+```
+
+### Female Skull Model
+
+```{r F.Skull.mdl}
+F.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+summary(F.Skull.mdl)
+```
+
+### All Nestlings Skull Model
+
+```{r A.Skull.mdl}
+A.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.Skull.mdl)
+```
+
+### Data frames for Skull Forest Plot
+
+```{r Skull.dfs for fplot}
+M.Skull.df <- tidy(M.Skull.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.Skull.mdl))
+  M.Skull.df$ci.lower <- ci$`2.5 %`
+  M.Skull.df$ci.upper <- ci$`97.5 %`
+  M.Skull.df$Dataset <- "Male"
+  M.Skull.df$Metric <- "Skull"
+  M.Skull.df <- M.Skull.df[-1,]
+
+F.Skull.df <- tidy(F.Skull.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.Skull.mdl))
+  F.Skull.df$ci.lower <- ci$`2.5 %`
+  F.Skull.df$ci.upper <- ci$`97.5 %`
+  F.Skull.df$Dataset <- "Female"
+  F.Skull.df$Metric <- "Skull"
+  F.Skull.df <- F.Skull.df[-1,]
+
+A.Skull.df <- tidy(A.Skull.mdl, quick = FALSE)
+  ci <- as_tibble(confint(A.Skull.mdl))
+  A.Skull.df$ci.lower <- ci$`2.5 %`
+  A.Skull.df$ci.upper <- ci$`97.5 %`
+  A.Skull.df$Dataset <- "All"
+  A.Skull.df$Metric <- "Skull"
+  A.Skull.df <- A.Skull.df[-1,]
+  
+Skull.df <- rbind(M.Skull.df, F.Skull.df, A.Skull.df)
+```
+
+### Skull Forest Plot
+
+```{r Skull.fplot}
+Skull.fplot <- ggplot(data = Skull.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper, color=Dataset),
+                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
+    geom_point(aes(x=term,y=estimate, color=Dataset), 
+               shape = 16, size = 3, position=position_dodge(width=0.4))+
+    scale_color_manual(name="", values=c("#000000","#E69F00","#56B4E9"),
+                    labels=c("All","Female","Male"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    #scale_y_continuous(limits = c(-0.3,0.25), breaks = c(-0.25,0,0.25))+
+    #ggtitle("")+
+    ylab("Parameter estimate")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+Skull.fplot
+#cowplot::save_plot("Plots/Skull.fplot.png", Skull.fplot, base_height = 4, base_width = 7)
+```
+
+### Skull Plots Wrapped
+
+```{r Skull.wrap}
+Skull.wrap <- ggarrange(Skull.fplot,SkullMinC.plot, ncol = 2, labels = c("A","B"), widths = c(1.7,1.3))
+cowplot::save_plot("PaperPlots/Skull.wrap.png", Skull.wrap, base_height = 5, base_width = 12)
+#Skull.wrap
+```
+
