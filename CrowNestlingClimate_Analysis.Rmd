@@ -511,6 +511,7 @@ suppressWarnings(print(Skull.wrap))
 cowplot::save_plot("PaperPlots/Skull.wrap.png", Skull.wrap, base_height = 5, base_width = 10)
 ```
 
+
 ## Nestling Bill Depth
 
 ### Bill Depth by Minimum Temperature Plot
