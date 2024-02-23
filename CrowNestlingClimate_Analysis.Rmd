@@ -593,6 +593,292 @@ cowplot::save_plot("PaperPlots/UBS.wrap.png", UBS.wrap, base_height = 5, base_wi
 ```
 
 
+## Nestling Total Bill Surface Area (Skull) 
+
+### Skull by Minimum Temperature Plot
+
+```{r SkullMinC.plot}
+TBSMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = TBS, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unknown"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  labs(x = "Average minimum temperature (C)", y = bquote('Total bill surface area' ~(mm^2)))+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+TBSMinC.plot
+#cowplot::save_plot("Plots/TBSMinC.plot.png", TBSMinC.plot, base_height = 4, base_width = 7)
+```
+
+### Male TBS Model
+
+```{r M.TBS.mdl}
+M.TBS.mdl <- lm(TBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+summary(M.TBS.mdl)
+```
+
+### Female TBS Model
+
+```{r F.TBS.mdl}
+F.TBS.mdl <- lm(TBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+summary(F.TBS.mdl)
+```
+
+### All Nestlings TBS Model
+
+```{r A.TBS.mdl}
+A.TBS.mdl <- lm(TBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.TBS.mdl)
+```
+
+### Data frames for TBS Forest Plot
+
+```{r TBS.dfs for fplot}
+M.TBS.df <- fplot_df(M.TBS.mdl, "Male", "TBS")
+F.TBS.df <- fplot_df(F.TBS.mdl, "Female", "TBS")
+A.TBS.df <- fplot_df(A.TBS.mdl, "All", "TBS")
+
+TBS.df <- rbind(M.TBS.df, F.TBS.df, A.TBS.df)
+```
+
+### TBS Forest Plot
+
+```{r TBS.fplot}
+TBS.fplot <- fplot(TBS.df)
+TBS.fplot
+#cowplot::save_plot("Plots/TBS.fplot.png", TBS.fplot, base_height = 4, base_width = 7)
+```
+
+### TBS Plots Wrapped
+
+```{r TBS.wrap}
+TBS.wrap <- ggarrange(TBSMinC.plot, TBS.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+suppressWarnings(print(TBS.wrap))
+cowplot::save_plot("PaperPlots/TBS.wrap.png", TBS.wrap, base_height = 5, base_width = 10)
+```
+
+## Nestling Skull
+
+### Skull by Minimum Temperature Plot
+
+```{r SkullMinC.plot}
+SkullMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = Skull, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unsexed"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  labs(x = "Average minimum temperature (C)", y = "Skull (mm)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+SkullMinC.plot
+#cowplot::save_plot("Plots/SkullMinC.plot.png", SkullMinC.plot, base_height = 4, base_width = 7)
+```
+
+### Male Skull Model
+
+```{r M.Skull.mdl}
+M.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+summary(M.Skull.mdl)
+```
+
+### Female Skull Model
+
+```{r F.Skull.mdl}
+F.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+summary(F.Skull.mdl)
+```
+
+### All Nestlings Skull Model
+
+```{r A.Skull.mdl}
+A.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.Skull.mdl)
+```
+
+### All nestlings Skull model with no interaction
+
+```{r A.SkullNoInter.mdl}
+A.SkullNoInter.mdl <- lm(Skull ~ MinC8_22 + PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.SkullNoInter.mdl)
+```
+
+### All nestlings Skull model with only temperature and weight
+
+```{r A.SkullNoPrecip.mdl}
+A.SkullNoPrecip.mdl <- lm(Skull ~ MinC8_22 + Weight, data = scaled.df)
+summary(A.SkullNoPrecip.mdl)
+```
+
+### Data frames for Skull Forest Plot
+
+```{r Skull.dfs for fplot}
+M.Skull.df <- fplot_df(M.Skull.mdl, "Male", "Skull")
+F.Skull.df <- fplot_df(F.Skull.mdl, "Female", "Skull")
+A.Skull.df <- fplot_df(A.Skull.mdl, "All", "Skull")
+
+Skull.df <- rbind(M.Skull.df, F.Skull.df, A.Skull.df)
+```
+
+### Skull Forest Plot
+
+```{r Skull.fplot}
+Skull.fplot <- fplot(Skull.df)
+Skull.fplot
+#cowplot::save_plot("Plots/Skull.fplot.png", Skull.fplot, base_height = 4, base_width = 7)
+```
+
+###Skull Interaction plot 
+```{r Skull. interaction plot}
+Skull.Inter.plot <- plot_model(A.Skull.mdl, type = "int", mdrt.values = "quart")+
+  scale_color_manual(name="Precipitation levels",
+                    values=c("#D81B60","#FFC107","#1E88E5"),
+                    labels=c("Low","Median","High"))+
+  scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
+  ggtitle("")+
+  xlab("Average minimum temperature (C) scaled")+
+  ylab("Skull (mm) scaled")+
+  theme(plot.title = element_text(size = 14, hjust = 0.5),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = c(0.2,0.8))
+Skull.Inter.plot
+```
+
+### Skull Plots Wrapped
+
+```{r Skull.wrap}
+Skull.wrap <- ggarrange(Skull.Inter.plot, Skull.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+suppressWarnings(print(Skull.wrap))
+cowplot::save_plot("PaperPlots/Skull.wrap.png", Skull.wrap, base_height = 5, base_width = 10)
+```
+
+## Nestling Total Exposed Culmen (TEC) 
+
+### TEC by Minimum Temperature Plot
+
+```{r TECMinC.plot}
+TECMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = TEC, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="Sex",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unknown"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Total exposed culmen (mm)")+
+  xlab("Average minimum temperature (C)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+TECMinC.plot
+#cowplot::save_plot("Plots/TECMinC.plot.png", TECMinC.plot, base_height = 4, base_width = 7)
+```
+
+### Male TEC Model
+
+```{r M.TEC.mdl}
+M.TEC.mdl <- lm(TEC ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+summary(M.TEC.mdl)
+```
+
+### Female TEC Model
+
+```{r F.TEC.mdl}
+F.TEC.mdl <- lm(TEC ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+summary(F.TEC.mdl)
+```
+
+### All Nestlings TEC Model
+
+```{r A.TEC.mdl}
+A.TEC.mdl <- lm(TEC ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.TEC.mdl)
+```
+
+### Data frames for TEC Forest Plot
+
+```{r TEC.dfs for fplot}
+M.TEC.df <- tidy(M.TEC.mdl, quick = FALSE)
+  ci <- as_tibble(confint(M.TEC.mdl))
+  M.TEC.df$ci.lower <- ci$`2.5 %`
+  M.TEC.df$ci.upper <- ci$`97.5 %`
+  M.TEC.df$Dataset <- "Male"
+  M.TEC.df$Metric <- "TEC"
+  M.TEC.df <- M.TEC.df[-1,]
+
+F.TEC.df <- tidy(F.TEC.mdl, quick = FALSE)
+  ci <- as_tibble(confint(F.TEC.mdl))
+  F.TEC.df$ci.lower <- ci$`2.5 %`
+  F.TEC.df$ci.upper <- ci$`97.5 %`
+  F.TEC.df$Dataset <- "Female"
+  F.TEC.df$Metric <- "TEC"
+  F.TEC.df <- F.TEC.df[-1,]
+
+A.TEC.df <- tidy(A.TEC.mdl, quick = FALSE)
+  ci <- as_tibble(confint(A.TEC.mdl))
+  A.TEC.df$ci.lower <- ci$`2.5 %`
+  A.TEC.df$ci.upper <- ci$`97.5 %`
+  A.TEC.df$Dataset <- "All"
+  A.TEC.df$Metric <- "TEC"
+  A.TEC.df <- A.TEC.df[-1,]
+  
+TEC.df <- rbind(M.TEC.df, F.TEC.df, A.TEC.df)
+```
+
+### TEC Forest Plot
+
+```{r TEC.fplot}
+TEC.fplot <- ggplot(data = TEC.df)+
+    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper, color=Dataset),
+                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
+    geom_point(aes(x=term,y=estimate, color=Dataset), 
+               shape = 16, size = 3, position=position_dodge(width=0.4))+
+    scale_color_manual(name="", values=c("#000000","#E69F00","#56B4E9"),
+                    labels=c("All","Female","Male"))+
+    coord_flip()+
+    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
+    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
+    #scale_y_continuous(limits = c(-0.3,0.25), breaks = c(-0.25,0,0.25))+
+    #ggtitle("")+
+    ylab("Parameter estimate")+
+    theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_blank(),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+TEC.fplot
+#cowplot::save_plot("Plots/TEC.fplot.png", TEC.fplot, base_height = 4, base_width = 7)
+```
+
+### TEC Plots Wrapped
+
+```{r TEC.wrap}
+TEC.wrap <- ggarrange(TEC.fplot,TECMinC.plot, ncol = 2, labels = c("A","B"), widths = c(1.7,1.3))
+cowplot::save_plot("PaperPlots/TEC.wrap.png", TEC.wrap, base_height = 5, base_width = 12)
+#TEC.wrap
+```
+
 ## Nestling Bill Nares to Tip (BNT) 
 
 ### BNT by Minimum Temperature Plot
@@ -820,284 +1106,5 @@ cowplot::save_plot("PaperPlots/fplot.wrap.png", fplot.wrap, base_height = 8, bas
 BillPlots.wrap <- ggarrange(UB.Inter.wrap,B.BD.CE.plot,BNT.InterCE.wrap,UBS.InterCE.wrap, ncol = 2, nrow = 2)
 BillPlots.wrap <- annotate_figure(BillPlots.wrap, bottom = text_grob("Average minimum temperature scaled (C)", size = 14))
 cowplot::save_plot("PaperPlots/BillPlots.wrap.png", BillPlots.wrap, base_height = 15, base_width = 12)
-```
-
-
-
-
-## Nestling Total Bill Surface Area (Skull) 
-
-### Skull by Minimum Temperature Plot
-
-```{r SkullMinC.plot}
-TBSMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = TBS, color = Sex))+
-  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
-  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
-  scale_color_manual(name="",
-                    values=c("#E69F00","#56B4E9","#000000"),
-                    labels=c("Female","Male","Unknown"))+
-  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
-  labs(x = "Average minimum temperature (C)", y = bquote('Total bill surface area' ~(mm^2)))+
-  theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-TBSMinC.plot
-#cowplot::save_plot("Plots/TBSMinC.plot.png", TBSMinC.plot, base_height = 4, base_width = 7)
-```
-
-### Male TBS Model
-
-```{r M.TBS.mdl}
-M.TBS.mdl <- lm(TBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
-summary(M.TBS.mdl)
-```
-
-### Female TBS Model
-
-```{r F.TBS.mdl}
-F.TBS.mdl <- lm(TBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
-summary(F.TBS.mdl)
-```
-
-### All Nestlings TBS Model
-
-```{r A.TBS.mdl}
-A.TBS.mdl <- lm(TBS ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
-summary(A.TBS.mdl)
-```
-
-### Data frames for TBS Forest Plot
-
-```{r TBS.dfs for fplot}
-M.TBS.df <- fplot_df(M.TBS.mdl, "Male", "TBS")
-F.TBS.df <- fplot_df(F.TBS.mdl, "Female", "TBS")
-A.TBS.df <- fplot_df(A.TBS.mdl, "All", "TBS")
-
-TBS.df <- rbind(M.TBS.df, F.TBS.df, A.TBS.df)
-```
-
-### TBS Forest Plot
-
-```{r TBS.fplot}
-TBS.fplot <- fplot(TBS.df)
-TBS.fplot
-#cowplot::save_plot("Plots/TBS.fplot.png", TBS.fplot, base_height = 4, base_width = 7)
-```
-
-### TBS Plots Wrapped
-
-```{r TBS.wrap}
-TBS.wrap <- ggarrange(TBSMinC.plot, TBS.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
-suppressWarnings(print(TBS.wrap))
-cowplot::save_plot("PaperPlots/TBS.wrap.png", TBS.wrap, base_height = 5, base_width = 10)
-```
-
-
-## Nestling Total Exposed Culmen (TEC) 
-
-### TEC by Minimum Temperature Plot
-
-```{r TECMinC.plot}
-TECMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = TEC, color = Sex))+
-  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
-  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
-  scale_color_manual(name="Sex",
-                    values=c("#E69F00","#56B4E9","#000000"),
-                    labels=c("Female","Male","Unknown"))+
-  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
-  ylab("Total exposed culmen (mm)")+
-  xlab("Average minimum temperature (C)")+
-  theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-TECMinC.plot
-#cowplot::save_plot("Plots/TECMinC.plot.png", TECMinC.plot, base_height = 4, base_width = 7)
-```
-
-### Male TEC Model
-
-```{r M.TEC.mdl}
-M.TEC.mdl <- lm(TEC ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
-summary(M.TEC.mdl)
-```
-
-### Female TEC Model
-
-```{r F.TEC.mdl}
-F.TEC.mdl <- lm(TEC ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
-summary(F.TEC.mdl)
-```
-
-### All Nestlings TEC Model
-
-```{r A.TEC.mdl}
-A.TEC.mdl <- lm(TEC ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
-summary(A.TEC.mdl)
-```
-
-### Data frames for TEC Forest Plot
-
-```{r TEC.dfs for fplot}
-M.TEC.df <- tidy(M.TEC.mdl, quick = FALSE)
-  ci <- as_tibble(confint(M.TEC.mdl))
-  M.TEC.df$ci.lower <- ci$`2.5 %`
-  M.TEC.df$ci.upper <- ci$`97.5 %`
-  M.TEC.df$Dataset <- "Male"
-  M.TEC.df$Metric <- "TEC"
-  M.TEC.df <- M.TEC.df[-1,]
-
-F.TEC.df <- tidy(F.TEC.mdl, quick = FALSE)
-  ci <- as_tibble(confint(F.TEC.mdl))
-  F.TEC.df$ci.lower <- ci$`2.5 %`
-  F.TEC.df$ci.upper <- ci$`97.5 %`
-  F.TEC.df$Dataset <- "Female"
-  F.TEC.df$Metric <- "TEC"
-  F.TEC.df <- F.TEC.df[-1,]
-
-A.TEC.df <- tidy(A.TEC.mdl, quick = FALSE)
-  ci <- as_tibble(confint(A.TEC.mdl))
-  A.TEC.df$ci.lower <- ci$`2.5 %`
-  A.TEC.df$ci.upper <- ci$`97.5 %`
-  A.TEC.df$Dataset <- "All"
-  A.TEC.df$Metric <- "TEC"
-  A.TEC.df <- A.TEC.df[-1,]
-  
-TEC.df <- rbind(M.TEC.df, F.TEC.df, A.TEC.df)
-```
-
-### TEC Forest Plot
-
-```{r TEC.fplot}
-TEC.fplot <- ggplot(data = TEC.df)+
-    geom_errorbar(aes(x=term, ymin=ci.lower, ymax=ci.upper, color=Dataset),
-                  linewidth=1, width=0.3, position=position_dodge(width=0.4))+
-    geom_point(aes(x=term,y=estimate, color=Dataset), 
-               shape = 16, size = 3, position=position_dodge(width=0.4))+
-    scale_color_manual(name="", values=c("#000000","#E69F00","#56B4E9"),
-                    labels=c("All","Female","Male"))+
-    coord_flip()+
-    geom_hline(yintercept = 0, color="red",size=1, linetype="dotted")+
-    scale_x_discrete(labels=c("Min Temp","Min Temp * Precip","Precip","Weight"))+
-    #scale_y_continuous(limits = c(-0.3,0.25), breaks = c(-0.25,0,0.25))+
-    #ggtitle("")+
-    ylab("Parameter estimate")+
-    theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_blank(),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-TEC.fplot
-#cowplot::save_plot("Plots/TEC.fplot.png", TEC.fplot, base_height = 4, base_width = 7)
-```
-
-### TEC Plots Wrapped
-
-```{r TEC.wrap}
-TEC.wrap <- ggarrange(TEC.fplot,TECMinC.plot, ncol = 2, labels = c("A","B"), widths = c(1.7,1.3))
-cowplot::save_plot("PaperPlots/TEC.wrap.png", TEC.wrap, base_height = 5, base_width = 12)
-#TEC.wrap
-```
-
-
-## Nestling Skull
-
-### Skull by Minimum Temperature Plot
-
-```{r SkullMinC.plot}
-SkullMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = Skull, color = Sex))+
-  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
-  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
-  scale_color_manual(name="",
-                    values=c("#E69F00","#56B4E9","#000000"),
-                    labels=c("Female","Male","Unsexed"))+
-  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
-  labs(x = "Average minimum temperature (C)", y = "Skull (mm)")+
-  theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-SkullMinC.plot
-#cowplot::save_plot("Plots/SkullMinC.plot.png", SkullMinC.plot, base_height = 4, base_width = 7)
-```
-
-### Male Skull Model
-
-```{r M.Skull.mdl}
-M.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
-summary(M.Skull.mdl)
-```
-
-### Female Skull Model
-
-```{r F.Skull.mdl}
-F.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
-summary(F.Skull.mdl)
-```
-
-### All Nestlings Skull Model
-
-```{r A.Skull.mdl}
-A.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
-summary(A.Skull.mdl)
-```
-
-### Data frames for Skull Forest Plot
-
-```{r Skull.dfs for fplot}
-M.Skull.df <- fplot_df(M.Skull.mdl, "Male", "Skull")
-F.Skull.df <- fplot_df(F.Skull.mdl, "Female", "Skull")
-A.Skull.df <- fplot_df(A.Skull.mdl, "All", "Skull")
-
-Skull.df <- rbind(M.Skull.df, F.Skull.df, A.Skull.df)
-```
-
-### Skull Forest Plot
-
-```{r Skull.fplot}
-Skull.fplot <- fplot(Skull.df)
-Skull.fplot
-#cowplot::save_plot("Plots/Skull.fplot.png", Skull.fplot, base_height = 4, base_width = 7)
-```
-
-###Skull Interaction plot 
-```{r Skull. interaction plot}
-Skull.Inter.plot <- plot_model(A.Skull.mdl, type = "int", mdrt.values = "quart")+
-  scale_color_manual(name="Precipitation levels",
-                    values=c("#D81B60","#FFC107","#1E88E5"),
-                    labels=c("Low","Median","High"))+
-  scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
-  ggtitle("")+
-  xlab("Average minimum temperature (C) scaled")+
-  ylab("Skull (mm) scaled")+
-  theme(plot.title = element_text(size = 14, hjust = 0.5),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 12),
-          axis.title.y = element_text(size = 14),
-          legend.position = c(0.2,0.8))
-Skull.Inter.plot
-```
-
-
-
-### Skull Plots Wrapped
-
-```{r Skull.wrap}
-Skull.wrap <- ggarrange(Skull.Inter.plot, Skull.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
-suppressWarnings(print(Skull.wrap))
-cowplot::save_plot("PaperPlots/Skull.wrap.png", Skull.wrap, base_height = 5, base_width = 10)
 ```
 
