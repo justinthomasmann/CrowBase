@@ -258,18 +258,25 @@ Weight.wrap
 
 cowplot::save_plot("PaperPlots/Weight.wrap.png", Weight.wrap, base_height = 5, base_width = 10)
 ```
-## 7th Primary
+## Nestling WingChord
 
-```{r}
-Primary7MinC.plot <- ggplot(data = df, aes(x = PrecipSum8_22, y = Primary7, color = Sex))+
+```{r WingChord.df}
+WingChord.df <- subset(df, WingChord > 0 & WingChord < 221)
+scaled.WingChord.df <- subset(scaled.df, WingChord > -8.5 & WingChord < 6.5 )
+M.scaled.WingChord.df <- subset(scaled.WingChord.df, Sex == "M")
+F.scaled.WingChord.df <- subset(scaled.WingChord.df, Sex == "F")
+```
+
+```{r WingChordPrecip.plot}
+WingChordPrecip.plot <- ggplot(data = WingChord.df, aes(x = PrecipSum8_22, y = WingChord, color = Sex))+
   geom_jitter(width = 0.2, shape = 1, size = 1.8)+
   geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
   scale_color_manual(name="",
                     values=c("#E69F00","#56B4E9","#000000"),
                     labels=c("Female","Male","Unsexed"))+
   scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
-  ylab("7th Primary (mm)")+
-  xlab("Average minimum temperature (C)")+
+  ylab("Wing chord (mm)")+
+  xlab("Summed precipitation (cm)")+
   theme(plot.title = element_text(size = 16),
           axis.text.x = element_text(size = 12),
           axis.title.x = element_text(size = 14),
@@ -277,16 +284,53 @@ Primary7MinC.plot <- ggplot(data = df, aes(x = PrecipSum8_22, y = Primary7, colo
           axis.title.y = element_text(size = 14),
           legend.position = "top",
           plot.margin = margin(15,15,15,15))
-suppressWarnings(print(Primary7MinC.plot))
+suppressWarnings(print(WingChordPrecip.plot))
 ```
-```{r A.Primary7.mdl}
-A.Primary7.mdl <- lm(Primary7 ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
-summary(A.Primary7.mdl)
+### Male WingChord Model
+
+```{r M.WingChord.mdl}
+M.WingChord.mdl <- lm(WingChord ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.WingChord.df)
+summary(M.WingChord.mdl)
 ```
 
+### Female WingChord Model
+
+```{r F.WingChord.mdl}
+F.WingChord.mdl <- lm(WingChord ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.WingChord.df)
+summary(F.WingChord.mdl)
+```
+
+### All Nestlings WingChord Model
+
 ```{r A.WingChord.mdl}
-A.WingChord.mdl <- lm(WingChord ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+A.WingChord.mdl <- lm(WingChord ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.WingChord.df)
 summary(A.WingChord.mdl)
+```
+
+### Data frames for WingChord Forest Plots
+
+```{r WingChord.dfs for fplot}
+M.WingChord.df <- fplot_df(M.WingChord.mdl, "Male", "WingChord")
+F.WingChord.df <- fplot_df(F.WingChord.mdl, "Female", "WingChord")
+A.WingChord.df <- fplot_df(A.WingChord.mdl, "All", "WingChord")
+
+WingChord.fplot.df <- rbind(M.WingChord.df, F.WingChord.df, A.WingChord.df)
+```
+
+### WingChord Forest Plot
+
+```{r WingChord.fplot}
+WingChord.fplot <- fplot(WingChord.fplot.df)
+WingChord.fplot
+#cowplot::save_plot("Plots/WingChord.fplot.png", WingChord.fplot, base_height = 4, base_width = 7)
+```
+
+### WingChord Plots Wrapped
+
+```{r WingChord.wrap}
+WingChord.wrap <- ggarrange(WingChordPrecip.plot, WingChord.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+suppressWarnings(print(WingChord.wrap))
+cowplot::save_plot("PaperPlots/WingChord.wrap.png", WingChord.wrap, base_height = 5, base_width = 10)
 ```
 
 ## Nestling Tarsus 
@@ -799,15 +843,15 @@ cowplot::save_plot("PaperPlots/TBS.wrap.png", TBS.wrap, base_height = 5, base_wi
 ## Nestling TBS/Weight Ratio
 
 ```{r TBSWeightRatioMinC.plot}
-TBSWeightRatioMinC.plot <- ggplot(data = df, aes(x=MinC8_22, y = TBSWeightRatio, color = Sex))+
+TBSWeightRatioMinC.plot <- ggplot(data = scaled.df, aes(x=MinC8_22, y = TBSWeightRatio, color = Sex))+
   geom_jitter(width = 0.2, shape = 1, size = 1.8)+
   geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
   scale_color_manual(name="",
                     values=c("#E69F00","#56B4E9","#000000"),
                     labels=c("Female","Male","Unsexed"))+
   scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
-  ylab("Total bill surface area/weight ratio")+
-  xlab("Average minimum temperature (C)")+
+  ylab("Scaled total bill surface area/weight ratio")+
+  xlab("Average minimum temperature scaled (C)")+
   theme(plot.title = element_text(size = 16),
           axis.text.x = element_text(size = 12),
           axis.title.x = element_text(size = 14),
