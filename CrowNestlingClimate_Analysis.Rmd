@@ -78,6 +78,7 @@ fplot <- function(metric) {
 ```{r unscaled data}
 df <- read.csv("CrowNestlingClimate_UnscaledData_7.8.23.csv", h=TRUE)
 # n=2030 nestlings
+df$TBSWeightRatio <- df$TBS/df$Weight
 ```
 
 ## Import Weather Data
@@ -96,7 +97,7 @@ Subtract each value from the mean (center) and divide it by the standard deviati
 categorical.df <- df[,1:11]
 
 #continuous data
-continuous.df <- df[,12:46]
+continuous.df <- df[,12:47]
 
 #scale continuous data
 #?scale()
@@ -257,7 +258,36 @@ Weight.wrap
 
 cowplot::save_plot("PaperPlots/Weight.wrap.png", Weight.wrap, base_height = 5, base_width = 10)
 ```
+## 7th Primary
 
+```{r}
+Primary7MinC.plot <- ggplot(data = df, aes(x = PrecipSum8_22, y = Primary7, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unsexed"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("7th Primary (mm)")+
+  xlab("Average minimum temperature (C)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+suppressWarnings(print(Primary7MinC.plot))
+```
+```{r A.Primary7.mdl}
+A.Primary7.mdl <- lm(Primary7 ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.Primary7.mdl)
+```
+
+```{r A.WingChord.mdl}
+A.WingChord.mdl <- lm(WingChord ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.WingChord.mdl)
+```
 
 ## Nestling Tarsus 
 
@@ -697,6 +727,27 @@ cowplot::save_plot("PaperPlots/UBS.wrap.png", UBS.wrap, base_height = 5, base_wi
 
 ## Nestling Total Bill Surface Area  
 
+### TBS by Minimum Temperature Plot
+
+```{r TBSMinC.plot}
+TBSMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = TBS, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unknown"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  labs(x = "Average minimum temperature (C)", y = bquote('Total bill surface area scaled'  ~(mm^2)))+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+TBSMinC.plot
+#cowplot::save_plot("Plots/TBSMinC.plot.png", TBSMinC.plot, base_height = 4, base_width = 7)
+```
 ### Male TBS Model
 
 ```{r M.TBS.mdl}
@@ -742,6 +793,75 @@ TBS.fplot
 TBS.wrap <- ggarrange(TBSMinC.plot, TBS.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
 suppressWarnings(print(TBS.wrap))
 cowplot::save_plot("PaperPlots/TBS.wrap.png", TBS.wrap, base_height = 5, base_width = 10)
+```
+
+
+## Nestling TBS/Weight Ratio
+
+```{r TBSWeightRatioMinC.plot}
+TBSWeightRatioMinC.plot <- ggplot(data = df, aes(x=MinC8_22, y = TBSWeightRatio, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unsexed"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Total bill surface area/weight ratio")+
+  xlab("Average minimum temperature (C)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+suppressWarnings(print(TBSWeightRatioMinC.plot))
+```
+### Male TBSWeightRatio Model
+
+```{r M.TBSWeightRatio.mdl}
+M.TBSWeightRatio.mdl <- lm(TBSWeightRatio ~ MinC8_22 * PrecipSum8_22, data = M.scaled.df)
+summary(M.TBSWeightRatio.mdl)
+```
+
+### Female TBSWeightRatio Model
+
+```{r F.TBSWeightRatio.mdl}
+F.TBSWeightRatio.mdl <- lm(TBSWeightRatio ~ MinC8_22 * PrecipSum8_22, data = F.scaled.df)
+summary(F.TBSWeightRatio.mdl)
+```
+
+### All Nestlings TBSWeightRatio Model
+
+```{r A.TBSWeightRatio.mdl}
+A.TBSWeightRatio.mdl <- lm(TBSWeightRatio ~ MinC8_22 * PrecipSum8_22, data = scaled.df)
+summary(A.TBSWeightRatio.mdl)
+```
+
+### Data frames for TBSWeightRatio Forest Plot
+
+```{r TBSWeightRatio.dfs for fplot}
+M.TBSWeightRatio.df <- fplot_df(M.TBSWeightRatio.mdl, "Male", "TBSWeightRatio")
+F.TBSWeightRatio.df <- fplot_df(F.TBSWeightRatio.mdl, "Female", "TBSWeightRatio")
+A.TBSWeightRatio.df <- fplot_df(A.TBSWeightRatio.mdl, "All", "TBSWeightRatio")
+
+TBSWeightRatio.df <- rbind(M.TBSWeightRatio.df, F.TBSWeightRatio.df, A.TBSWeightRatio.df)
+```
+
+### TBSWeightRatio Forest Plot
+
+```{r TBSWeightRatio.fplot}
+TBSWeightRatio.fplot <- fplot(TBSWeightRatio.df)
+TBSWeightRatio.fplot
+#cowplot::save_plot("Plots/TBSWeightRatio.fplot.png", TBSWeightRatio.fplot, base_height = 4, base_width = 7)
+```
+
+### TBS Plots Wrapped
+
+```{r TBSWeightRatio.wrap}
+TBSWeightRatio.wrap <- ggarrange(TBSWeightRatioMinC.plot, TBSWeightRatio.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+suppressWarnings(print(TBSWeightRatio.wrap))
+cowplot::save_plot("PaperPlots/TBSWeightRatio.wrap.png", TBSWeightRatio.wrap, base_height = 5, base_width = 10)
 ```
 
 ## Nestling Total Exposed Culmen (TEC) 
