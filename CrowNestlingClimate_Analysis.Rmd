@@ -333,6 +333,109 @@ suppressWarnings(print(Tarsus.wrap))
 cowplot::save_plot("PaperPlots/Tarsus.wrap.png", Tarsus.wrap, base_height = 5, base_width = 10)
 ```
 
+## Nestling Skull
+
+### Skull by Minimum Temperature Plot
+
+```{r SkullMinC.plot}
+SkullMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = Skull, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unsexed"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  labs(x = "Average minimum temperature (C)", y = "Skull (mm)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+SkullMinC.plot
+#cowplot::save_plot("Plots/SkullMinC.plot.png", SkullMinC.plot, base_height = 4, base_width = 7)
+```
+
+### Male Skull Model
+
+```{r M.Skull.mdl}
+M.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
+summary(M.Skull.mdl)
+```
+
+### Female Skull Model
+
+```{r F.Skull.mdl}
+F.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
+summary(F.Skull.mdl)
+```
+
+### All Nestlings Skull Model
+
+```{r A.Skull.mdl}
+A.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.Skull.mdl)
+```
+
+### All nestlings Skull model with no interaction
+
+```{r A.SkullNoInter.mdl}
+A.SkullNoInter.mdl <- lm(Skull ~ MinC8_22 + PrecipSum8_22 + Weight, data = scaled.df)
+summary(A.SkullNoInter.mdl)
+```
+
+### All nestlings Skull model with only temperature and weight
+
+```{r A.SkullNoPrecip.mdl}
+A.SkullNoPrecip.mdl <- lm(Skull ~ MinC8_22 + Weight, data = scaled.df)
+summary(A.SkullNoPrecip.mdl)
+```
+
+### Data frames for Skull Forest Plot
+
+```{r Skull.dfs for fplot}
+M.Skull.df <- fplot_df(M.Skull.mdl, "Male", "Skull")
+F.Skull.df <- fplot_df(F.Skull.mdl, "Female", "Skull")
+A.Skull.df <- fplot_df(A.Skull.mdl, "All", "Skull")
+
+Skull.df <- rbind(M.Skull.df, F.Skull.df, A.Skull.df)
+```
+
+### Skull Forest Plot
+
+```{r Skull.fplot}
+Skull.fplot <- fplot(Skull.df)
+Skull.fplot
+#cowplot::save_plot("Plots/Skull.fplot.png", Skull.fplot, base_height = 4, base_width = 7)
+```
+
+###Skull Interaction plot 
+```{r Skull. interaction plot}
+Skull.Inter.plot <- plot_model(A.Skull.mdl, type = "int", mdrt.values = "quart")+
+  scale_color_manual(name="Precipitation levels",
+                    values=c("#D81B60","#FFC107","#1E88E5"),
+                    labels=c("Low","Median","High"))+
+  scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
+  ggtitle("")+
+  xlab("Average minimum temperature scaled (C)")+
+  ylab("Skull scaled (mm)")+
+  theme(plot.title = element_text(size = 14, hjust = 0.5),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 12),
+          axis.title.y = element_text(size = 14),
+          legend.position = c(0.2,0.8))
+Skull.Inter.plot
+```
+
+### Skull Plots Wrapped
+
+```{r Skull.wrap}
+Skull.wrap <- ggarrange(Skull.Inter.plot, Skull.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+suppressWarnings(print(Skull.wrap))
+cowplot::save_plot("PaperPlots/Skull.wrap.png", Skull.wrap, base_height = 5, base_width = 10)
+```
 
 ## Nestling Bill Depth
 
@@ -482,8 +585,8 @@ UB.Inter.plot <- plot_model(A.UB.mdl, type = "int", mdrt.values = "quart")+
                     labels=c("Low","Median","High"))+
   scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
   ggtitle("")+
-  xlab("Average minimum temperature (C) scaled")+
-  ylab("Upper Bill (mm) scaled")+
+  xlab("Average minimum temperature scaled (C)")+
+  ylab("Upper bill scaled (mm)")+
   theme(plot.title = element_text(size = 14, hjust = 0.5),
           axis.text.x = element_text(size = 12),
           axis.title.x = element_text(size = 14),
@@ -573,8 +676,7 @@ UBS.Inter.plot <- plot_model(A.UBS.mdl, type = "int", mdrt.values = "quart")+
                     labels=c("Low","Median","High"))+
   scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
   ggtitle("")+
-  xlab("Average minimum temperature (C) scaled")+
-  ylab("Upper bill surface area (mm^2) scaled")+
+  labs(x = "Average minimum temperature (C) scaled", y = bquote('Upper bill surface area scaled'  ~(mm^2)))+
   theme(plot.title = element_text(size = 14, hjust = 0.5),
           axis.text.x = element_text(size = 12),
           axis.title.x = element_text(size = 14),
@@ -593,29 +695,7 @@ cowplot::save_plot("PaperPlots/UBS.wrap.png", UBS.wrap, base_height = 5, base_wi
 ```
 
 
-## Nestling Total Bill Surface Area (Skull) 
-
-### Skull by Minimum Temperature Plot
-
-```{r SkullMinC.plot}
-TBSMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = TBS, color = Sex))+
-  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
-  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
-  scale_color_manual(name="",
-                    values=c("#E69F00","#56B4E9","#000000"),
-                    labels=c("Female","Male","Unknown"))+
-  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
-  labs(x = "Average minimum temperature (C)", y = bquote('Total bill surface area' ~(mm^2)))+
-  theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-TBSMinC.plot
-#cowplot::save_plot("Plots/TBSMinC.plot.png", TBSMinC.plot, base_height = 4, base_width = 7)
-```
+## Nestling Total Bill Surface Area  
 
 ### Male TBS Model
 
@@ -662,110 +742,6 @@ TBS.fplot
 TBS.wrap <- ggarrange(TBSMinC.plot, TBS.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
 suppressWarnings(print(TBS.wrap))
 cowplot::save_plot("PaperPlots/TBS.wrap.png", TBS.wrap, base_height = 5, base_width = 10)
-```
-
-## Nestling Skull
-
-### Skull by Minimum Temperature Plot
-
-```{r SkullMinC.plot}
-SkullMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = Skull, color = Sex))+
-  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
-  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
-  scale_color_manual(name="",
-                    values=c("#E69F00","#56B4E9","#000000"),
-                    labels=c("Female","Male","Unsexed"))+
-  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
-  labs(x = "Average minimum temperature (C)", y = "Skull (mm)")+
-  theme(plot.title = element_text(size = 16),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.y = element_text(size = 14),
-          legend.position = "top",
-          plot.margin = margin(15,15,15,15))
-SkullMinC.plot
-#cowplot::save_plot("Plots/SkullMinC.plot.png", SkullMinC.plot, base_height = 4, base_width = 7)
-```
-
-### Male Skull Model
-
-```{r M.Skull.mdl}
-M.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
-summary(M.Skull.mdl)
-```
-
-### Female Skull Model
-
-```{r F.Skull.mdl}
-F.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
-summary(F.Skull.mdl)
-```
-
-### All Nestlings Skull Model
-
-```{r A.Skull.mdl}
-A.Skull.mdl <- lm(Skull ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
-summary(A.Skull.mdl)
-```
-
-### All nestlings Skull model with no interaction
-
-```{r A.SkullNoInter.mdl}
-A.SkullNoInter.mdl <- lm(Skull ~ MinC8_22 + PrecipSum8_22 + Weight, data = scaled.df)
-summary(A.SkullNoInter.mdl)
-```
-
-### All nestlings Skull model with only temperature and weight
-
-```{r A.SkullNoPrecip.mdl}
-A.SkullNoPrecip.mdl <- lm(Skull ~ MinC8_22 + Weight, data = scaled.df)
-summary(A.SkullNoPrecip.mdl)
-```
-
-### Data frames for Skull Forest Plot
-
-```{r Skull.dfs for fplot}
-M.Skull.df <- fplot_df(M.Skull.mdl, "Male", "Skull")
-F.Skull.df <- fplot_df(F.Skull.mdl, "Female", "Skull")
-A.Skull.df <- fplot_df(A.Skull.mdl, "All", "Skull")
-
-Skull.df <- rbind(M.Skull.df, F.Skull.df, A.Skull.df)
-```
-
-### Skull Forest Plot
-
-```{r Skull.fplot}
-Skull.fplot <- fplot(Skull.df)
-Skull.fplot
-#cowplot::save_plot("Plots/Skull.fplot.png", Skull.fplot, base_height = 4, base_width = 7)
-```
-
-###Skull Interaction plot 
-```{r Skull. interaction plot}
-Skull.Inter.plot <- plot_model(A.Skull.mdl, type = "int", mdrt.values = "quart")+
-  scale_color_manual(name="Precipitation levels",
-                    values=c("#D81B60","#FFC107","#1E88E5"),
-                    labels=c("Low","Median","High"))+
-  scale_fill_manual(values = c("#D81B60","#FFC107","#1E88E5"))+
-  ggtitle("")+
-  xlab("Average minimum temperature (C) scaled")+
-  ylab("Skull (mm) scaled")+
-  theme(plot.title = element_text(size = 14, hjust = 0.5),
-          axis.text.x = element_text(size = 12),
-          axis.title.x = element_text(size = 14),
-          axis.text.y = element_text(size = 12),
-          axis.title.y = element_text(size = 14),
-          legend.position = c(0.2,0.8))
-Skull.Inter.plot
-```
-
-### Skull Plots Wrapped
-
-```{r Skull.wrap}
-Skull.wrap <- ggarrange(Skull.Inter.plot, Skull.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
-suppressWarnings(print(Skull.wrap))
-cowplot::save_plot("PaperPlots/Skull.wrap.png", Skull.wrap, base_height = 5, base_width = 10)
 ```
 
 ## Nestling Total Exposed Culmen (TEC) 
