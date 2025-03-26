@@ -148,7 +148,7 @@ breedingClim.df <- clim.df %>% #filtering weather data to include only 1 March-3
 median(breedingClim.df$MinC, na.rm=TRUE)
 min.plot <- ggplot(data = breedingClim.df, aes(x=as.factor(Year), y=MinC))+
   geom_boxplot()+
-  geom_hline(yintercept = 1.67, color = "red", linetype = "dotted", linewidth = 1)+
+  geom_hline(yintercept = 3.89, color = "red", linetype = "dotted", linewidth = 1)+
   ylab("Minimum Temperature (C)")+
   xlab("")+
   theme(axis.text.x = element_text(angle = 90))
@@ -256,7 +256,7 @@ Weight.fplot
 Weight.wrap <- ggarrange(WeightMinC.plot, Weight.fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
 Weight.wrap
 
-cowplot::save_plot("PaperPlots/Weight.wrap.png", Weight.wrap, base_height = 5, base_width = 10)
+#cowplot::save_plot("PaperPlots/Weight.wrap.png", Weight.wrap, base_height = 5, base_width = 10)
 ```
 ## Nestling WingChord
 
