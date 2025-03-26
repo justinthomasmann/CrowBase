@@ -128,6 +128,8 @@ scaled.df <- cbind(categorical.df,scaled.mat)
 
 ## Data frames for males, females and unknown sex
 
+We then subset the full data frame by sex to allow for modeling of the sexes separately.
+
 ```{r sexes data frames}
 #Males scaled
 M.scaled.df <- subset(scaled.df, Sex=="M")
@@ -192,6 +194,8 @@ BreedingClimate.wrap
 
 ## Weight by Age Plot
 
+As expected, nestling weight increases linearly with nestling age.
+
 ```{r WeightAge.plot}
 WeightAge.plot <- ggplot(data = df, aes(x = CalcAge, y = Weight, color = Sex))+
   geom_jitter(width = 0.2, shape = 1, size = 1.8)+
@@ -207,6 +211,8 @@ suppressWarnings(print(WeightAge.plot))
 ```
 
 ## Nestling Weight
+
+Next, we'll investigate whether climate affects nestling weight by plotting the relationship and then modeling it to see if any trends (patterns) that we see in the plot are statistically significant.
 
 ### Weight by Minimum Temperature Plot
 
@@ -230,6 +236,10 @@ WeightMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = Weight, color = Sex))
 suppressWarnings(print(WeightMinC.plot))
 #cowplot::save_plot("Plots/WeightMinC.plot.png", WeightMinC.plot, base_height = 4, base_width = 7)
 ```
+
+It looks like increasing minimum temperatures have a significant negative effect on nestling weight (for males, females and all nestlings combined), suggesting that heat stress negatively affects nestling growth during years with warmer temperatures.
+
+Now let's model the relationship for males, females, and all nestlings separately. Because these variables are continuous, we can stick with a simple linear model for data that trend towards a gaussian (normal) distribution.
 
 ### Male Weight Model
 
