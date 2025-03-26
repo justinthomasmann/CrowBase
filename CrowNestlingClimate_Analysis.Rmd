@@ -32,10 +32,14 @@ library(broom.mixed) #rstanarm_tidiers() for tidying stan model summaries
 theme_set(theme_classic()) #default plots with no gridlines
 ```
 
+This color palette was developed to ensure that individuals with colorblindness can see the contrast between all color combinations.
+
 ```{r colorblind accessible pallet}
 colorBlindPal  <- c("#000000", "#E69F00", "#56B4E9", "#009E73", 
                        "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 ```
+
+A function to created data frames needed to produce forest plots.
 
 ```{r dfs for fplot function}
 fplot_df <- function(model, dataset, metric) {
@@ -49,6 +53,8 @@ fplot_df <- function(model, dataset, metric) {
   return(df)
 }
 ```
+
+A function to create the forest plots.
 
 ```{r fplot function}
 fplot <- function(metric) {
@@ -78,8 +84,18 @@ fplot <- function(metric) {
 ```{r unscaled data}
 df <- read.csv("CrowNestlingClimate_UnscaledData_7.8.23.csv", h=TRUE)
 # n=2030 nestlings
-df$TBSWeightRatio <- df$TBS/df$Weight
+df$TBSWeightRatio <- df$TBS/df$Weight # adding a vector to hold the ratio of Total Bill Surface Area (TBS) to Weight
 ```
+
+This csv file contains morphological data on 2030 American Crow nestlings, measured between 1989-2022. The first 26 vectors represent the nestling data; the rest of the vectors (27- 46) contain data on the average minimum and maximum temperatures (C) and summed precipitation (cm) for different combinations of days between each nestling's hatch date and 22 days after the hatch date.
+
+For example, MaxC1_11 represents the average maximum temperature for each nestling's first 11 days post hatching.
+
+We used an R package called `climwin` to identify the climate metric and combination of days that explains the most variation in nestling growth, essentially identifying the range of days when the nestlings grew the most. We selected the best fit models for different climate metrics and different day ranges by comparing the models' Akaike's Information Criterion (AIC) values. AIC model comparison considers the number of estimated parameters (parsimony) and the maximum likelihood function for each model.
+
+In this method of model comparison, models with lower AIC values explain more variation in the data set than models with higher AIC values.
+
+The climate variable and day range that explained the most variation in nestling growth was the average minimum temperature between and 8-22 days post hatching.
 
 ## Import Weather Data
 
@@ -87,10 +103,13 @@ df$TBSWeightRatio <- df$TBS/df$Weight
 clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
 ```
 
+This csv file holds weather data from one Cornell University's weather stations. It includes data from 1989-2022.
+
 ## Data Scaling
 
 ### Normalize Continuous Data
-Subtract each value from the mean (center) and divide it by the standard deviation
+
+For each continuous vector, subtract each value from the mean (center) and divide it by the standard deviation. Since the continuous data were collected in a variety of units with different orders of magnitude, scaling the continuous data results in better fit models.
 
 ```{r scaling}
 #categorical data  
@@ -144,6 +163,7 @@ breedingClim.df <- clim.df %>% #filtering weather data to include only 1 March-3
 ```
 
 ## Plotting minimum temperature and precipitation across years
+
 ```{r plot median min temp}
 median(breedingClim.df$MinC, na.rm=TRUE)
 min.plot <- ggplot(data = breedingClim.df, aes(x=as.factor(Year), y=MinC))+
@@ -169,6 +189,7 @@ BreedingClimate.wrap <- ggarrange(min.plot,precip.plot, ncol = 1)
 cowplot::save_plot("PaperPlots/BreedingClimate.wrap.png", BreedingClimate.wrap, base_height = 8, base_width = 6)
 BreedingClimate.wrap
 ```
+
 ## Weight by Age Plot
 
 ```{r WeightAge.plot}
@@ -184,7 +205,6 @@ WeightAge.plot <- ggplot(data = df, aes(x = CalcAge, y = Weight, color = Sex))+
 suppressWarnings(print(WeightAge.plot))
 #cowplot::save_plot("Plots/WeightAge.plot.png", WeightAge.plot, base_height = 4, base_width = 7)
 ```
-
 
 ## Nestling Weight
 
@@ -258,6 +278,7 @@ Weight.wrap
 
 #cowplot::save_plot("PaperPlots/Weight.wrap.png", Weight.wrap, base_height = 5, base_width = 10)
 ```
+
 ## Nestling WingChord
 
 ```{r WingChord.df}
@@ -286,6 +307,7 @@ WingChordPrecip.plot <- ggplot(data = WingChord.df, aes(x = PrecipSum8_22, y = W
           plot.margin = margin(15,15,15,15))
 suppressWarnings(print(WingChordPrecip.plot))
 ```
+
 ### Male WingChord Model
 
 ```{r M.WingChord.mdl}
@@ -333,7 +355,7 @@ suppressWarnings(print(WingChord.wrap))
 cowplot::save_plot("PaperPlots/WingChord.wrap.png", WingChord.wrap, base_height = 5, base_width = 10)
 ```
 
-## Nestling Tarsus 
+## Nestling Tarsus
 
 ### Tarsus by Minimum Temperature Plot
 
@@ -372,14 +394,12 @@ F.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.d
 summary(F.Tarsus.mdl)
 ```
 
-
 ### All Nestlings Tarsus Model
 
 ```{r A.Tarsus.mdl}
 A.Tarsus.mdl <- lm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = scaled.df)
 summary(A.Tarsus.mdl)
 ```
-
 
 ### Data frames for Tarsus Forest Plots
 
@@ -484,7 +504,8 @@ Skull.fplot
 #cowplot::save_plot("Plots/Skull.fplot.png", Skull.fplot, base_height = 4, base_width = 7)
 ```
 
-###Skull Interaction plot 
+###Skull Interaction plot
+
 ```{r Skull. interaction plot}
 Skull.Inter.plot <- plot_model(A.Skull.mdl, type = "int", mdrt.values = "quart")+
   scale_color_manual(name="Precipitation levels",
@@ -510,7 +531,6 @@ Skull.wrap <- ggarrange(Skull.Inter.plot, Skull.fplot, ncol = 2, labels = c("A",
 suppressWarnings(print(Skull.wrap))
 cowplot::save_plot("PaperPlots/Skull.wrap.png", Skull.wrap, base_height = 5, base_width = 10)
 ```
-
 
 ## Nestling Bill Depth
 
@@ -543,7 +563,6 @@ BDMinC.plot
 M.BD.mdl <- lm(BD ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
 summary(M.BD.mdl)
 ```
-
 
 ### Female Bill Depth Model
 
@@ -585,7 +604,7 @@ suppressWarnings(print(BD.wrap))
 cowplot::save_plot("PaperPlots/BD.wrap.png", BD.wrap, base_height = 5, base_width = 10)
 ```
 
-## Nestling Upper Bill (UB) 
+## Nestling Upper Bill (UB)
 
 ### UB by Minimum Temperature Plot
 
@@ -617,14 +636,12 @@ M.UB.mdl <- lm(UB ~ MinC8_22 * PrecipSum8_22 + Weight, data = M.scaled.df)
 summary(M.UB.mdl)
 ```
 
-
 ### Female UB Model
 
 ```{r F.UB.mdl}
 F.UB.mdl <- lm(UB ~ MinC8_22 * PrecipSum8_22 + Weight, data = F.scaled.df)
 summary(F.UB.mdl)
 ```
-
 
 ### All Nestlings UB Model
 
@@ -679,8 +696,7 @@ suppressWarnings(print(UB.wrap))
 cowplot::save_plot("PaperPlots/UB.wrap.png", UB.wrap, base_height = 5, base_width = 10)
 ```
 
-
-## Nestling Upper Bill Surface Area (UBS) 
+## Nestling Upper Bill Surface Area (UBS)
 
 ### UBS by Minimum Temperature Plot
 
@@ -743,7 +759,8 @@ UBS.fplot
 #cowplot::save_plot("Plots/UBS.fplot.png", UBS.fplot, base_height = 4, base_width = 7)
 ```
 
-###UBS Interaction plot 
+###UBS Interaction plot
+
 ```{r UBS. interaction plot}
 UBS.Inter.plot <- plot_model(A.UBS.mdl, type = "int", mdrt.values = "quart")+
   scale_color_manual(name="Precipitation levels",
@@ -769,8 +786,7 @@ suppressWarnings(print(UBS.wrap))
 cowplot::save_plot("PaperPlots/UBS.wrap.png", UBS.wrap, base_height = 5, base_width = 10)
 ```
 
-
-## Nestling Total Bill Surface Area  
+## Nestling Total Bill Surface Area
 
 ### TBS by Minimum Temperature Plot
 
@@ -793,6 +809,7 @@ TBSMinC.plot <- ggplot(data = df, aes(x = MinC8_22, y = TBS, color = Sex))+
 TBSMinC.plot
 #cowplot::save_plot("Plots/TBSMinC.plot.png", TBSMinC.plot, base_height = 4, base_width = 7)
 ```
+
 ### Male TBS Model
 
 ```{r M.TBS.mdl}
@@ -840,7 +857,6 @@ suppressWarnings(print(TBS.wrap))
 cowplot::save_plot("PaperPlots/TBS.wrap.png", TBS.wrap, base_height = 5, base_width = 10)
 ```
 
-
 ## Nestling TBS/Weight Ratio
 
 ```{r TBSWeightRatioMinC.plot}
@@ -862,6 +878,7 @@ TBSWeightRatioMinC.plot <- ggplot(data = scaled.df, aes(x=MinC8_22, y = TBSWeigh
           plot.margin = margin(15,15,15,15))
 suppressWarnings(print(TBSWeightRatioMinC.plot))
 ```
+
 ### Male TBSWeightRatio Model
 
 ```{r M.TBSWeightRatio.mdl}
@@ -909,7 +926,7 @@ suppressWarnings(print(TBSWeightRatio.wrap))
 cowplot::save_plot("PaperPlots/TBSWeightRatio.wrap.png", TBSWeightRatio.wrap, base_height = 5, base_width = 10)
 ```
 
-## Nestling Total Exposed Culmen (TEC) 
+## Nestling Total Exposed Culmen (TEC)
 
 ### TEC by Minimum Temperature Plot
 
@@ -1020,7 +1037,7 @@ cowplot::save_plot("PaperPlots/TEC.wrap.png", TEC.wrap, base_height = 5, base_wi
 #TEC.wrap
 ```
 
-## Nestling Bill Nares to Tip (BNT) 
+## Nestling Bill Nares to Tip (BNT)
 
 ### BNT by Minimum Temperature Plot
 
@@ -1145,7 +1162,6 @@ B.BNT.fplot
 #annotation: Points are coefficient posterior means. Error bars are 90% posterior uncertainty intervals.
 ```
 
-
 ```{r A.BNT.fplot}
 A.BNT.fplot <- ggplot(data = A.BNT.df)+
     geom_errorbar(aes(x=term, ymin=conf.low, ymax=conf.high),
@@ -1183,6 +1199,7 @@ B.BNT.pred.df <- rbind(M.BNT.pred, F.BNT.pred)
 ```
 
 ###BNT Interaction plot (Female)
+
 ```{r F.BNT.Inter.plot}
 F.BNT.Inter.plot <- plot_model(F.BNT.bmdl, type = "int", mdrt.values = "quart")+
   scale_color_manual(name="Precipitation levels",
@@ -1202,6 +1219,7 @@ F.BNT.Inter.plot
 ```
 
 ###BNT by Min Temp (Male)
+
 ```{r B.BNT.CE.plot}
 M.BNT.CE.plot <- ggplot(data = M.BNT.pred, aes(x,predicted))+
   #geom_point(data = M.scaled.df, aes(x=MinC8_22, y=BNT), shape = 1)+
@@ -1236,6 +1254,7 @@ BNT.InterCE.wrap
 ```
 
 ##All bill metrics forest plots wrapped
+
 ```{r fplots wrapped}
 fplot.wrap <- ggarrange(B.UB.fplot,B.BD.fplot,B.BNT.fplot,B.UBS.fplot, ncol = 2, nrow = 2, labels = c("                       UB", "  BD", "                      BNT", " UBS"), widths = c(1.3,1), common.legend = TRUE)
 fplot.wrap <- annotate_figure(fplot.wrap, bottom = text_grob("Model parameter effect", size = 14))
@@ -1243,9 +1262,9 @@ cowplot::save_plot("PaperPlots/fplot.wrap.png", fplot.wrap, base_height = 8, bas
 ```
 
 ##All bill metrics plots wrapped
+
 ```{r fplots wrapped}
 BillPlots.wrap <- ggarrange(UB.Inter.wrap,B.BD.CE.plot,BNT.InterCE.wrap,UBS.InterCE.wrap, ncol = 2, nrow = 2)
 BillPlots.wrap <- annotate_figure(BillPlots.wrap, bottom = text_grob("Average minimum temperature scaled (C)", size = 14))
 cowplot::save_plot("PaperPlots/BillPlots.wrap.png", BillPlots.wrap, base_height = 15, base_width = 12)
 ```
-
