@@ -154,6 +154,8 @@ B.df <- rbind(F.df,M.df)
 
 ## Summarizing Weather across Years
 
+Here, I use dplyr functions to manipulated the climate data frame and create a subset that includes the months when crows are breeding in Ithaca.
+
 ```{r breedingClim.df}
 clim.df$Date <- as.Date(clim.df$Date)
 clim.df$Month <- lubridate::month(clim.df$Date)
@@ -237,7 +239,7 @@ suppressWarnings(print(WeightMinC.plot))
 #cowplot::save_plot("Plots/WeightMinC.plot.png", WeightMinC.plot, base_height = 4, base_width = 7)
 ```
 
-It looks like increasing minimum temperatures have a significant negative effect on nestling weight (for males, females and all nestlings combined), suggesting that heat stress negatively affects nestling growth during years with warmer temperatures.
+It looks like increasing minimum temperatures have a significant negative effect on nestling weight (for males, females and all nestlings combined), suggesting that there may be some trade off that affects nestling growth during years with warmer temperatures.
 
 Now let's model the relationship for males, females, and all nestlings separately. Because these variables are continuous, we can stick with a simple linear model for data that trend towards a gaussian (normal) distribution.
 
@@ -262,7 +264,7 @@ A.Weight.mdl <- lm(Weight ~ MinC8_22 * PrecipSum8_22, data = scaled.df)
 summary(A.Weight.mdl)
 ```
 
-### Dataframes for Weight Forest Plot
+### Data frames for Weight Forest Plot
 
 ```{r Weight.dfs for fplot}
 M.Weight.df <- fplot_df(M.Weight.mdl, "Male", "Weight")
@@ -288,6 +290,8 @@ Weight.wrap
 
 #cowplot::save_plot("PaperPlots/Weight.wrap.png", Weight.wrap, base_height = 5, base_width = 10)
 ```
+
+Forest plots are a popular way to show model results in figure form. The y-axis shows the different parameters of the model, and the x-axis represents the parameter's estimated effect on nestling weight. The points are the model estimates; the error bars are the 95% confidence intervals of the estimates. If the error bars do not intersect the dotted red line at zero, then the parameter's effect is statistically significant.
 
 ## Nestling WingChord
 
@@ -514,7 +518,7 @@ Skull.fplot
 #cowplot::save_plot("Plots/Skull.fplot.png", Skull.fplot, base_height = 4, base_width = 7)
 ```
 
-###Skull Interaction plot
+### Skull Interaction plot
 
 ```{r Skull. interaction plot}
 Skull.Inter.plot <- plot_model(A.Skull.mdl, type = "int", mdrt.values = "quart")+
@@ -678,7 +682,7 @@ UB.fplot
 #cowplot::save_plot("Plots/UB.fplot.png", UB.fplot, base_height = 4, base_width = 7)
 ```
 
-###Upper Bill interaction plot
+### Upper Bill interaction plot
 
 ```{r UB.interaction plot}
 UB.Inter.plot <- plot_model(A.UB.mdl, type = "int", mdrt.values = "quart")+
@@ -769,7 +773,7 @@ UBS.fplot
 #cowplot::save_plot("Plots/UBS.fplot.png", UBS.fplot, base_height = 4, base_width = 7)
 ```
 
-###UBS Interaction plot
+### UBS Interaction plot
 
 ```{r UBS. interaction plot}
 UBS.Inter.plot <- plot_model(A.UBS.mdl, type = "int", mdrt.values = "quart")+
