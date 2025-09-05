@@ -24,7 +24,6 @@ The goal is to identify the window of time that best explains variation in nestl
 # egB.df <- Mass 
 ```
 
-<br>
 
 ```{r data}
 # Nestling data sheet with updated climate metrics
@@ -36,7 +35,6 @@ clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=TRUE)
 # 12418 daily observations
 ```
 
-<br>
 
 ```{r date conversions}
 # Create a date that is 22 days post-hatch (climwin is programmed to look backwards in time from a specified date, not forwards)
@@ -120,7 +118,6 @@ nestl.scaled.df <- nestl.scaled.df %>%
 nestl.scaled.df <- na.omit(nestl.scaled.df)
 ```
 
-<br>
 
 Here, we're using the interaction between mean temperature and summed precipitation for days 12-22 to compare Bill depth models to identify which temperature metric explains the most variation (comparing delta AICc). We used days 12-22 because Anne suspects, given earlier growth curves, that the second week is more relevant.
 
