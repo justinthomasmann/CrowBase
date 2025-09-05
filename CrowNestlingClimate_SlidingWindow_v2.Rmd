@@ -23,9 +23,8 @@ The goal is to identify the window of time that best explains variation in nestl
 # egC.df <- MassClimate
 # egB.df <- Mass 
 ```
-<br>
 
- 
+<br>
 
 ```{r data}
 # Nestling data sheet with updated climate metrics
@@ -36,8 +35,8 @@ df <- read.csv("CrowNestlingClimate_UnscaledData_7.8.23.csv", h=TRUE)
 clim.df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=TRUE)
 # 12418 daily observations
 ```
-<br>
 
+<br>
 
 ```{r date conversions}
 # Create a date that is 22 days post-hatch (climwin is programmed to look backwards in time from a specified date, not forwards)
@@ -66,11 +65,9 @@ df <- df %>%
   relocate(HatchDatePlus22, .after = HatchDatePlus22JulYear)
 ```
 
-
 ## Normalizing continuous data
 
 R's scale function subtracts each value from the mean (centers) and divide it by the standard deviation (scales).
-
 
 ```{r scaling data}
 
@@ -95,8 +92,8 @@ nestl.scaled.df <- scaled.df[,1:28]
 clim.mat <- scale(clim.df[,5:11])
 clim.scaled.df <- cbind(clim.df[,1:4],clim.mat)
 ```
-<br>
 
+<br>
 
 ```{r formatting dates for climwin compatability}
 
@@ -122,6 +119,7 @@ nestl.scaled.df <- nestl.scaled.df %>%
   relocate(bDate, .after = HatchDatePlus22)
 nestl.scaled.df <- na.omit(nestl.scaled.df)
 ```
+
 <br>
 
 Here, we're using the interaction between mean temperature and summed precipitation for days 12-22 to compare Bill depth models to identify which temperature metric explains the most variation (comparing delta AICc). We used days 12-22 because Anne suspects, given earlier growth curves, that the second week is more relevant.
@@ -139,9 +137,7 @@ aictab(cand.set = clim.null.mdls, modnames = clim.null.modnames, sort = TRUE)
 summary(MinC.null.mdl)
 ```
 
-
 Here, we're comparing different nestling measurements to see which should be used for the sliding window analysis. We'll use the measurement that explains the most variation (comparing r squared)
-
 
 ```{r bill metric model comparison}
 MinC.BD.null.mdl <- lm(data = scaled.df, BD ~ MinC12_22 * PrecipSum12_22 + Weight)
@@ -178,11 +174,10 @@ summary(MinC.TBS1.null.mdl)$r.squared
 
 ```
 
-
-
 ## TBS sliding window
 
 MinC
+
 ```{r TBS.window.min}
 TBS.window.min <- slidingwin(xvar = list(MinC = clim.scaled.df$MinC),
            exclude = c(4,0), #exclude windows shorter than 4 days
@@ -208,6 +203,7 @@ plotdelta(dataset = TBS.window.min.out))
 ```
 
 ## BD sliding window
+
 ```{r bd.window.min}
 bd.window.min <- slidingwin(xvar = list(MaxC= clim.scaled.df$MinC),
            exclude = c(4,0), #exclude windows shorter than 4 days
@@ -226,14 +222,10 @@ bd.window.min[[1]]$Dataset
 bd.window.min[[1]]$BestModel
 medwin(dataset = bd.window.min.out, cw = 0.8)
 ```
+
 <br>
 
 ```{r bd.window.min plots}
 ggarrange(plotweights(dataset = bd.window.min.out, cw1 = 0.95, cw2 = 0.75, cw3 = 0.25),
 plotdelta(dataset = bd.window.min.out))
 ```
-
-
-
-
-
