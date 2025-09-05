@@ -6,26 +6,195 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r libraries, results="hide", warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggpubr) #ggarrange for plot wraps
+library(bbmle) #AICtab() for model comparison
+library(DHARMa) #model validation functions
+library(DHARMa) #Model validation
+library(mgcv)
+library(mgcViz)
+
+theme_set(theme_classic()) #default plots with no gridlines
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+This color palette was developed to ensure that individuals with colorblindness can see the contrast between all color combinations.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r colorblind accessible pallet}
+colorBlindPal  <- c("#000000", "#E69F00", "#56B4E9", "#009E73", 
+                       "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+## Import Nestling Data
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r unscaled data}
+df <- read.csv("CrowNestlingClimate_UnscaledData_7.8.23.csv", h=TRUE)
+# n=2030 nestlings
+df$TBSWeightRatio <- df$TBS/df$Weight # adding a vector to hold the ratio of Total Bill Surface Area (TBS) to Weight
+head(df)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+## Import Weather Data
+
+```{r clim.df}
+clim_df <- read.csv("ClimateMetrics_AllMonths1989-2022.csv", h=T)
+```
+
+
+## Data Scaling
+
+### Normalize Continuous Data
+
+For each continuous vector, subtract each value from the mean (center) and divide it by the standard deviation. Since the continuous data were collected in a variety of units with different orders of magnitude, scaling the continuous data results in better fit models.
+
+```{r scaling}
+#categorical data  
+categorical_df <- df[,1:11]
+
+#continuous data
+continuous_df <- df[,12:47]
+
+#scale continuous data
+#?scale()
+scaled_mat <- scale(continuous_df, center = TRUE, scale = TRUE)
+
+#join unscaled and scaled data
+scaled_df <- cbind(categorical_df,scaled_mat)
+```
+
+## Data frames for males, females and unknown sex
+
+I then subset the full data frame by sex to allow for modeling of the sexes separately.
+
+```{r sexes data frames}
+#Males scaled
+M_scaled_df <- subset(scaled_df, Sex=="M")
+#Males unscaled
+M_df <- subset(df, Sex=="M")
+
+#Females scaled
+F_scaled_df <- subset(scaled_df, Sex=="F")
+#Females unscaled
+F_df <- subset(df, Sex=="F")
+
+#Unsexed scaled
+U_scaled_df <- subset(scaled_df, Sex=="U")
+#Unsexed unscaled
+U_df <- subset(df, Sex=="U")
+
+#Both sexes scaled
+B_scaled_df <- rbind(F_scaled_df,M_scaled_df)
+#Both sexes unscaled
+B_df <- rbind(F_df,M_df)
+```
+
+
+## Summarizing Weather across Years
+
+Here, I use dplyr functions to manipulated the climate data frame and create a subset that includes the months when crows are breeding in Ithaca.
+
+```{r breedingClim_df}
+clim_df$Date <- as.Date(clim_df$Date)
+clim_df$Month <- lubridate::month(clim_df$Date)
+clim_df <- clim_df %>% 
+  relocate(Month, .after = Year)
+breedingClim_df <- clim_df %>% #filtering weather data to include only 1 March-30 June
+  filter(between(Month, 3,6)) %>% 
+  filter(between(JulDay, 60,181))
+```
+
+## Plotting minimum temperature and precipitation during the breeding season across years
+
+```{r plot median min temp}
+median(breedingClim_df$MinC, na.rm=TRUE)
+min_plot <- ggplot(data = breedingClim_df, aes(x=as.factor(Year), y=MinC))+
+  geom_boxplot()+
+  geom_hline(yintercept = 3.89, color = "red", linetype = "dotted", linewidth = 1)+
+  ylab("Minimum Temperature (C)")+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+
+```{r plot precip}
+median(breedingClim_df$PrecipCM, na.rm=TRUE)
+precip_plot <- ggplot(data = clim_df, aes(x=as.factor(Year), y=PrecipCM))+
+  geom_boxplot()+
+  geom_hline(yintercept = 0.025, color = "red", linetype = "dotted", linewidth = 1)+
+  ylab("Precipitation (cm)")+
+  xlab("")+
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+```{r wrap climate plots, out.width='100%'}
+BreedingClimate_wrap <- ggarrange(min_plot,precip_plot, ncol = 1)
+BreedingClimate_wrap
+```
+
+
+### Weight by Minimum Temperature Plot
+
+```{r WeightMinC_plot}
+WeightMinC_plot <- ggplot(data = df, aes(x = MinC8_22, y = Weight, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="lm", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unsexed"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Weight (g)")+
+  xlab("Average minimum temperature (C)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+suppressWarnings(print(WeightMinC_plot))
+#cowplot::save_plot("Plots/WeightMinC_plot.png", WeightMinC_plot, base_height = 4, base_width = 7)
+```
+
+
+### Male Weight Model
+
+```{r M_Weight_mdl}
+M_Weight_mdl <- lm(Weight ~ MinC8_22 * PrecipSum8_22, data = M_scaled_df)
+summary(M_Weight_mdl)
+```
+
+
+```{r M_Weight model validation}
+M_Weight_simres <- simulateResiduals(M_Weight_mdl, n = 1000, plot = TRUE)
+```
+
+The nonsignificant KS test verifies that the distribution of the residuals is sufficiently normal (p = 0.0536); the nonsignificant Dispersion test verifies that the data are not over or under dispersed (0.932); and the nonsignificant Outlier test verifies that any outliers in the data are not significantly impacting the model results.
+
+
+### Female Weight Model
+
+```{r F_Weight_mdl}
+F_Weight_mdl <- lm(Weight ~ MinC8_22 * PrecipSum8_22, data = F_scaled_df)
+summary(F_Weight_mdl)
+```
+
+
+```{r F_Weight model validation}
+F_Weight_simres <- simulateResiduals(F_Weight_mdl, n = 1000, plot = TRUE)
+```
+
+
+### All Nestlings Weight Model
+
+```{r A_Weight_mdl}
+A_Weight_mdl <- lm(Weight ~ MinC8_22 * PrecipSum8_22, data = scaled_df)
+summary(A_Weight_mdl)
+```
+
+
+```{r A_Weight_mdl validation}
+A_Weight_simres <- simulateResiduals(A_Weight_mdl, n = 1000, plot = TRUE)
+```
