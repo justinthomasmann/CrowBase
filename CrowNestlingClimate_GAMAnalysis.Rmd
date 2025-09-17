@@ -8,10 +8,10 @@ output: html_document
 
 ```{r libraries, results="hide", warning=FALSE, message=FALSE}
 library(tidyverse)
+library(broom) #tidy() to create tibbles from model summaries
 library(ggpubr) #ggarrange for plot wraps
 library(bbmle) #AICtab() for model comparison
 library(DHARMa) #model validation functions
-library(DHARMa) #Model validation
 library(mgcv)
 library(mgcViz)
 
@@ -24,6 +24,48 @@ This color palette was developed to ensure that individuals with colorblindness 
 ```{r colorblind accessible pallet}
 colorBlindPal  <- c("#000000", "#E69F00", "#56B4E9", "#009E73", 
                        "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+```
+
+
+A function to created data frames needed to produce forest plots.
+
+```{r dfs for fplot function}
+fplot_df <- function(model, dataset, metric) {
+  df <- tidy(model, quick = FALSE)
+  ci <- as_tibble(confint(model))
+  df$ci.lower <- ci$`2.5 %`
+  df$ci.upper <- ci$`97.5 %`
+  df$Dataset <- dataset
+  df$Metric <- metric
+  df <- df[-1,]
+  return(df)
+}
+```
+
+
+A function to create the forest plots.
+
+```{r fplot function}
+fplot <- function(metric) {
+    ggplot(data = metric) +
+        geom_errorbar(aes(x = term, ymin = ci.lower, ymax = ci.upper, color = Dataset),
+                      linewidth = 1, width = 0.3, position = position_dodge(width = 0.4)) +
+        geom_point(aes(x = term, y = estimate, color = Dataset), 
+                   shape = 16, size = 3, position = position_dodge(width = 0.4)) +
+        scale_color_manual(name = "", values = c("#000000", "#E69F00", "#56B4E9"),
+                           labels = c("All", "Female", "Male")) +
+        coord_flip() +
+        geom_hline(yintercept = 0, color = "red", size = 1, linetype = "dotted") +
+        scale_x_discrete(labels = c("Min Temp", "Min Temp * Precip", "Precip","Weight")) +
+        ylab("Parameter estimate") +
+        theme(plot.title = element_text(size = 16),
+              axis.text.x = element_text(size = 12),
+              axis.title.x = element_text(size = 14),
+              axis.text.y = element_text(size = 14),
+              axis.title.y = element_blank(),
+              legend.position = "top",
+              plot.margin = margin(15, 15, 15, 15))
+}
 ```
 
 
@@ -198,3 +240,82 @@ summary(A_Weight_mdl)
 ```{r A_Weight_mdl validation}
 A_Weight_simres <- simulateResiduals(A_Weight_mdl, n = 1000, plot = TRUE)
 ```
+
+
+### Data frames for Weight Forest Plot
+
+```{r Weight_dfs for fplot}
+M_Weight_df <- fplot_df(M_Weight_mdl, "Male", "Weight")
+F_Weight_df <- fplot_df(F_Weight_mdl, "Female", "Weight")
+A_Weight_df <- fplot_df(A_Weight_mdl, "All", "Weight")
+
+Weight_df <- rbind(M_Weight_df, F_Weight_df, A_Weight_df)
+```
+
+### Weight Forest Plot
+
+```{r Weight_fplot}
+Weight_fplot <- fplot(Weight_df)
+Weight_fplot
+```
+
+
+### Weight Plots Wrapped
+
+```{r Weight_wrap, out.width='100%'}
+Weight_wrap <- ggarrange(WeightMinC_plot, Weight_fplot, ncol = 2, labels = c("A","B"), widths = c(1.6,1.4))
+Weight_wrap
+```
+
+## How does weather affect nestling tarsus growth?
+
+### Tarsus by Minimum Temperature Plot
+
+```{r TarsusMinC_plot}
+TarsusMinC_plot <- ggplot(data = df, aes(x = MinC8_22, y = Tarsus, color = Sex))+
+  geom_jitter(width = 0.2, shape = 1, size = 1.8)+
+  geom_smooth(method="loess", aes(fill = Sex), alpha = 0.2)+
+  scale_color_manual(name="",
+                    values=c("#E69F00","#56B4E9","#000000"),
+                    labels=c("Female","Male","Unsexed"))+
+  scale_fill_manual(values = c("#E69F00","#56B4E9","#000000"), guide = "none")+
+  ylab("Tarsus (mm)")+
+  xlab("Average minimum temperature (C)")+
+  theme(plot.title = element_text(size = 16),
+          axis.text.x = element_text(size = 12),
+          axis.title.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title.y = element_text(size = 14),
+          legend.position = "top",
+          plot.margin = margin(15,15,15,15))
+suppressWarnings(print(TarsusMinC_plot))
+```
+
+
+### Male Tarsus Model
+
+```{r M_Tarsus_mdl}
+M_Tarsus_mdl <- glm(Tarsus ~ MinC8_22 * PrecipSum8_22 + Weight, data = M_scaled_df)
+summary(M_Tarsus_mdl)
+```
+
+```{r M_Tarsus_mdl validation}
+M_Tasus_simres <- simulateResiduals(M_Tarsus_mdl, n = 1000, plot = TRUE)
+```
+The male tarsus model fails the DHARMa outlier test. 
+
+
+```{r M_Tarsus_gam_mdl}
+M_Tarsus_gam_mdl <- gam(Tarsus ~ s(MinC8_22) + s(PrecipSum8_22) + te(MinC8_22, PrecipSum8_22) + s(Weight), family = scat, data = M_scaled_df)
+summary(M_Tarsus_gam_mdl)
+```
+The GAM model recognizes a significantly non-linear effect of precipitation on male tarsus growth.
+
+
+Using the getViz function from mgcViz package to view the partial effects of each model parameter.
+```{r M_Tarsus_gam_mdl viz}
+M_Tarsus_gam_viz <- getViz(M_Tarsus_gam_mdl)
+plot(M_Tarsus_gam_viz)
+```
+
+
