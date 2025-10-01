@@ -109,7 +109,6 @@ scaled_df <- cbind(categorical_df,scaled_mat)
 
 ## Data frames for males, females and unknown sex
 
-I then subset the full data frame by sex to allow for modeling of the sexes separately.
 
 ```{r sexes data frames}
 #Males scaled
@@ -213,7 +212,18 @@ summary(M_Weight_mdl)
 M_Weight_simres <- simulateResiduals(M_Weight_mdl, n = 1000, plot = TRUE)
 ```
 
-The nonsignificant KS test verifies that the distribution of the residuals is sufficiently normal (p = 0.0536); the nonsignificant Dispersion test verifies that the data are not over or under dispersed (0.932); and the nonsignificant Outlier test verifies that any outliers in the data are not significantly impacting the model results.
+```{r M_Weight_nointer_mdl}
+M_Weight_nointer_mdl <- lm(Weight ~ MinC8_22 + PrecipSum8_22, data = M_scaled_df)
+summary(M_Weight_nointer_mdl)
+```
+Removing the interaction in the male weight model has no significant impact on the results.
+
+
+```{r M_Weight_nointer model validation}
+M_Weight_simres <- simulateResiduals(M_Weight_nointer_mdl, n = 1000, plot = TRUE)
+```
+
+Without the interaction between temp & precip in the male weight model, the KS test becomes significant, while it is non significant when the interaction is included. 
 
 
 ### Female Weight Model
@@ -229,6 +239,20 @@ F_Weight_simres <- simulateResiduals(F_Weight_mdl, n = 1000, plot = TRUE)
 ```
 
 
+```{r F_Weight_nointer_mdl}
+F_Weight_nointer_mdl <- lm(Weight ~ MinC8_22 + PrecipSum8_22, data = F_scaled_df)
+summary(F_Weight_nointer_mdl)
+```
+Removing the interaction in the female weight model has no significant impact on the results. 
+
+
+```{r F_Weight_nointer model validation}
+F_Weight_simres <- simulateResiduals(F_Weight_nointer_mdl, n = 1000, plot = TRUE)
+```
+
+For females, the model without an interaction still has non significant validation tests.
+
+
 ### All Nestlings Weight Model
 
 ```{r A_Weight_mdl}
@@ -241,6 +265,17 @@ summary(A_Weight_mdl)
 A_Weight_simres <- simulateResiduals(A_Weight_mdl, n = 1000, plot = TRUE)
 ```
 
+
+```{r A_Weight_nointer_mdl}
+A_Weight_nointer_mdl <- lm(Weight ~ MinC8_22 + PrecipSum8_22, data = scaled_df)
+summary(A_Weight_nointer_mdl)
+```
+Removing the interaction in the all nestling weight model has no significant impact on the results.
+
+```{r A_Weight_nointer_mdl validation}
+A_Weight_simres <- simulateResiduals(A_Weight_nointer_mdl, n = 1000, plot = TRUE)
+```
+For all nestlings, the model without an interaction the validation tests remain non significant.
 
 ### Data frames for Weight Forest Plot
 
