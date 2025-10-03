@@ -27,8 +27,7 @@ colorBlindPal  <- c("#000000", "#E69F00", "#56B4E9", "#009E73",
 ```
 
 
-A function to created data frames needed to produce forest plots.
-
+A function to created data frames needed to produce forest plots for linear models.
 ```{r dfs for fplot function}
 fplot_df <- function(model, dataset, metric) {
   df <- tidy(model, quick = FALSE)
@@ -43,8 +42,7 @@ fplot_df <- function(model, dataset, metric) {
 ```
 
 
-A function to create the forest plots.
-
+A function to create the forest plots for linear models.
 ```{r fplot function}
 fplot <- function(metric) {
     ggplot(data = metric) +
@@ -67,6 +65,65 @@ fplot <- function(metric) {
               plot.margin = margin(15, 15, 15, 15))
 }
 ```
+
+A function to create dataframes for GAM predictions.
+```{r make_gam_pred_df function}
+make_gam_pred_df <- function(dataframe, model, focal_var, length_out = 200) {
+  # Check focal variable exists
+  if (!focal_var %in% names(dataframe)) {
+    stop(paste("Variable", focal_var, "not found in dataframe."))
+  }
+  
+  # Build new data frame
+  pred_df <- as.data.frame(lapply(dataframe, function(x) {
+    if (is.numeric(x)) mean(x, na.rm = TRUE) else unique(x)[1]
+  }))
+  
+  # Replace focal variable with sequence
+  pred_df <- pred_df[rep(1, length_out), ]  # replicate row
+  pred_df[[focal_var]] <- seq(
+    min(dataframe[[focal_var]], na.rm = TRUE),
+    max(dataframe[[focal_var]], na.rm = TRUE),
+    length.out = length_out
+  )
+  
+  # Predict with standard errors
+  pred <- predict(model, newdata = pred_df, type = "response", se.fit = TRUE)
+  
+  pred_df$fit <- pred$fit
+  pred_df$se <- pred$se.fit
+  pred_df$upper <- pred_df$fit + 2 * pred_df$se
+  pred_df$lower <- pred_df$fit - 2 * pred_df$se
+  
+  return(pred_df)
+}
+```
+
+
+A function to create GAM effect plots
+```{r plot_gam_effect function}
+plot_gam_effect <- function(model, dataframe, focal_var, response_var,
+                            xlab = NULL, ylab = NULL, color = "#56B4E9") {
+  # Build prediction dataframe
+  pred_df <- make_gam_pred_df(dataframe, model, focal_var)
+  
+  # Default axis labels
+  if (is.null(xlab)) xlab <- focal_var
+  if (is.null(ylab)) ylab <- response_var
+  
+  # Build plot
+  p <- ggplot(pred_df, aes_string(x = focal_var, y = "fit")) +
+    geom_line(size = 1.2, color = color) +
+    geom_ribbon(aes(ymin = lower, ymax = upper), fill = color, alpha = 0.2) +
+    geom_point(data = dataframe,
+               aes_string(x = focal_var, y = response_var),
+               shape = 1) +
+    labs(x = xlab, y = ylab)
+  
+  return(p)
+}
+```
+
 
 
 ## Import Nestling Data
@@ -226,6 +283,11 @@ M_Weight_simres <- simulateResiduals(M_Weight_nointer_mdl, n = 1000, plot = TRUE
 Without the interaction between temp & precip in the male weight model, the KS test becomes significant, while it is non significant when the interaction is included. 
 
 
+```{r M_Weight models AIC comparison}
+AIC(M_Weight_nointer_mdl, M_Weight_mdl)
+```
+There is a 1.45 AIC value difference between the M_Weight_nointer_mdl & M_Weight_mdl and thus on strong evidence that one model fits better than the other. Since the no interaction model (M_Weight_nointer_mdl) residuals deviate from a normal distribution and there is no significant change in the result, we will stick with the interaction model (M_Weight_mdl). 
+
 ### Female Weight Model
 
 ```{r F_Weight_mdl}
@@ -340,6 +402,22 @@ M_Tasus_simres <- simulateResiduals(M_Tarsus_mdl, n = 1000, plot = TRUE)
 The male tarsus model fails the DHARMa outlier test. 
 
 
+```{r M_Tarsus_nointer_mdl}
+M_Tarsus_nointer_mdl <- glm(Tarsus ~ MinC8_22 + PrecipSum8_22 + Weight, data = M_scaled_df)
+summary(M_Tarsus_nointer_mdl)
+```
+
+
+```{r M_Tarsus_nointer_mdl validation}
+M_Tasus_nointer_simres <- simulateResiduals(M_Tarsus_nointer_mdl, n = 1000, plot = TRUE)
+```
+
+
+```{r M_Tarsus AIC comparison}
+AIC(M_Tarsus_mdl,M_Tarsus_nointer_mdl)
+```
+
+
 ```{r M_Tarsus_gam_mdl}
 M_Tarsus_gam_mdl <- gam(Tarsus ~ s(MinC8_22) + s(PrecipSum8_22) + te(MinC8_22, PrecipSum8_22) + s(Weight), family = scat, data = M_scaled_df)
 summary(M_Tarsus_gam_mdl)
@@ -347,10 +425,35 @@ summary(M_Tarsus_gam_mdl)
 The GAM model recognizes a significantly non-linear effect of precipitation on male tarsus growth.
 
 
+```{r M_Tarsus_nointer_gam_mdl}
+M_Tarsus_nointer_gam_mdl <- gam(Tarsus ~ s(MinC8_22) + s(PrecipSum8_22) + s(Weight), family = scat, data = M_scaled_df)
+summary(M_Tarsus_nointer_gam_mdl)
+```
+Removing the GAM interaction term does not change the significance of the other parameters, so we will keep the interaction term. 
+
+
 Using the getViz function from mgcViz package to view the partial effects of each model parameter.
 ```{r M_Tarsus_gam_mdl viz}
 M_Tarsus_gam_viz <- getViz(M_Tarsus_gam_mdl)
 plot(M_Tarsus_gam_viz)
 ```
+
+
+```{r M_Tarsus gam pred df}
+M_Tarsus_gam_pred_df <- make_gam_pred_df(dataframe = M_scaled_df, model = M_Tarsus_gam_mdl, focal_var = "PrecipSum8_22")
+```
+
+
+```{r M_Tarsus gam effect plot}
+plot_gam_effect(model = M_Tarsus_gam_mdl,
+                dataframe = M_scaled_df,
+                focal_var = "PrecipSum8_22",
+                response_var = "Tarsus",
+                xlab = "Scaled precipitation",
+                ylab = "Scaled tarsus length")
+```
+
+
+
 
 
